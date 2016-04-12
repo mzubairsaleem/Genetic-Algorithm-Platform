@@ -1,0 +1,4 @@
+interface IGene extends ISerializable
+{
+
+}
