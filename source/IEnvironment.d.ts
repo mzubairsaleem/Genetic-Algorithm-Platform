@@ -3,6 +3,6 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-interface IPopulation {
-	
+interface IEnvironment
+{
 }

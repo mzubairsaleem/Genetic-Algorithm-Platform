@@ -8,9 +8,13 @@
 
 abstract class Genome implements IGenome {
 
+	root:IGene;
+
 	fitness:IMap<number>;
 
 	abstract compareTo(other:Genome):number;
+
+	abstract serialize():string;
 }
 
 export default Genome;
