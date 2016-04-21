@@ -3,15 +3,21 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-///<reference path="IEnvironment.d.ts"/>
 ///<reference path="IGenome.d.ts"/>
-///<reference path="../node_modules/typescript-dotnet/source/System/Collections/IReadOnlyCollection.d.ts"/>
-
-interface IOrganism<TGenome extends IGenome, T extends IProblem<TGenome>>
+interface IOrganism<TGenome extends IGenome, TFitness>
 {
+	/**
+	 * Uniquely identifies this organism in relation to it's peers.
+	 */
+	hash:string;
+
+	/**
+	 * The serializable genetic code that makes up the organism.
+	 */
 	genome:IGenome;
 
-	process(problem:T):void;
-
-	results:IReadOnlyCollection<number>;
+	/**
+	 * Fitness could be anything.  A number, a collection of numbers, a map of numbers. It's up to the developer.
+	 */
+	fitness:TFitness;
 }

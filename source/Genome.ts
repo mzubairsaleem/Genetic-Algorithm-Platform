@@ -6,15 +6,46 @@
 ///<reference path="../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/IDictionary.d.ts"/>
 ///<reference path="IGenome.d.ts"/>
 
-abstract class Genome implements IGenome {
+import GeneBase from "./GeneBase";
+abstract class Genome implements IGenome, ICloneable<Genome>
+{
 
-	root:IGene;
+	private _root:GeneBase;
+	get root():GeneBase
+	{
+		return this._root;
+	}
 
-	fitness:IMap<number>;
+	set root(value:GeneBase)
+	{
+		this._hash = null;
+		this._root = value;
+	}
+
+	get genes():GeneBase[]
+	{
+		var root = this._root;
+		if(!root) return [];
+
+		return root.descendants.copyTo([root],1);
+	}
 
 	abstract compareTo(other:Genome):number;
 
 	abstract serialize():string;
+
+	private _hash:string;
+	get hash():string
+	{
+		return this._hash || (this._hash = this.serialize());
+	}
+
+	toString():string
+	{
+		return this.hash;
+	}
+
+	abstract clone():Genome;
 }
 
 export default Genome;

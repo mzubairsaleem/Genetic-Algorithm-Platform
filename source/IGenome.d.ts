@@ -10,4 +10,6 @@
 interface IGenome extends ISerializable, IComparable<IGenome>
 {
 	root:IGene;
+	genes:IGene[];
+	hash:string;
 }

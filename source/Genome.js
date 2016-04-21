@@ -14,6 +14,37 @@
     var Genome = (function () {
         function Genome() {
         }
+        Object.defineProperty(Genome.prototype, "root", {
+            get: function () {
+                return this._root;
+            },
+            set: function (value) {
+                this._hash = null;
+                this._root = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Genome.prototype, "genes", {
+            get: function () {
+                var root = this._root;
+                if (!root)
+                    return [];
+                return root.descendants.copyTo([root], 1);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Genome.prototype, "hash", {
+            get: function () {
+                return this._hash || (this._hash = this.serialize());
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Genome.prototype.toString = function () {
+            return this.hash;
+        };
         return Genome;
     }());
     Object.defineProperty(exports, "__esModule", { value: true });

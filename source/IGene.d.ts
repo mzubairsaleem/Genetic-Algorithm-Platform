@@ -4,8 +4,12 @@
  */
 
 ///<reference path="../node_modules/typescript-dotnet/source/System/Serialization/ISerializable.d.ts"/>
+///<reference path="../node_modules/typescript-dotnet/source/System/ICloneable.d.ts"/>
 
-interface IGene extends ISerializable
+interface IGene extends ISerializable, ICloneable<IGene>
 {
+	children:IGene[];
+	descendants:IEnumerable<IGene>;
 
+	clone():IGene;
 }
