@@ -1,6 +1,8 @@
 ///<reference path="../../../node_modules/typescript-dotnet/source/System/FunctionTypes"/>
 
 import * as Enumerable from "../../../node_modules/typescript-dotnet/source/System.Linq/Linq";
+import * as Procedure from "../../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure";
+import Integer from "../../../node_modules/typescript-dotnet/source/System/Integer";
 import AlgebraGene from "../Gene";
 import ConstantGene from "./ConstantGene";
 
@@ -11,14 +13,47 @@ const ADDITION:string = "+", // Subtraction is simply a negative multiplier.
 
 type OperatorString = ADDITION | MULTIPLICATION | DIVISION | SQUARE_ROOT;
 
+const AvailableOperators:OperatorString[] = Object.freeze([ADDITION, MULTIPLICATION, DIVISION]);
+const AvailableFunctions:OperatorString[] = Object.freeze([ SQUARE_ROOT ]);
+
 function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult {
 	return b.multiple > a.multiple || b.toString() > a.toString();
 }
 
+function parenGroup(contents:string):string {
+	return "("+contents+")";
+}
+
+function getRandomFrom<T>(source:T[], excluding?:T):T
+{
+	return Integer.random.select(excluding===void(0) ? source : source.filter(v=>v!==excluding));
+}
+
+
+function getRandomFromExcluding<T>(source:T[], excluding:IEnumerableOrArray<T>):T
+{
+	var options:T[];
+	if(excluding) {
+		var ex = Enumerable.from(excluding).memoize();
+		options = source.filter(v=>!ex.contains(v));
+	} else {
+		options = source;
+	}
+
+	return getRandomFrom(options);
+}
+
+
+
 class OperatorGene extends AlgebraGene
 {
 
-	private _operator:OperatorString;
+	constructor(
+		private _operator:OperatorString,
+		multiple:number = 1) {
+		super(multiple)
+	}
+
 	get operator():OperatorString
 	{
 		return this._operator;
@@ -63,9 +98,9 @@ class OperatorGene extends AlgebraGene
 				.groupBy(g=>g.toStringContents())
 				.where(g=>g.count()>1)
 				.forEach(p=>{
-					var pa = p.memoize();
+					let pa = p.memoize();
 
-					switch (OperatorString)
+					switch (this.operator)
 					{
 						case ADDITION:
 							{
@@ -99,9 +134,9 @@ class OperatorGene extends AlgebraGene
 
 					}
 				});
-			
 
-			switch (OperatorString)
+
+			switch (this.operator)
 			{
 				case MULTIPLICATION:
 				{
@@ -112,7 +147,7 @@ class OperatorGene extends AlgebraGene
 						break;
 					}
 
-					var constGenes = values
+					let constGenes = values
 						.ofType(ConstantGene)
 						.memoize();
 
@@ -140,14 +175,14 @@ class OperatorGene extends AlgebraGene
 						});
 
 
-					var mParams = values
+					let mParams = values
 						.ofType(ParameterGene)
 						.memoize();
 
 					if (mParams.any())
 					{
 
-						var divOperator = values
+						let divOperator = values
 							.ofType(OperatorGene)
 							.where(g =>
 								g.operator == DIVISION &&
@@ -162,16 +197,16 @@ class OperatorGene extends AlgebraGene
 
 						if (divOperator != null)
 						{
-							var oneToKill = divOperator.Values
+							let oneToKill = divOperator.Values
 								.skip(1)
 								.ofType(ParameterGene)
 							.where(p => mParams.any(pn => pn.id == p.id))
 							.first();
 
-							var mPToKill = mParams.first(p => p.hash == oneToKill.hash);
+							let mPToKill = mParams.first(p => p.hash == oneToKill.hash);
 
-							divOperator.replace(oneToKill, new ConstantGene(oneToKill.Multiple));
-							this.replace(mPToKill, new ConstantGene(mPToKill.Multiple));
+							divOperator.replace(oneToKill, new ConstantGene(oneToKill.multiple));
+							this.replace(mPToKill, new ConstantGene(mPToKill.multiple));
 
 							somethingDone = true;
 						}
@@ -180,61 +215,63 @@ class OperatorGene extends AlgebraGene
 
 				}
 					break;
+
+
 				case DIVISION:
 				{
-					var f = Values.FirstOrDefault();
-					if (f != null && f.Multiple != 1)
+					let f = values.firstOrDefault();
+					if (f != null && f.multiple != 1)
 					{
-						Multiple *= f.Multiple;
-						f.Multiple = 1;
+						this._multiple *= f.multiple;
+						f.multiple = 1;
 						somethingDone = true;
 						break;
 					}
 
-					foreach (var g in Values.Take(1).where(v => v.Multiple == 0))
-					{
-						Multiple = 0;
+					if(values.take(1).any(v => v.multiple == 0)){
+						this._multiple = 0;
 						somethingDone = true;
 					}
 
-					foreach (var g in Values.skip(1).where(v => v.Multiple == 0))
+					if(values.skip(1).any(v => v.multiple == 0)){
 					{
-						Multiple = double.NaN;  // It is possible to specify positive or negative infinity...
+						this._multiple = NaN;  // It is possible to specify positive or negative infinity...
 						somethingDone = true;
 					}
+						let multiple = this._multiple;
 
-					if (Multiple == 0 || double.IsNaN(Multiple))
+					if (multiple == 0 || isNaN(multiple))
 						break;
 
-					foreach (var p in Values.where(v => v.Multiple < 0))
+					values.where(v => v.multiple < 0).forEach(p=>
 					{
 						somethingDone = true;
-						this.Multiple *= -1;
-						p.Multiple *= -1;
-					}
+						this._multiple *= -1;
+						p.multiple *= -1;
+					});
 
-					var newConst = Values.LastOrDefault() as ConstantGene;
-					var havMultiples = Values.skip(1).where(v => v.Multiple != 1d && v!=newConst).ToArray();
+					let newConst = values.LastOrDefault() as ConstantGene;
+					let havMultiples = values.skip(1).where(v => v._multiple != 1 && v!=newConst).toArray();
 					if(havMultiples.any()){
 
 						if (newConst == null) {
-							newConst = new ConstantGene(1d);
-							Values.Add(newConst);
+							newConst = new ConstantGene(1);
+							values.Add(newConst);
 						}
 
-						foreach (var g in havMultiples)
+						for(let g of havMultiples)
 						{
-							newConst.Multiple *= g.Multiple;
-							g.Multiple = 1d;
-							if (g is ConstantGene)
-							Remove(g);
+							newConst.multiple *= g.multiple;
+							g.multiple = 1;
+							if (g instanceof ConstantGene)
+							this._removeInternal(g);
 						}
 
 						somethingDone = true;
 					}
 
 
-					var fo = f as OperatorGene;
+					let fo = f as OperatorGene;
 
 					if (fo != null)
 					{
@@ -243,32 +280,32 @@ class OperatorGene extends AlgebraGene
 						switch (fo.operator)
 						{
 							case MULTIPLICATION:
-								msource = fo.Values;
+								msource = fo.values;
 								break;
 							case DIVISION:
-								msource = fo.Values.Take(1);
+								msource = fo.values.take(1);
 								break;
 							default:
 								msource = Enumerable.Empty<Gene>();
 								break;
 						}
 
-						var mParams = msource
+						let mParams = msource
 							.ofType(ParameterGene)
-						.ToArray();
+						.toArray();
 
 						if (mParams.any())
 						{
-							var oneToKill = Values
+							let oneToKill = values
 								.ofType(ParameterGene)
 							.where(p => mParams.any(pn => pn.id == p.id))
 							.FirstOrDefault();
 
 							if (oneToKill != null)
 							{
-								var mPToKill = mParams.First(p => p.id == oneToKill.id);
-								Replace(oneToKill, new ConstantGene(oneToKill.Multiple));
-								fo.Replace(mPToKill, new ConstantGene(mPToKill.Multiple));
+								let mPToKill = mParams.First(p => p.id == oneToKill.id);
+								Replace(oneToKill, new ConstantGene(oneToKill.multiple));
+								fo.Replace(mPToKill, new ConstantGene(mPToKill.multiple));
 
 								somethingDone = true;
 							}
@@ -276,47 +313,47 @@ class OperatorGene extends AlgebraGene
 
 					}
 
-					var fp = f as ParameterGene;
+					let fp = f as ParameterGene;
 
 					if (fp != null)
 					{
-						var multOperator = Values
+						let multOperator = values
 							.ofType(OperatorGene)
 						.where(g => g.operator == MULTIPLICATION
-						&& g.Values
+						&& g.values
 							.ofType(ParameterGene)
 						.any(g2 => g2.id == fp.id))
 					.FirstOrDefault();
 
 						if (multOperator != null)
 						{
-							var oneToKill = multOperator.Values
+							let oneToKill = multOperator.values
 								.ofType(ParameterGene)
 							.where(p => p.id == fp.id)
-							.First();
+							.first();
 
-							Replace(fp, new ConstantGene(fp.Multiple));
-							multOperator.Replace(oneToKill, new ConstantGene(oneToKill.Multiple));
+							Replace(fp, new ConstantGene(fp.multiple));
+							multOperator.Replace(oneToKill, new ConstantGene(oneToKill.multiple));
 
 							somethingDone = true;
 						}
 						else
 						{
-							var divOperator = Values
+							let divOperator = values
 								.ofType(OperatorGene)
 							.where(g => g.operator == DIVISION
-							&& g.Values.Take(1)
+							&& g.asEnumerable().take(1)
 								.ofType(ParameterGene)
 							.any(g2 => g2.id == fp.id))
-						.FirstOrDefault();
+						.firstOrDefault();
 
 							if (divOperator != null)
 							{
-								var oneToKill = (ParameterGene)divOperator.Values.First();
+								let oneToKill = divOperator.asEnumerable().first();
 
 
-								Replace(fp, new ConstantGene(fp.Multiple));
-								divOperator.Replace(oneToKill, new ConstantGene(oneToKill.Multiple));
+								Replace(fp, new ConstantGene(fp.multiple));
+								divOperator.Replace(oneToKill, new ConstantGene(oneToKill.multiple));
 
 								somethingDone = true;
 							}
@@ -325,38 +362,38 @@ class OperatorGene extends AlgebraGene
 
 					}
 
-					foreach (var g in Values.skip(1).where(p => p is ConstantGene && Multiple % p.Multiple == 0).ToArray())
+					for(let g of values.skip(1).ofType(ConstantGene).where(p => this._multiple % p.multiple == 0).toArray())
 					{
-						Multiple /= g.Multiple;
-						Values.Remove(g);
+						this._multiple /= g.multiple;
+						this._removeInternal(g);
 						somethingDone = true;
 					}
 
-					foreach (var p in Values.where(v => v.Multiple != 1 && Multiple % v.Multiple == 0))
+					for(let p of values.where(v => v.multiple != 1 && Multiple % v.multiple == 0))
 					{
-						Multiple /= p.Multiple;
-						p.Multiple = 1;
+						this._multiple /= p.multiple;
+						p.multiple = 1;
 						somethingDone = true;
 					}
 
-					foreach (var g in Values
+					for(let g of values
 					.skip(1).ofType(OperatorGene)
-					.where(p => p.operator == DIVISION && p.Count > 1)
-					.Take(1))
+					.where(p => p.operator == DIVISION && p.count > 1)
+					.take(1))
 					{
 
-						f = Values.First();
+						f = values.First();
 						fo = f as OperatorGene;
 						if (fo == null || fo.operator != MULTIPLICATION)
 						{
-							fo = new OperatorGene() { OperatorString = MULTIPLICATION };
+							fo = new OperatorGene(MULTIPLICATION);
 
 							Replace(f, fo);
 							fo.Add(f);
 						}
 
 						// Here we have a classical inversion case that can help in reduction.
-						foreach (var n in g.Values.skip(1).ToArray())
+						for(let n of g.values.skip(1).toArray())
 						{
 
 							g.Remove(n);
@@ -371,20 +408,21 @@ class OperatorGene extends AlgebraGene
 					break;
 			}/* */
 
-			if (Multiple == 0 || double.IsInfinity(Multiple) || double.IsNaN(Multiple))
+			var multiple = this._multiple;
+			if (multiple == 0 || !isFinite(multiple) || isNaN(multiple))
 			{
-				if (Values.any())
+				if (values.any())
 				{
-					Values.Clear();
+					this._clearInternal();
 					somethingDone = true;
 				}
 			}
 
 
-			foreach (var o in Values.ofType(OperatorGene)
-			.ToArray())
+			for(let o of values.ofType(OperatorGene)
+			.toArray())
 			{
-				if (!Values.Contains(o))
+				if (!values.Contains(o))
 					continue;
 
 
@@ -395,7 +433,7 @@ class OperatorGene extends AlgebraGene
 				{
 					somethingDone = true;
 
-					Replace(o, new ConstantGene(o.Multiple));
+					Replace(o, new ConstantGene(o.multiple));
 					continue;
 				}
 
@@ -403,9 +441,9 @@ class OperatorGene extends AlgebraGene
 
 				if (reduceGroupings)
 				{
-					if (OperatorString == ADDITION)
+					if (this.operator == ADDITION)
 					{
-						if (o.Multiple == 0)
+						if (o.multiple == 0)
 						{
 							Remove(o);
 							somethingDone = true;
@@ -414,12 +452,12 @@ class OperatorGene extends AlgebraGene
 
 						if (o.operator == ADDITION)
 						{
-							var index = Values.IndexOf(o);
-							foreach (var og in o.Values.ToArray())
+							let index = values.IndexOf(o);
+							for(let og of o.values.toArray())
 							{
 								o.Remove(og);
-								og.Multiple *= o.Multiple;
-								Values.Insert(index, og);
+								og.multiple *= o.multiple;
+								values.Insert(index, og);
 							}
 							Remove(o);
 
@@ -428,18 +466,18 @@ class OperatorGene extends AlgebraGene
 						}
 					}
 
-					if (OperatorString == MULTIPLICATION)
+					if (this.operator == MULTIPLICATION)
 					{
 
 						if (o.operator == MULTIPLICATION)
 						{
-							Multiple *= o.Multiple;
+							this._multiple *= o._multiple;
 
-							var index = Values.IndexOf(o);
-							foreach (var og in o.Values.ToArray())
+							let index = values.IndexOf(o);
+							for(let og of o.values.toArray())
 							{
 								o.Remove(og);
-								Values.Insert(index, og);
+								values.Insert(index, og);
 							}
 							Remove(o);
 
@@ -452,7 +490,7 @@ class OperatorGene extends AlgebraGene
 				if (o.Count == 1)
 				{
 
-					Gene opg = o.Values.FirstOrDefault();
+					var opg = o.values.FirstOrDefault();
 
 					if (opg instanceof ParameterGene || opg instanceof ConstantGene)
 					{
@@ -460,17 +498,17 @@ class OperatorGene extends AlgebraGene
 						{
 
 							o.Remove(opg);
-							opg.Multiple *= o.Multiple;
+							opg.multiple *= o.multiple;
 							Replace(o, opg);
 
 							somethingDone = true;
 							continue;
 
 						}
-						else if (o.operator == SQUARE_ROOT && opg instanceof ConstantGene && opg.Multiple >= 0)
+						else if (o.operator == SQUARE_ROOT && opg instanceof ConstantGene && opg.multiple >= 0)
 						{
-							var sq = Math.Sqrt(opg.Multiple);
-							for (int i = 0; i < sq; i++)
+							let sq = Math.Sqrt(opg.multiple);
+							for (let i = 0; i < sq; i++)
 							{
 								if (i == sq)
 								{
@@ -485,21 +523,21 @@ class OperatorGene extends AlgebraGene
 
 					if (opg instanceof OperatorGene)
 					{
-						var og = (OperatorGene)opg;
+						let og = <OperatorGene>opg;
 
 						if (o.operator == SQUARE_ROOT)
 						{
 
-							var childCount = og.Children.Count;
+							let childCount = og.Children.Count;
 
-							// Squareroot of square?
-							if (og.operator == MULTIPLICATION && childCount==2 && og.Children.Select(p=>p.AsReduced().ToString()).Distinct().Count()==1)
+							// Square root of square?
+							if (og.operator == MULTIPLICATION && childCount==2 && og.Children.Select(p=>p.AsReduced().toString()).Distinct().Count()==1)
 							{
-								var children = og.Children.Cast<ParameterGene>().ToArray();
+								let children = og.Children.Cast<ParameterGene>().toArray();
 								og.Remove(children[0]);
 								o.operator = MULTIPLICATION;
-								o.Values.Clear();
-								o.Values.Add(children[0]);
+								o.values.Clear();
+								o.values.Add(children[0]);
 
 								somethingDone = true;
 							}
@@ -507,12 +545,12 @@ class OperatorGene extends AlgebraGene
 						}
 						else if (AvailableOperators.Contains(o.operator))
 						{
-							var children = og.Children.ToArray();
+							let children = og.Children.toArray();
 							o.operator = og.operator;
-							o.Multiple *= og.Multiple;
-							og.Values.Clear();
-							o.Values.Clear();
-							o.Values.AddRange(children);
+							o.multiple *= og.multiple;
+							og.values.Clear();
+							o.values.Clear();
+							o.values.AddRange(children);
 
 							somethingDone = true;
 						}
@@ -523,23 +561,23 @@ class OperatorGene extends AlgebraGene
 			}
 
 
-			if (OperatorString != DIVISION)
+			if (this.operator != DIVISION)
 			{
-				Values.Sort((a, b) =>
+				values.Sort((a, b) =>
 				{
-					if (a.Multiple < b.Multiple)
+					if (a.multiple < b.multiple)
 						return 1;
 
-					if (a.Multiple > b.Multiple)
+					if (a.multiple > b.multiple)
 						return -1;
 
-					var ats = a.ToString();
-					var bts = b.ToString();
+					let ats = a.toString();
+					let bts = b.toString();
 					if (ats == bts)
 						return 0;
 
-					var ts = new string[2] { ats, bts };
-					Array.Sort(ts);
+					let ts = [ats, bts];
+					ts.sort();
 
 					return ts[0] == ats ? -1 : +1;
 
@@ -547,140 +585,104 @@ class OperatorGene extends AlgebraGene
 			}
 
 			if (somethingDone)
-				ResetToString();
+				this._onModified();
 
 			return somethingDone;
 		}
 
-	public override Gene AsReduced()
+		asReduced():OperatorGene
 		{
 
-			var gene = (OperatorGene)this.Clone();
-			gene.Reduce();
+			var gene = this.clone();
+			gene.reduce();
 			return gene;
-
 		}
 
 
-	public override IReadOnlyCollection<Gene> Children
-		{
-			get
-			{
-				return ValuesReadOnly;
-			}
-		}
+	get children():AlgebraGene[]
+	{
+		return this.toArray();
+	}
 
-		char _operator;
-	public char OperatorString
-		{
-			get { return _operator; }
-			set
-			{
-				_operator = value;
-				ResetToString();
-			}
-		}
 
-	public override string ToStringContents()
+
+
+	toStringContents():string
 		{
-			if (AvailableFunctions.Contains(OperatorString))
+			if (AvailableFunctions.indexOf(this.operator)!=-1)
 			{
-				if (Values.Count == 1)
-					return OperatorString + Values.Single().ToString();
+				if (this._source.length == 1)
+					return this.operator + this._source[0].toString();
 				else
-					return OperatorString + "(" + String.Join(",", ValuesArranged.Select(s => s.ToString())) + ")";
+					return this.operator +
+						parenGroup( this.valuesArranged.select(s=>s.toString()).toArray().join(","));
 			}
-			return "(" + String.Join(OperatorString.ToString(), ValuesArranged.Select(s => s.ToString())) + ")";
+			return parenGroup( this.valuesArranged.select(s=>s.toString()).toArray().join(this.operator));
 		}
 
 
-	public override Gene Clone()
+	clone():OperatorGene
 		{
-			var clone = new OperatorGene()
-			{
-				OperatorString = OperatorString,
-					Multiple = Multiple
-			};
-
-			foreach (var g in Values)
-			clone.Values.Add(g.Clone());
-
+			var clone = new OperatorGene(this._operator,this._multiple);
+			this.forEach(g=>{
+				clone._addInternal(g.clone());
+			});
 			return clone;
 		}
 
-	public static readonly char[] AvailableOperators = new char[] { ADDITION, MULTIPLICATION, DIVISION };
-	public static readonly char[] AvailableFunctions = new char[] { SQUARE_ROOT };
-
-	public static char GetRandomOperator(IEnumerable<char> excluded = null)
+	static getRandomOperator(excluded?:string|IEnumerableOrArray<string>):OperatorString
 		{
-			var ao = excluded == null
-				? AvailableOperators
-				: AvailableOperators.where(o => !excluded.Contains(o)).ToArray();
-			return ao[Environment.Randomizer.Next(ao.Length)];
+			if(!excluded || Type.isString(excluded))
+				return getRandomFrom(AvailableOperators,excluded);
+
+			return getRandomFromExcluding(AvailableOperators,excluded);
 		}
 
-	public static char GetRandomOperator(char excluded)
+	static getRandomFunctionOperator(excluded?:string|IEnumerableOrArray<string>):OperatorString
+	{
+		if(!excluded || Type.isString(excluded))
+			return getRandomFrom(AvailableFunctions,excluded);
+
+		return getRandomFromExcluding(AvailableFunctions,excluded);
+	}
+	static getRandomOperation(excluded?:string|IEnumerableOrArray<string>):OperatorGene
 		{
-			var ao = AvailableOperators.where(o => o != excluded).ToArray();
-			return ao[Environment.Randomizer.Next(ao.Length)];
+			return new OperatorGene(OperatorGene.getRandomOperator(excluded));
 		}
 
-	public static char GetRandomFunctionOperator()
+	protected calculateWithoutMultiple(values:number[]):number
 		{
-			return AvailableFunctions[Environment.Randomizer.Next(AvailableFunctions.Length)];
-		}
-
-	public static OperatorGene GetRandomOperation(IEnumerable<char> excluded = null)
-		{
-			return new OperatorGene() { OperatorString = GetRandomOperator(excluded) };
-		}
-
-	public static OperatorGene GetRandomOperation(char excluded)
-		{
-			return new OperatorGene() { OperatorString = GetRandomOperator(excluded) };
-		}
-
-	public static OperatorGene GetRandomFunction()
-		{
-			return new OperatorGene() { OperatorString = GetRandomFunctionOperator() };
-		}
-
-	protected override double CalculateWithoutMultiple(double[] values)
-		{
-			var results = Values.Select(s => s.Calculate(values)).ToArray();
+			var results = this._source.map(s => s.calculate(values));
 			switch (OperatorString)
 			{
 
 				case ADDITION:
-					return results.any() ? results.Sum() : 0;
+					return Procedure.sum(results);
 
 				// For now "Power Of" functions will be elaborated with a*a.
 				case MULTIPLICATION:
-					return results.Product();
+					return Procedure.product(results);
 
 				case DIVISION:
-					return results.Quotient();
+					return Procedure.Quotient(results);
 
 				// Single value functions...
 				case SQUARE_ROOT:
-					if (results.Length != 1)
-						return double.NaN;
-
-					return Math.Sqrt(results[0]);
+					if (results.length == 1)
+						return Math.sqrt(results[0]);
+					break;
 			}
 
-			return double.NaN;
+			return NaN;
 		}
 
-	public override void Replace(Gene target, Gene replacement)
+	replace(target:AlgebraGene, replacement:AlgebraGene)
 		{
-			var index = Values.IndexOf(target);
+			var index = this._source.indexOf(target);
 			if (index == -1)
 				throw new ArgumentOutOfRangeException("Target gene not found.");
 
-			Values.Insert(index, replacement);
-			Values.Remove(target);
-			ResetToString();
+			this.set(index,replacement);
 		}
 
 	}
