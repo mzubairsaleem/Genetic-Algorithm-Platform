@@ -3,47 +3,64 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-import Set from "../node_modules/typescript-dotnet/source/System/Collections/Set";
-import * as ArrayUtility from "../node_modules/typescript-dotnet/source/System/Collections/Array/Utility";
-import {correlation} from "../source/arithmetic/Correlation";
-import AlgebraGene from "./AlgebraGenome";
-import AlgebraGenome from "./AlgebraGenome";
-import AlgebraFitness from "./AlgebraFitness";
-import AlgebraGenomeFactory from "./AlgebraGenomeFactory";
-import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
-import Population from "../source/Population";
+import Set from "../../node_modules/typescript-dotnet/source/System/Collections/Set";
+import * as ArrayUtility from "../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility";
+import {correlation} from "arithmetic/Correlation";
+import AlgebraGenome from "./Genome";
+import AlgebraFitness from "./Fitness";
+import Enumerable from "../../node_modules/typescript-dotnet/source/System.Linq/Linq";
+import Population from "../../source/Population";
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
 	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
-export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGene,AlgebraFitness>
+export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, AlgebraFitness>
 {
-	rank(population:IEnumerableOrArray<IOrganism<AlgebraGenome, AlgebraFitness>>):Enumerable<IOrganism<AlgebraGenome, AlgebraFitness>>
+	private _fitness:IMap<AlgebraFitness>;
+
+	constructor(private _actualFormula:(...params:number[])=>number)
+	{
+		this._fitness = {};
+	}
+
+	protected getScoreFor(genome:string):number;
+	protected getScoreFor(genome:AlgebraGenome):number;
+	protected getScoreFor(genome:any):number
+	{
+		if(!genome) return 0;
+		if(typeof genome!="string") genome = genome.hash;
+		let s = this._fitness[genome];
+		return s && s.score || 0;
+	}
+
+	getFitnessFor(genome:AlgebraGenome, createIfMissing:boolean = true):AlgebraFitness
+	{
+		var h = genome.hash, f = this._fitness, s = f[h];
+		if(!s && createIfMissing) f[h] = s = new AlgebraFitness();
+		return s;
+	}
+
+	rank(population:IEnumerableOrArray<AlgebraGenome>):Enumerable<AlgebraGenome>
 	{
 		return Enumerable
 			.from(population)
-			.orderByDescending(o=>o.fitness.score);
+			.orderByDescending(g=>this.getScoreFor(g));
 	}
 
 	rankAndReduce(
-		population:IEnumerableOrArray<IOrganism<AlgebraGenome, AlgebraFitness>>,
-		targetMaxPopulation:number):Enumerable<IOrganism<AlgebraGenome, AlgebraFitness>>
+		population:IEnumerableOrArray<AlgebraGenome>,
+		targetMaxPopulation:number):Enumerable<AlgebraGenome>
 	{
 		var lastValue:number;
 		return this.rank(population)
-			.takeWhile((o, i)=>
+			.takeWhile((g, i)=>
 			{
-				var lv = lastValue, s = o.fitness.score;
+				let lv = lastValue, s = this.getScoreFor(g);
 				lastValue = s;
 				return i<targetMaxPopulation || lv===s
 			});
-	}
-
-	getGenomeFactory():AlgebraGenomeFactory
-	{
-		return new AlgebraGenomeFactory(2);
 	}
 
 	correlation(aSample:number[], bSample:number[], gA:AlgebraGenome, gB:AlgebraGenome):number
@@ -86,7 +103,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGene,Alge
 	}
 
 
-	test(p:Population<AlgebraGene,AlgebraFitness>, count:number = 1)
+	test(p:Population<AlgebraGenome>, count:number = 1):void
 	{
 		for(var i = 0; i<count; i++)
 		{
@@ -102,18 +119,19 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGene,Alge
 				}
 			}
 
-			p.forEach(o=>
+			p.forEach(g=>
 			{
 				var result:number[] = [];
 				for(var a of aSample)
 				{
 					for(var b of bSample)
 					{
-						result.push(o.genome.calculate([a, b]));
+						result.push(g.calculate([a, b]));
 					}
 				}
 
-				o.fitness.add(correlation(correct, result));
+				this.getFitnessFor(g)
+					.add(correlation(correct, result));
 			});
 
 		}

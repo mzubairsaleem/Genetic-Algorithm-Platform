@@ -8,15 +8,15 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../source/Genome", "../source/GenomeFactoryBase", "../node_modules/typescript-dotnet/source/System.Linq/Linq", "../node_modules/typescript-dotnet/source/System/Integer", "./../source/Environment"], factory);
+        define(["require", "exports", "../../source/Genome", "../../source/GenomeFactoryBase", "../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../node_modules/typescript-dotnet/source/System/Integer", "./../../source/Environment"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Genome_1 = require("../source/Genome");
-    var GenomeFactoryBase_1 = require("../source/GenomeFactoryBase");
-    var Linq_1 = require("../node_modules/typescript-dotnet/source/System.Linq/Linq");
-    var Integer_1 = require("../node_modules/typescript-dotnet/source/System/Integer");
-    var Environment_1 = require("./../source/Environment");
+    var Genome_1 = require("../../source/Genome");
+    var GenomeFactoryBase_1 = require("../../source/GenomeFactoryBase");
+    var Linq_1 = require("../../node_modules/typescript-dotnet/source/System.Linq/Linq");
+    var Integer_1 = require("../../node_modules/typescript-dotnet/source/System/Integer");
+    var Environment_1 = require("./../../source/Environment");
     var AlgebraGenomeFactory = (function (_super) {
         __extends(AlgebraGenomeFactory, _super);
         function AlgebraGenomeFactory() {
@@ -63,7 +63,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             var genome;
             var gs;
             do {
-                genome = Mutate(selectionList[Environment_1.default.Randomizer.Next(selectionList.length)]);
+                genome = this.mutate(selectionList[Environment_1.default.Randomizer.Next(selectionList.length)]);
                 gs = genome.CachedToStringReduced;
             } while (_previousGenomes.Any(function (g) { return g.CachedToStringReduced == gs; }) && ++tries < 1000);
             if (tries >= 1000)
@@ -328,4 +328,4 @@ var __extends = (this && this.__extends) || function (d, b) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = AlgebraGenomeFactory;
 });
-//# sourceMappingURL=AlgebraGenomeFactory.js.map
+//# sourceMappingURL=GenomeFactory.js.map

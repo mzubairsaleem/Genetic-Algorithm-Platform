@@ -8,12 +8,12 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../source/Genome", "../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException"], factory);
+        define(["require", "exports", "../../source/Genome", "../../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Genome_1 = require("../source/Genome");
-    var NotImplementedException_1 = require("../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException");
+    var Genome_1 = require("../../source/Genome");
+    var NotImplementedException_1 = require("../../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException");
     var AlgebraGenome = (function (_super) {
         __extends(AlgebraGenome, _super);
         function AlgebraGenome() {
@@ -36,4 +36,4 @@ var __extends = (this && this.__extends) || function (d, b) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = AlgebraGenome;
 });
-//# sourceMappingURL=AlgebraGenome.js.map
+//# sourceMappingURL=Genome.js.map

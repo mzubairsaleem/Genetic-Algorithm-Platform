@@ -1,5 +1,5 @@
-import * as Procedure from "../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure";
-import ReadOnlyArrayWrapper from "../node_modules/typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper";
+import * as Procedure from "../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure";
+import ReadOnlyArrayWrapper from "../../node_modules/typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper";
 
 export default class AlgebraFitness
 {
@@ -16,7 +16,6 @@ export default class AlgebraFitness
 	{
 		return this._samples.length;
 	}
-
 
 	private _score:number = NaN;
 	add(score:number):void

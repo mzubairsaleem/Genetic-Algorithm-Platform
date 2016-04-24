@@ -1,5 +1,5 @@
-import Genome from "../source/Genome";
-import NotImplementedException from "../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException";
+import Genome from "../../source/Genome";
+import NotImplementedException from "../../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException";
 
 export default class AlgebraGenome extends Genome {
 	clone():Genome

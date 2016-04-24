@@ -1,14 +1,13 @@
-import Genome from "../source/Genome";
-import GenomeFactoryBase from "../source/GenomeFactoryBase";
-import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
-import Integer from "../node_modules/typescript-dotnet/source/System/Integer";
-import Organism from "../source/Organism";
-import Environment from "./../source/Environment";
-import AlgebraGenome from "./AlgebraGenome";
-import AlgebraFitness from "./AlgebraFitness";
+import Genome from "../../source/Genome";
+import GenomeFactoryBase from "../../source/GenomeFactoryBase";
+import Enumerable from "../../node_modules/typescript-dotnet/source/System.Linq/Linq";
+import Integer from "../../node_modules/typescript-dotnet/source/System/Integer";
+import Environment from "./../../source/Environment";
+import AlgebraGenome from "./Genome";
+import AlgebraFitness from "./Fitness";
 
 export default class AlgebraGenomeFactory
-	extends GenomeFactoryBase<AlgebraGenome,AlgebraFitness>
+	extends GenomeFactoryBase<AlgebraGenome>
 {
 
 	protected generateSimple():AlgebraGenome
@@ -72,7 +71,7 @@ export default class AlgebraGenomeFactory
 		var gs:string;
 		do
 		{
-			genome = Mutate(selectionList[Environment.Randomizer.Next(selectionList.length)]);
+			genome = this.mutate(selectionList[Environment.Randomizer.Next(selectionList.length)]);
 			gs = genome.CachedToStringReduced;
 			// Is it there some weird possibility that this could get stuck?
 		}

@@ -1,32 +1,42 @@
-import Type from "../node_modules/typescript-dotnet/source/System/Types";
-import Integer from "../node_modules/typescript-dotnet/source/System/Integer";
-import Set from "../node_modules/typescript-dotnet/source/System/Collections/Set";
+///<reference path="IEnvironment.d.ts"/>
 import LinkedList from "../node_modules/typescript-dotnet/source/System/Collections/LinkedList";
-import ArgumentOutOfRangeException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentOutOfRangeException";
 import Genome from "./Genome";
 import Population from "./Population";
-import Organism from "./Organism";
 
 
-export default class Environment<TGenome extends Genome,TFitness> implements IEnvironment
+export default class Environment<TGenome extends Genome> implements IEnvironment<TGenome>
 {
-	static nextRandomIntegerExcluding(
-		range:number,
-		excluded:number|IEnumerableOrArray<number>):number
+	protected _populations:LinkedList<Population<TGenome>>;
+	protected _problems:IProblem<TGenome,any>[];
+
+	constructor(private _genomeFactory:IGenomeFactory<TGenome>)
 	{
-		Integer.assert(range);
-		if(range<0) throw new ArgumentOutOfRangeException("range", range, "Must be a number greater than zero.");
-
-		var r:number[] = [],
-		    excludeSet = new Set<number>(Type.isNumber(excluded, true) ? [excluded] : excluded);
-
-		for(let i = 0; i<range; ++i)
-		{
-			if(!excludeSet.contains(i)) r.push(i);
-		}
-
-		return Integer.random.select(r);
+		this._problems = [];
+		this._populations = new LinkedList<Population<TGenome>>();
 	}
+
+	test():void {
+		for(let pr of this._problems)
+			this._populations.forEach(po=>pr.test(po));
+	}
+
+
+	/**
+	 * Adds a new population to the environment.  Optionally pulling from the source provided.
+	 */
+	spawn(populationSize:number, source?:IEnumerableOrArray<TGenome>):Population<TGenome>
+	{
+		var _ = this;
+		var p = new Population(_._genomeFactory);
+
+		source ? p.populateFrom(source, populationSize) : p.populate(populationSize);
+		
+		_._populations.add(p);
+		_._genomeFactory.trimPreviousGenomes();
+		_.trimEarlyPopulations(10);
+		return p;
+	}
+
 
 	trimEarlyPopulations(maxPopulations:number):void
 	{
@@ -36,53 +46,5 @@ export default class Environment<TGenome extends Genome,TFitness> implements IEn
 			p.removeFirst();
 		}
 	}
-
-	private _genomeFactory:IGenomeFactory<TGenome,TFitness>;
-
-	constructor(private _problem:IProblem<TGenome,TFitness>)
-	{
-		this._populations = new LinkedList<Population<TGenome,TFitness>>();
-		this._genomeFactory = _problem.getGenomeFactory();
-	}
-
-
-	/**
-	 * Runs a test cycle on the current population using the specified problem.
-	 */
-	spawn(populationSize:number):Population<TGenome,TFitness>
-	{
-		var _ = this;
-		var p = new Population(_._genomeFactory);
-		p.populate(populationSize);
-		_._populations.add(p);
-		_._genomeFactory.trimPreviousGenomes();
-		_.trimEarlyPopulations(10);
-		return p;
-	}
-
-	/**
-	 * Runs a test cycle on the current population using the specified problem.
-	 */
-	spawnFrom(
-		source:IEnumerableOrArray<Organism<TGenome,TFitness>>,
-		populationSize:number):Population<TGenome,TFitness>
-	{
-		var _ = this;
-		var p = new Population(_._genomeFactory);
-		p.populateFrom(source, populationSize);
-		_._populations.add(p);
-		_._genomeFactory.trimPreviousGenomes();
-		_.trimEarlyPopulations(10);
-		return p;
-	}
-
-
-	get problem():IProblem<TGenome,TFitness>
-	{
-		return this._problem;
-	}
-
-	protected _populations:LinkedList<Population<TGenome,TFitness>>;
-
 
 }

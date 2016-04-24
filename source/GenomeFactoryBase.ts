@@ -3,23 +3,15 @@ import Genome from "./Genome";
 import LinkedList from "../node_modules/typescript-dotnet/source/System/Collections/LinkedList";
 import ReadOnlyCollectionWrapper from "../node_modules/typescript-dotnet/source/System/Collections/ReadOnlyCollectionWrapper";
 
-abstract class GenomeFactoryBase<TGenome extends Genome,TFitness>
-implements IGenomeFactory<TGenome,TFitness>
+abstract class GenomeFactoryBase<TGenome extends Genome>
+implements IGenomeFactory<TGenome>
 {
 	protected _previousGenomes:LinkedList<TGenome>;
 	protected _previousGenomeWrapper:ReadOnlyCollectionWrapper<TGenome>;
 
-	constructor(
-		private _inputParamCount:number,
-		public maxGenomeTracking:number = 1000)
+	constructor(public maxGenomeTracking:number = 1000)
 	{
 		this._previousGenomes = new LinkedList<TGenome>();
-	}
-
-
-	get inputParamCount():number
-	{
-		return this._inputParamCount;
 	}
 
 	get previousGenomes():ReadOnlyCollectionWrapper<TGenome>
@@ -35,9 +27,7 @@ implements IGenomeFactory<TGenome,TFitness>
 	}
 
 
-
-	abstract generate():TGenome;
-	abstract generateFrom(source:IEnumerableOrArray<Organism<TGenome,TFitness>>):TGenome;
+	abstract generate(inputParamCount:number, source?:IEnumerableOrArray<TGenome>):TGenome;
 	abstract mutate(source:TGenome, mutations?:number):TGenome;
 }
 

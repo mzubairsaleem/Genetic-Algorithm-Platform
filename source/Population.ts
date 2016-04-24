@@ -4,15 +4,14 @@ import StringKeyDictionary from "../node_modules/typescript-dotnet/source/System
 import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
 import ArgumentNullException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentNullException";
 import Genome from "./Genome";
-import Organism from "./Organism";
 import {forEach} from "../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
 
-export default class Population<TGenome extends Genome, TFitness>
-implements IPopulation<TGenome,TFitness>, ICollection<Organism<TGenome,TFitness>>, IEnumerateEach<Organism<TGenome,TFitness>>
+export default class Population<TGenome extends Genome>
+implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 {
-	private _population:StringKeyDictionary<Organism<TGenome,TFitness>>;
+	private _population:StringKeyDictionary<TGenome>;
 
-	constructor(private _genomeFactory:IGenomeFactory<TGenome,TFitness>)
+	constructor(private _genomeFactory:IGenomeFactory<TGenome>)
 	{
 	}
 
@@ -27,7 +26,7 @@ implements IPopulation<TGenome,TFitness>, ICollection<Organism<TGenome,TFitness>
 		return this._population.count;
 	}
 
-	remove(item:Organism<TGenome, TFitness>):number
+	remove(item:TGenome):number
 	{
 		var p = this._population;
 		return item && p.removeByKey(item.hash) ? 1 : 0;
@@ -38,13 +37,13 @@ implements IPopulation<TGenome,TFitness>, ICollection<Organism<TGenome,TFitness>
 		return this._population.clear();
 	}
 
-	contains(item:Organism<TGenome, TFitness>):boolean
+	contains(item:TGenome):boolean
 	{
 		var p = this._population;
 		return !!item && p.containsKey(item.hash);
 	}
 
-	copyTo(array:Organism<TGenome, TFitness>[], index?:number):Organism<TGenome, TFitness>[]
+	copyTo(array:TGenome[], index?:number):TGenome[]
 	{
 		if(!array) throw new ArgumentNullException('array');
 
@@ -58,19 +57,19 @@ implements IPopulation<TGenome,TFitness>, ICollection<Organism<TGenome,TFitness>
 		return array;
 	}
 
-	toArray():Organism<TGenome, TFitness>[]
+	toArray():TGenome[]
 	{
 		return this.copyTo([]);
 	}
 
 	forEach(
-		action:Predicate<Organism<TGenome, TFitness>>|Action<Organism<TGenome, TFitness>>,
+		action:Predicate<TGenome>|Action<TGenome>,
 		useCopy?:boolean):void
 	{
 		return forEach(useCopy ? this.toArray() : this, action);
 	}
 
-	getEnumerator():IEnumerator<Organism<TGenome, TFitness>>
+	getEnumerator():IEnumerator<TGenome>
 	{
 		return Enumerable
 			.from(this._population)
@@ -78,12 +77,12 @@ implements IPopulation<TGenome,TFitness>, ICollection<Organism<TGenome,TFitness>
 			.getEnumerator();
 	}
 
-	add(potential?:Organism<TGenome,TFitness>):void
+	add(potential?:TGenome):void
 	{
 		if(!potential)
 		{
 			// Be sure to add randomness in...
-			this.addGenome(this._genomeFactory.generate());
+			this.add(this._genomeFactory.generate());
 		}
 		else
 		{
@@ -95,22 +94,13 @@ implements IPopulation<TGenome,TFitness>, ICollection<Organism<TGenome,TFitness>
 		}
 	}
 
-	addThese(organisms:IEnumerableOrArray<Organism<TGenome,TFitness>>):void
+	addThese(genomes:IEnumerableOrArray<TGenome>):void
 	{
 		Enumerable
-			.from(organisms)
+			.from(genomes)
 			.forEach(o=>this.add(o));
 	}
-
-	addGenome(potential:TGenome):void
-	{
-		var ts:string, p = this._population;
-		if(potential && !p.containsKey(ts = potential.hash))
-		{
-			p.addByKeyValue(ts, new Organism<TGenome,TFitness>(potential));
-		}
-	}
-
+	
 	populate(count:number = 1):void
 	{
 		for(var i = 0; i<count; i++)
@@ -119,19 +109,19 @@ implements IPopulation<TGenome,TFitness>, ICollection<Organism<TGenome,TFitness>
 		}
 	}
 
-	populateFrom(source:IEnumerableOrArray<Organism<TGenome,TFitness>>, count:number = 1)
+	populateFrom(source:IEnumerableOrArray<TGenome>, count:number = 1)
 	{
 		//noinspection UnnecessaryLocalVariableJS
 		var f = this._genomeFactory;
 		// Then add mutations from best in source.
 		for(var i = 0; i<count - 1; i++)
 		{
-			this.addGenome(f.generateFrom(source));
+			this.add(f.generate(source));
 		}
 	}
 
 	// Provide a mechanism for culling the herd without requiring IProblem to be imported.
-	keepOnly(selected:IEnumerableOrArray<Organism<TGenome,TFitness>>):void
+	keepOnly(selected:IEnumerableOrArray<TGenome>):void
 	{
 		var hashed = new Set(Enumerable.from(selected).select(o=>o.hash));
 		var p = this._population;
