@@ -12,7 +12,8 @@
 })(function (require, exports) {
     "use strict";
     var Genome = (function () {
-        function Genome() {
+        function Genome(_root) {
+            this._root = _root;
         }
         Object.defineProperty(Genome.prototype, "root", {
             get: function () {
@@ -25,16 +26,12 @@
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Genome.prototype, "genes", {
-            get: function () {
-                var root = this._root;
-                if (!root)
-                    return [];
-                return root.descendants.copyTo([root], 1);
-            },
-            enumerable: true,
-            configurable: true
-        });
+        Genome.prototype.findParent = function (child) {
+            var root = this.root;
+            return (root && child != root)
+                ? root.findParent(child)
+                : null;
+        };
         Object.defineProperty(Genome.prototype, "hash", {
             get: function () {
                 return this._hash || (this._hash = this.serialize());
@@ -44,6 +41,9 @@
         });
         Genome.prototype.toString = function () {
             return this.hash;
+        };
+        Genome.prototype.equals = function (other) {
+            return this == other || this.root == other.root || this.hash === other.hash;
         };
         return Genome;
     }());

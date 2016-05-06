@@ -5,13 +5,13 @@ import ArgumentOutOfRangeException from "../node_modules/typescript-dotnet/sourc
 
 export default function nextRandomIntegerExcluding(
 	range:number,
-	excluded:number|IEnumerableOrArray<number>):number
+	excluding:number|IEnumerableOrArray<number>):number
 {
 	Integer.assert(range);
 	if(range<0) throw new ArgumentOutOfRangeException("range", range, "Must be a number greater than zero.");
 
 	var r:number[] = [],
-	    excludeSet = new Set<number>(Type.isNumber(excluded, true) ? [excluded] : excluded);
+	    excludeSet = new Set<number>(Type.isNumber(excluding, true) ? [excluding] : excluding);
 
 	for(let i = 0; i<range; ++i)
 	{

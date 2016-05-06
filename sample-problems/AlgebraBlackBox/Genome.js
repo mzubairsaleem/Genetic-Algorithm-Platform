@@ -8,28 +8,31 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../source/Genome", "../../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException"], factory);
+        define(["require", "exports", "../../source/Genome", "../../node_modules/typescript-dotnet/source/System/Exceptions/InvalidOperationException"], factory);
     }
 })(function (require, exports) {
     "use strict";
     var Genome_1 = require("../../source/Genome");
-    var NotImplementedException_1 = require("../../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException");
+    var InvalidOperationException_1 = require("../../node_modules/typescript-dotnet/source/System/Exceptions/InvalidOperationException");
     var AlgebraGenome = (function (_super) {
         __extends(AlgebraGenome, _super);
-        function AlgebraGenome() {
-            _super.apply(this, arguments);
+        function AlgebraGenome(root) {
+            _super.call(this, root);
         }
         AlgebraGenome.prototype.clone = function () {
-            throw new NotImplementedException_1.default();
-        };
-        AlgebraGenome.prototype.compareTo = function (other) {
-            throw new NotImplementedException_1.default();
+            return new AlgebraGenome(this.root);
         };
         AlgebraGenome.prototype.serialize = function () {
-            throw new NotImplementedException_1.default();
+            var root = this.root;
+            if (!root)
+                throw new InvalidOperationException_1.default("Cannot calculate a gene with no root.");
+            return root.serialize();
         };
         AlgebraGenome.prototype.calculate = function (values) {
-            throw new NotImplementedException_1.default();
+            var root = this.root;
+            if (!root)
+                throw new InvalidOperationException_1.default("Cannot calculate a gene with no root.");
+            return root.calculate(values);
         };
         return AlgebraGenome;
     }(Genome_1.default));

@@ -1,92 +1,113 @@
-import Genome from "../../source/Genome";
 import GenomeFactoryBase from "../../source/GenomeFactoryBase";
 import Enumerable from "../../node_modules/typescript-dotnet/source/System.Linq/Linq";
 import Integer from "../../node_modules/typescript-dotnet/source/System/Integer";
-import Environment from "./../../source/Environment";
 import AlgebraGenome from "./Genome";
-import AlgebraFitness from "./Fitness";
+import OperatorGene from "./Genes/Operator";
+import ParameterGene from "./Genes/ParameterGene";
+import * as Operator from "./Operators";
+import ConstantGene from "./Genes/ConstantGene";
+import nextRandomIntegerExcluding from "../../source/nextRandomIntegerExcluding";
 
-export default class AlgebraGenomeFactory
-	extends GenomeFactoryBase<AlgebraGenome>
+
+
+module triangular
+{
+	export function forward(n:number):number
+	{
+		return n*(n + 1)/2;
+	}
+
+	export function reverse(n:number):number
+	{
+		return (Math.sqrt(8*n + 1) - 1)/2 | 0;
+	}
+
+}
+
+export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenome>
 {
 
-	protected generateSimple():AlgebraGenome
+	protected generateSimple(paramCount:number = 1):AlgebraGenome
 	{
-		var result = new Genome();
-		var op = new OperatorGene();
-		op.Operator = OperatorGene.GetRandomOperator();
-		result.Root = op;
+		var result = new AlgebraGenome();
+		var op = OperatorGene.getRandomOperation();
+		result.root = op;
 
-		for(var i = 0, len = this._inputParamCount; i<len; i++)
+		for(var i = 0; i<paramCount; i++)
 		{
-			op.Add(new ParameterGene(i));
+			op.add(new ParameterGene(i));
 		}
 
 		return result;
 	}
 
-	generate():AlgebraGenome
+	generate(paramCount:number = 1):AlgebraGenome
 	{
-		var _ = this, p = _._previousGenomes, ep = Enumerable.from(p);
-		var tries = 0;
+		var _ = this, p = _._previousGenomes;
+		var tries = 1000;
 
-		var genome = this.generateSimple();
-		var gs:string;
-		gs = genome.hash;
-		while(ep.any(g => g.hash==gs) && ++tries<1000)
+		let genome = this.generateSimple(paramCount);
+		let hash:string = genome.hash;
+		while(p.containsKey(hash) && --tries)
 		{
-			genome = _.mutate(p.getValueAt(Integer.random.under(p.count)));
-			gs = genome.hash;
+			genome = _.mutate(p.getValueByIndex(Integer.random(p.count)));
+			hash = genome.hash;
 			// Is it there some weird possibility that this could get stuck?
 		}
 
-		if(tries>=1000)
+		if(!tries)
 			return null; // Failed... Converged? No solutions? Saturated?
 
-		this._previousGenomes.add(genome);
+		p.addByKeyValue(hash, genome);
 
 		return genome;
 	}
 
-	generateFrom(source:IEnumerableOrArray<Organism<AlgebraGenome, AlgebraFitness>>):AlgebraGenome
+	/**
+	 * Should be ranked in ascending order with the best as the last in the list.
+	 * @param source
+	 * @param rankingComparer
+	 * @returns {any}
+	 */
+	generateFrom(
+		source:IEnumerableOrArray<AlgebraGenome>,
+		rankingComparer?:Comparison<AlgebraGenome>):AlgebraGenome
 	{
-		var sourceGenomes = Enumerable
-			.from(source)
-			.orderBy(s => s.fitness.score)
-			.select(s => s.genome).toArray();
-
-		// Use a ranking weighted random selection.
-		var selectionList:Genome[] = [];
-		for(var i = 0; i<sourceGenomes.length; i++)
+		var sourceGenomes:AlgebraGenome[];
 		{
-			var g = sourceGenomes[i];
-			for(var n = 0; n<i + 1; n++)
-			{
-				selectionList.push(g);
-			}
+			let s = Enumerable.from(source);
+			if(rankingComparer)
+				s = s.orderUsing(rankingComparer);
+
+			sourceGenomes = s.toArray();
 		}
 
-		var tries = 0;
-		var genome:Genome;
-		var gs:string;
+		var count = sourceGenomes.length;
+		var t = triangular.forward(count); // Maximum random weighted
+
+		var tries = 1000, p = this._previousGenomes;
+		let genome:AlgebraGenome;
+		let hash:string;
 		do
 		{
-			genome = this.mutate(selectionList[Environment.Randomizer.Next(selectionList.length)]);
-			gs = genome.CachedToStringReduced;
-			// Is it there some weird possibility that this could get stuck?
+			let i = triangular.reverse(Integer.random(t));
+			genome = this.mutate(sourceGenomes[i]);
+			hash = genome.hash;
 		}
-		while(_previousGenomes.Any(g => g.CachedToStringReduced==gs) && ++tries<1000);
+		while(p.containsKey(hash) && --tries);
 
-		if(tries>=1000)
+		if(!tries)
 			return null; // Failed... Converged? No solutions? Saturated?
 
-		_previousGenomes.Add(genome);
+		p.addByKeyValue(hash, genome);
 
 		return genome;
 	}
 
 	mutate(source:AlgebraGenome, mutations:number = 1):AlgebraGenome
 	{
+		var inputParamCount = source.root.descendants.ofType(ParameterGene).count();
+
 		/* Possible mutations:
 		 * 1) Adding a parameter node to an operation.
 		 * 2) Apply a function to node.
@@ -100,43 +121,42 @@ export default class AlgebraGenomeFactory
 		for(var i = 0; i<mutations; i++)
 		{
 			// First randomly select the gene to mutate.
-			var genes = newGenome.Genes.ToArray();
-			var g = Environment.Randomizer.Next(genes.Length);
-			var gene = genes[g];
-			var isRoot = gene==newGenome.root;
-			var parent = newGenome.FindParent(gene);
-			var parentOp = parent as OperatorGene;
+			let genes = newGenome.root.descendants.toArray();
+			let gene = Integer.random.select(genes);
+			let isRoot = gene==newGenome.root;
+			let parent = newGenome.findParent(gene);
+			let parentOp:OperatorGene = parent instanceof OperatorGene ? parent : null;
 
-			var invalidOptions = new List<int>();
-			var shouldNotRemove = ()=>isRoot || parent==null || parentOp==null;
-			var doNotRemove = gene instanceof ParameterGene && shouldNotRemove();
+			let invalidOptions:number[] = [];
+			let shouldNotRemove = ()=>isRoot || parent==null || parentOp==null;
+			let doNotRemove = gene instanceof ParameterGene && shouldNotRemove();
 
-			var lastOption = -1;
+			let lastOption = -1;
 
 			while(invalidOptions!=null)
 			{
 
-				if(parent!=null && !parent.Children.Contains(gene))
-					throw new Exception("Parent changed?");
+				if(parent!=null && !parent.contains(gene))
+					throw "Parent changed?";
 
 				if(gene instanceof ConstantGene)
 				{
 					var cg = gene;
-					switch(lastOption = Environment.NextRandomIntegerExcluding(2, invalidOptions))
+					switch(lastOption = nextRandomIntegerExcluding(2, invalidOptions))
 					{
 						// Simply alter the sign
 						case 0:
-							var abs = Math.Abs(cg.Multiple);
+							var abs = Math.abs(cg.multiple);
 
-							if(abs>1 && Environment.Randomizer.Next(2)==0)
+							if(abs>1 && Integer.random.next(2)==0)
 							{
-								if(abs!=Math.Floor(abs) || Environment.Randomizer.Next(2)==0)
-									cg.Multiple /= abs;
+								if(abs!=Math.floor(abs) || Integer.random.next(2)==0)
+									cg.multiple /= abs;
 								else
-									cg.Multiple -= (cg.Multiple/abs);
+									cg.multiple -= (cg.multiple/abs);
 							}
 							else
-								cg.Multiple *= -1;
+								cg.multiple *= -1;
 
 							invalidOptions = null;
 							break;
@@ -148,7 +168,7 @@ export default class AlgebraGenomeFactory
 
 							if(parentOp!=null)
 							{
-								parentOp.Remove(gene);
+								parentOp.remove(gene);
 								invalidOptions = null;
 							}
 							break;
@@ -159,31 +179,33 @@ export default class AlgebraGenomeFactory
 				else if(gene instanceof ParameterGene)
 				{
 					var pg = gene;
-					switch(lastOption = Environment.NextRandomIntegerExcluding(doNotRemove
+					switch(lastOption = nextRandomIntegerExcluding(doNotRemove
 						? 4
 						: 8, invalidOptions))
 					{
 						// Simply alter the sign
 						case 0:
-							var abs = Math.Abs(pg.Multiple);
+						{
+							let abs = Math.abs(pg.multiple);
 
-							if(abs>1 && Environment.Randomizer.Next(2)==0)
-								pg.Multiple /= abs;
+							if(abs>1 && Integer.random.next(2)==0)
+								pg.multiple /= abs;
 							else
-								pg.Multiple *= -1;
+								pg.multiple *= -1;
 
 							invalidOptions = null;
 							break;
+						}
 
 						// Simply change parameters
 						case 1:
-							var nextParameter = Environment.NextRandomIntegerExcluding(InputParamCount, pg.ID);
+							let nextParameter = nextRandomIntegerExcluding(inputParamCount, pg.id);
 
-							var newPG = new ParameterGene(nextParameter);
+							let newPG = new ParameterGene(nextParameter);
 							if(isRoot)
-								newGenome.Root = newPG;
+								newGenome.root = newPG;
 							else
-								parent.Replace(gene, newPG);
+								parent.replace(gene, newPG);
 
 							invalidOptions = null;
 							break;
@@ -191,15 +213,15 @@ export default class AlgebraGenomeFactory
 						// Split it...
 						case 2:
 						{
-							var newFn = OperatorGene.GetRandomOperation('/');
+							let newFn = OperatorGene.getRandomOperation(Operator.DIVIDE);
 
 							if(isRoot)
-								newGenome.Root = newFn;
+								newGenome.root = newFn;
 							else
-								parent.Replace(gene, newFn);
+								parent.replace(gene, newFn);
 
-							newFn.Add(gene);
-							newFn.Add(gene.Clone());
+							newFn.add(gene);
+							newFn.add(gene.clone());
 
 							invalidOptions = null;
 							break;
@@ -209,49 +231,48 @@ export default class AlgebraGenomeFactory
 						case 3:
 						{
 							// Reduce the pollution of functions...
-							if(Environment.Randomizer.Next(0, 3)!=0)
+							if(Integer.random.nextInRange(0, 3)!=0)
 							{
-								invalidOptions.Add(4);
+								invalidOptions.push(4);
 								break;
 							}
 
-							var newFn = OperatorGene.GetRandomFunction();
+							let newFn = new OperatorGene(OperatorGene.getRandomFunctionOperator());
 
 							if(isRoot)
-								newGenome.Root = newFn;
+								newGenome.root = newFn;
 							else
-								parent.Replace(gene, newFn);
+								parent.replace(gene, newFn);
 
-							newFn.Add(gene);
+							newFn.add(gene);
 							invalidOptions = null;
 							break;
 						}
 
 						// Remove it!
 						default:
-							var children = parentOp.Children;
-							if(parentOp.Count<3)
+							if(parentOp.count<3)
 							{
-								if(children.All(
+								if(parentOp.asEnumerable().all(
 										o => o instanceof ParameterGene || o instanceof ConstantGene))
 									doNotRemove = true;
 								else
 								{
-									var replacement = children.Where(
-										o => o instanceof OperatorGene).Single();
-									if(parentOp==newGenome.Root)
-										newGenome.Root = replacement;
+									var replacement = parentOp.asEnumerable().where(
+										o => o instanceof OperatorGene).single();
+									if(parentOp==newGenome.root)
+										newGenome.root = replacement;
 									else
 										newGenome
-											.FindParent(parentOp)
-											.Replace(parentOp, replacement);
+											.findParent(parentOp)
+											.replace(parentOp, replacement);
 
 								}
 							}
 
 							if(!doNotRemove)
 							{
-								parentOp.ModifyValues(v=>v.Remove(gene));
+								parentOp.remove(gene);
 								invalidOptions = null;
 							}
 							break;
@@ -261,71 +282,78 @@ export default class AlgebraGenomeFactory
 				}
 				else if(gene instanceof OperatorGene)
 				{
-					var og = gene;
-					if(OperatorGene.AvailableFunctions.Contains(og.Operator))
+					let og = gene;
+					if(Operator.Available.Functions.indexOf(og.operator)!= -1)
 					{
-						invalidOptions.Add(3);
-						invalidOptions.Add(4);
+						invalidOptions.push(3);
+						invalidOptions.push(4);
 					}
 
-					switch(lastOption = Environment.NextRandomIntegerExcluding(doNotRemove
+					switch(lastOption = nextRandomIntegerExcluding(doNotRemove
 						? 6
 						: 10, invalidOptions))
 					{
 						// Simply invert the sign
 						case 0:
-							og.Multiple *= -1;
+							og.multiple *= -1;
 							invalidOptions = null;
 							break;
 
 						// Simply change operations
 						case 1:
-							var currentOperatorIndex = OperatorGene.AvailableOperators.ToList().IndexOf(og.Operator);
+							var currentOperatorIndex
+								    = Operator.Available.Operators.indexOf(og.operator);
 							if(currentOperatorIndex== -1)
 							{
 								currentOperatorIndex
-									= OperatorGene.AvailableFunctions.ToList().IndexOf(og.Operator);
+									= Operator.Available.Functions.indexOf(og.operator);
 								if(currentOperatorIndex!= -1)
 								{
-									if(OperatorGene.AvailableFunctions.Length==1)
+									if(Operator.Available.Functions.length==1)
 									{
-										invalidOptions.Add(1);
+										invalidOptions.push(1);
 										break;
 									}
 
-									og.Operator = OperatorGene.AvailableFunctions[
-										Environment.NextRandomIntegerExcluding(OperatorGene.AvailableFunctions.Length, currentOperatorIndex)
-										];
+									og.operator = Operator.Available.Functions[
+										nextRandomIntegerExcluding(Operator.Available.Functions.length, currentOperatorIndex)];
 								}
 
 
 								break;
 							}
 
-							var newOperatorIndex = Environment.NextRandomIntegerExcluding(OperatorGene.AvailableOperators.Length, currentOperatorIndex);
+							var newOperatorIndex = nextRandomIntegerExcluding(Operator.Available.Operators.length, currentOperatorIndex);
 
 							// Decide if we will also change the grouping.
-							if(og.Count>2 && Environment.Randomizer.Next(og.Count)!=0)
+							if(og.count>2 && Integer.random.next(og.count)!=0)
 							{
-								var startIndex = Environment.Randomizer.Next(og.Count - 1);
-								var endIndex = startIndex==0
-									? Environment.Randomizer.Next(1, og.Count - 1)
-									: Environment.Randomizer.Next(startIndex + 1, og.Count);
+								let startIndex = Integer.random.next(og.count - 1);
+								let endIndex = startIndex==0
+									? Integer.random.nextInRange(1, og.count - 1)
+									: Integer.random.nextInRange(startIndex + 1, og.count);
 
-								og.ModifyValues(v =>
+								og.modifyChildren(v =>
 								{
-									var contents = v.GetRange(startIndex, endIndex - startIndex);
+									var contents = Enumerable.from(v)
+										.skip(startIndex)
+										.take(endIndex - startIndex)
+										.toArray();
+
 									for(var o of contents)
 									{
-										v.Remove(o);
+										v.remove(o);
 									}
-									var O = OperatorGene.GetRandomOperation();
-									O.AddRange(contents);
-									v.Insert(startIndex, O);
+
+									var O = OperatorGene.getRandomOperation();
+									O.importEntries(contents);
+									v.insert(startIndex, O);
+
+									return true;
 								});
 							}
 							else // Grouping remains... Only operator changes.
-								og.Operator = OperatorGene.AvailableOperators[newOperatorIndex];
+								og.operator = Operator.Available.Operators[newOperatorIndex];
 
 							invalidOptions = null;
 							break;
@@ -334,10 +362,10 @@ export default class AlgebraGenomeFactory
 						// Add random parameter.
 						case 2:
 							// In order to avoid unnecessary reduction, avoid adding subsequent divisors.
-							if(og.Operator=='/' && og.Count>1)
+							if(og.operator==Operator.DIVIDE && og.count>1)
 								break;
 
-							og.Add(new ParameterGene(Environment.Randomizer.Next(InputParamCount)));
+							og.add(new ParameterGene(Integer.random.next(inputParamCount)));
 							invalidOptions = null;
 							break;
 
@@ -345,72 +373,72 @@ export default class AlgebraGenomeFactory
 						case 3:
 
 
-							var first = new ParameterGene(Environment.Randomizer.Next(InputParamCount));
+							var first = new ParameterGene(Integer.random.next(inputParamCount));
 
-							var newOp = InputParamCount==1
-								? OperatorGene.GetRandomOperation('/')
-								: OperatorGene.GetRandomOperation();
+							var newOp = inputParamCount==1
+								? OperatorGene.getRandomOperation('/')
+								: OperatorGene.getRandomOperation();
 
-							newOp.Add(first);
+							newOp.add(first);
 
 							// Useless to divide a param by itself, avoid...
-							if(newOp.Operator=='/')
-								newOp.Add(new ParameterGene(Environment.NextRandomIntegerExcluding(InputParamCount, first.ID)));
+							if(newOp.operator==Operator.DIVIDE)
+								newOp.add(new ParameterGene(nextRandomIntegerExcluding(inputParamCount, first.id)));
 							else
-								newOp.Add(new ParameterGene(Environment.Randomizer.Next(InputParamCount)));
+								newOp.add(new ParameterGene(Integer.random.next(inputParamCount)));
 
-							og.Add(newOp);
+							og.add(newOp);
 							invalidOptions = null;
 							break;
 						// Apply a function
 						case 4:
 						{
 							// Reduce the pollution of functions...
-							if(Environment.Randomizer.Next(4)!=1)
+							if(Integer.random.next(4)!=1)
 							{
 								break;
 							}
 
 							// Reduce the pollution of functions...
-							if(OperatorGene.AvailableFunctions.Contains(og.Operator) && Environment.Randomizer.Next(4)!=1)
+							if(Operator.Available.Functions.indexOf(og.operator)!= -1 && Integer.random.next(4)!=1)
 							{
 								break;
 							}
 
-							var newFn = OperatorGene.GetRandomFunction();
+							var newFn = new OperatorGene(OperatorGene.getRandomFunctionOperator());
 
 
-							// Reduce the polution of functions...
-							if(newFn.Operator==og.Operator)
+							// Reduce the pollution of functions...
+							if(newFn.operator==og.operator)
 							{
-								if(Environment.Randomizer.Next(7)!=1)
+								if(Integer.random.next(7)!=1)
 								{
-									invalidOptions.Add(5);
+									invalidOptions.push(5);
 									break;
 								}
 							}
 
 							if(isRoot)
-								newGenome.Root = newFn;
+								newGenome.root = newFn;
 							else
-								parent.Replace(gene, newFn);
+								parent.replace(gene, newFn);
 
-							newFn.Add(gene);
+							newFn.add(gene);
 							invalidOptions = null;
 							break;
 						}
 						case 5:
-							if(og.Reduce())
+							if(og.reduce())
 								invalidOptions = null;
 							break;
 						// Remove it!
 						default:
-							if(OperatorGene.AvailableFunctions.Contains(og.Operator))
+							if(Operator.Available.Functions.indexOf(og.operator)!= -1)
 							{
 								if(isRoot)
 								{
-									if(og.Children.Any())
-										newGenome.Root = og.Children.First();
+									if(og.count)
+										newGenome.root = og.asEnumerable().first();
 									else
 									{
 										doNotRemove = true;
@@ -420,15 +448,20 @@ export default class AlgebraGenomeFactory
 								}
 								else
 								{
-									parentOp.ModifyValues(v =>
+									parentOp.modifyChildren(v =>
 									{
-										var index = v.IndexOf(gene);
+										var index = v.indexOf(gene);
 										if(index!= -1)
 										{
-											v.InsertRange(index, og.Children);
-											v.Remove(gene);
+											for(let o of og.toArray().reverse())
+											{
+												v.insert(index, o);
+											}
+											v.remove(gene);
 											invalidOptions = null;
+											return true;
 										}
+										return false;
 									});
 
 								}
@@ -436,30 +469,28 @@ export default class AlgebraGenomeFactory
 							}
 
 							// Just like above, consider reduction instead of trimming...
-							if(isRoot && og.Count>2)
+							if(isRoot && og.count>2)
 							{
-								og.ModifyValues(
-									v => v.RemoveAt(Environment.Randomizer.Next(v.Count)));
+								og.removeAt(Integer.random.next(og.count));
 							}
-							else if(og.Count==2 && og.Children.Any(
-									o => o instanceof OperatorGene) && og.Children.Any(
-									o => o instanceof ParameterGene))
+							else if(og.count==2
+								&& og.asEnumerable().any(o => o instanceof OperatorGene)
+								&& og.asEnumerable().any(o => o instanceof ParameterGene))
 							{
-								var childOpGene = og.Children.Single(
-									o => o instanceof OperatorGene);
-								og.Remove(childOpGene);
+								let childOpGene = og.asEnumerable().ofType(OperatorGene).single();
+								og.remove(childOpGene);
 								if(isRoot)
-									newGenome.Root = childOpGene;
+									newGenome.root = childOpGene;
 								else
-									parentOp.Replace(og, childOpGene);
+									parentOp.replace(og, childOpGene);
 							}
-							else if(shouldNotRemove() || og.Count<3)
+							else if(shouldNotRemove() || og.count<3)
 							{
 								doNotRemove = true;
 								break;
 							}
 							else
-								parentOp.Remove(gene);
+								parentOp.remove(gene);
 
 							invalidOptions = null;
 							break;

@@ -1,23 +1,30 @@
 import Genome from "../../source/Genome";
-import NotImplementedException from "../../node_modules/typescript-dotnet/source/System/Exceptions/NotImplementedException";
+import InvalidOperationException from "../../node_modules/typescript-dotnet/source/System/Exceptions/InvalidOperationException";
+import AlgebraGene from "./Gene";
 
-export default class AlgebraGenome extends Genome {
-	clone():Genome
-	{
-		throw new NotImplementedException();
+export default class AlgebraGenome extends Genome<AlgebraGene> {
+
+	constructor(root?:AlgebraGene) {
+		super(root);
 	}
 
-	compareTo(other:Genome):number
+	clone():AlgebraGenome
 	{
-		throw new NotImplementedException();
+		return new AlgebraGenome(this.root);
 	}
 
 	serialize():string
 	{
-		throw new NotImplementedException();
+		var root = this.root;
+		if(!root)
+			throw new InvalidOperationException("Cannot calculate a gene with no root.");
+		return root.serialize();
 	}
 
 	calculate(values:number[]):number {
-		throw new NotImplementedException();
+		var root = this.root;
+		if(!root)
+			throw new InvalidOperationException("Cannot calculate a gene with no root.");
+		return root.calculate(values);
 	}
 }

@@ -9,6 +9,7 @@ import {correlation} from "arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
 import AlgebraFitness from "./Fitness";
 import Enumerable from "../../node_modules/typescript-dotnet/source/System.Linq/Linq";
+import Type from "../../node_modules/typescript-dotnet/source/System/Types";
 import Population from "../../source/Population";
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
@@ -19,10 +20,12 @@ function actualFormula(a:number, b:number):number // Solve for 'c'.
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, AlgebraFitness>
 {
 	private _fitness:IMap<AlgebraFitness>;
+	private _actualFormula:(...params:number[])=>number;
 
-	constructor(private _actualFormula:(...params:number[])=>number)
+	constructor(actualFormula:(...params:number[])=>number)
 	{
 		this._fitness = {};
+		this._actualFormula = actualFormula;
 	}
 
 	protected getScoreFor(genome:string):number;
@@ -30,7 +33,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 	protected getScoreFor(genome:any):number
 	{
 		if(!genome) return 0;
-		if(typeof genome!="string") genome = genome.hash;
+		if(!Type.isString(genome)) genome = genome.hash;
 		let s = this._fitness[genome];
 		return s && s.score || 0;
 	}

@@ -3,10 +3,9 @@ import Set from "../node_modules/typescript-dotnet/source/System/Collections/Set
 import StringKeyDictionary from "../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
 import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
 import ArgumentNullException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentNullException";
-import Genome from "./Genome";
 import {forEach} from "../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
 
-export default class Population<TGenome extends Genome>
+export default class Population<TGenome extends IGenome>
 implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 {
 	private _population:StringKeyDictionary<TGenome>;
@@ -66,7 +65,7 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		action:Predicate<TGenome>|Action<TGenome>,
 		useCopy?:boolean):void
 	{
-		return forEach(useCopy ? this.toArray() : this, action);
+		forEach(useCopy ? this.toArray() : this, action);
 	}
 
 	getEnumerator():IEnumerator<TGenome>
@@ -94,11 +93,14 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		}
 	}
 
-	addThese(genomes:IEnumerableOrArray<TGenome>):void
+	importEntries(genomes:IEnumerableOrArray<TGenome>):number
 	{
-		Enumerable
-			.from(genomes)
-			.forEach(o=>this.add(o));
+		var imported = 0;
+		forEach(genomes,o=>{
+			this.add(o);
+			imported++;
+		});
+		return imported;
 	}
 	
 	populate(count:number = 1):void
@@ -116,7 +118,7 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		// Then add mutations from best in source.
 		for(var i = 0; i<count - 1; i++)
 		{
-			this.add(f.generate(source));
+			this.add(f.generateFrom(source));
 		}
 	}
 

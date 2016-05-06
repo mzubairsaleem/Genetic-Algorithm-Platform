@@ -9,10 +9,11 @@
 interface IGene
 extends ISerializable, ICollection<IGene>, ICloneable<IGene>
 {
-	children:IGene[];
-	descendants:IEnumerable<IGene>;
-
 	clone():IGene;
 
+	//children:IGene[]; Just use .toArray();
+	descendants:IEnumerable<IGene>;
 	findParent(child:IGene):IGene;
+
+	replace(target:IGene, replacement:IGene):boolean;
 }

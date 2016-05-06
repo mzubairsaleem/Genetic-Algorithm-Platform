@@ -3,8 +3,9 @@
 import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
 import Lazy from "../node_modules/typescript-dotnet/source/System/Lazy";
 import List from "../node_modules/typescript-dotnet/source/System/Collections/List";
+import ArgumentException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentException";
 
-abstract class GeneBase<T extends GeneBase>
+abstract class GeneBase<T extends IGene>
 extends List<T> implements IGene
 {
 	constructor()
@@ -17,24 +18,20 @@ extends List<T> implements IGene
 
 	abstract serialize():string;
 
-	abstract clone():GeneBase;
-
-	get children():IGene[] {
-		return this._source.slice();
-	}
+	abstract clone():GeneBase<T>;
 
 	asEnumerable():Enumerable<T>
 	{
 		return this._enumerable || (this._enumerable = Enumerable.from(this));
 	}
 
-	get descendants():Enumerable<T>
+	get descendants():Enumerable<IGene>
 	{
-		var c = this.asEnumerable;
-		return c.concat(c.selectMany(s=>s.descendants));
+		var e:Enumerable<IGene> = this.asEnumerable();
+		return e.concat(e.selectMany(s=>s.descendants));
 	}
 
-	findParent(child:T):T
+	findParent(child:T):IGene
 	{
 		var children = this._source;
 		if(!children || !children.length) return null;
@@ -46,6 +43,27 @@ extends List<T> implements IGene
 		}
 
 		return null;
+	}
+
+	protected _replaceInternal(target:T, replacement:T, throwIfNotFound?:boolean):boolean
+	{
+		var s = this._source;
+		var index = this._source.indexOf(target);
+		if(index == -1) {
+			if(throwIfNotFound)
+				throw new ArgumentException('target', "gene not found.");
+			return false;
+		}
+
+		s[index] = replacement;
+		return true;
+	}
+
+	replace(target:T, replacement:T, throwIfNotFound?:boolean):boolean
+	{
+		var m = this._replaceInternal(target, replacement, throwIfNotFound);
+		if(m) this._onModified();
+		return m;
 	}
 
 	_toString:Lazy<string>;

@@ -7,9 +7,8 @@
 ///<reference path="../node_modules/typescript-dotnet/source/System/IComparable.d.ts"/>
 ///<reference path="IGene.d.ts"/>
 
-interface IGenome extends ISerializable, IComparable<IGenome>
+interface IGenome extends ISerializable, IEquatable<IGenome>
 {
 	root:IGene;
-	genes:IGene[];
 	hash:string;
 }

@@ -1,5 +1,7 @@
 import GeneBase from "../../source/GeneBase";
 
+const EMPTY:string = "";
+
 abstract class AlgebraGene
 extends GeneBase<AlgebraGene> {
 
@@ -12,6 +14,9 @@ extends GeneBase<AlgebraGene> {
 
 	abstract asReduced():AlgebraGene;
 
+	serialize():string {
+		return this.toString();
+	}
 
 	get multiple():number
 	{
@@ -27,9 +32,9 @@ extends GeneBase<AlgebraGene> {
 	{
 		var m = this._multiple;
 		if (m != 1)
-			return m == -1 ? "-" : (m+"");
+			return m == -1 ? "-" : (m+EMPTY);
 
-		return "";
+		return EMPTY;
 	}
 
 	abstract toStringContents():string;
@@ -47,9 +52,6 @@ extends GeneBase<AlgebraGene> {
 	}
 
 	protected abstract calculateWithoutMultiple(values:number[]):number;
-	
-	abstract replaceGene(target:AlgebraGene, replacement:AlgebraGene):void;
-
 
 }
 

@@ -1,10 +1,8 @@
 ///<reference path="IEnvironment.d.ts"/>
 import LinkedList from "../node_modules/typescript-dotnet/source/System/Collections/LinkedList";
-import Genome from "./Genome";
 import Population from "./Population";
 
-
-export default class Environment<TGenome extends Genome> implements IEnvironment<TGenome>
+export default class Environment<TGenome extends IGenome> implements IEnvironment<TGenome>
 {
 	protected _populations:LinkedList<Population<TGenome>>;
 	protected _problems:IProblem<TGenome,any>[];

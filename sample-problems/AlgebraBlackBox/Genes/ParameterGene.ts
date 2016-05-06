@@ -1,12 +1,12 @@
 import Integer from "../../../node_modules/typescript-dotnet/source/System/Integer";
 import AlgebraGene from "../Gene";
 
-class ParameterGene extends AlgebraGene implements IEquatable<ParameterGene>
+export default class ParameterGene extends AlgebraGene implements IEquatable<ParameterGene>
 {
 	constructor(protected _id:number, multiple:number = 1)
 	{
-		Integer.assert(_id, 'id');
 		super(multiple);
+		Integer.assert(_id, 'id');
 	}
 
 	get id():number
