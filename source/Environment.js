@@ -8,7 +8,7 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../node_modules/typescript-dotnet/source/System/Collections/LinkedList", "../node_modules/typescript-dotnet/source/System/Tasks/TaskHandlerBase", "./Population", "../node_modules/typescript-dotnet/source/System.Linq/Linq"], factory);
+        define(["require", "exports", "../node_modules/typescript-dotnet/source/System/Collections/LinkedList", "../node_modules/typescript-dotnet/source/System/Tasks/TaskHandlerBase", "./Population", "../node_modules/typescript-dotnet/source/System.Linq/Linq", "./Triangular"], factory);
     }
 })(function (require, exports) {
     "use strict";
@@ -16,6 +16,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     var TaskHandlerBase_1 = require("../node_modules/typescript-dotnet/source/System/Tasks/TaskHandlerBase");
     var Population_1 = require("./Population");
     var Linq_1 = require("../node_modules/typescript-dotnet/source/System.Linq/Linq");
+    var Triangular = require("./Triangular");
     var Environment = (function (_super) {
         __extends(Environment, _super);
         function Environment(_genomeFactory) {
@@ -28,10 +29,10 @@ var __extends = (this && this.__extends) || function (d, b) {
         }
         Environment.prototype.test = function (count) {
             if (count === void 0) { count = this.testCount; }
+            var p = this._populations;
             var _loop_1 = function(pr) {
-                this_1._populations.forEach(function (po) { return pr.test(po, count); });
+                p.forEach(function (po) { return pr.test(po, count); });
             };
-            var this_1 = this;
             for (var _i = 0, _a = this._problems; _i < _a.length; _i++) {
                 var pr = _a[_i];
                 _loop_1(pr);
@@ -46,8 +47,8 @@ var __extends = (this && this.__extends) || function (d, b) {
         });
         Environment.prototype._onExecute = function () {
             var populations = Linq_1.default.from(this._populations).reverse(), problems = Linq_1.default.from(this._problems).memoize();
-            var p = this.spawn(this.populationSize, Linq_1.default.weave(populations
-                .selectMany(function (o) { return problems.select(function (r) { return r.rank(o); }); })));
+            var p = this.spawn(this.populationSize, Triangular.dispurse.decreasing(Linq_1.default.weave(populations
+                .selectMany(function (o) { return problems.select(function (r) { return r.rank(o); }); }))));
             this.test();
             p.keepOnly(Linq_1.default.weave(problems.select(function (r) { return r.rank(p); }))
                 .take(this.populationSize / 2));

@@ -3,7 +3,7 @@ import LinkedList from "../node_modules/typescript-dotnet/source/System/Collecti
 import TaskHandlerBase from "../node_modules/typescript-dotnet/source/System/Tasks/TaskHandlerBase";
 import Population from "./Population";
 import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
-
+import * as Triangular from "./Triangular";
 
 export default class Environment<TGenome extends IGenome>
 extends TaskHandlerBase implements IEnvironment<TGenome>
@@ -24,9 +24,10 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	test(count:number = this.testCount):void
 	{
+		let p = this._populations;
 		for(let pr of this._problems)
 		{
-			this._populations.forEach(po=>pr.test(po, count));
+			p.forEach(po=>pr.test(po, count));
 		}
 	}
 
@@ -43,9 +44,11 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		// Get ranked population for each problem and merge it into a weaved enumeration.
 		var p = this.spawn(
 			this.populationSize,
-			Enumerable.weave<TGenome>(populations
-				.selectMany<IEnumerable<TGenome>>(
-					o => problems.select(r=>r.rank(o))
+			Triangular.dispurse.decreasing<TGenome>(
+				Enumerable.weave<TGenome>(populations
+					.selectMany<IEnumerable<TGenome>>(
+						o => problems.select(r=>r.rank(o))
+					)
 				)
 			)
 		);
