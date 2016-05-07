@@ -6,10 +6,10 @@
 ///<reference path="OperatorSymbol.d.ts"/>
 
 export const
-	ADD:OperatorSymbol         = "+",
-	MULTIPLY:OperatorSymbol    = "*",
-	DIVIDE:OperatorSymbol      = "/",
-	SQUARE_ROOT:OperatorSymbol = "√";
+	ADD:ADDITION            = "+",
+	MULTIPLY:MULTIPLICATION = "*",
+	DIVIDE:DIVISION         = "/",
+	SQUARE_ROOT:SQUARE_ROOT = "√";
 
 export module Available
 {

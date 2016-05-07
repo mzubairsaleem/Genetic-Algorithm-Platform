@@ -18,5 +18,6 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 			.push(new AlgebraBlackBoxProblem(actualFormula));
 	}
 
+
 }
 

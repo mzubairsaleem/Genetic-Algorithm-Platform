@@ -1,21 +1,61 @@
 ///<reference path="IEnvironment.d.ts"/>
 import LinkedList from "../node_modules/typescript-dotnet/source/System/Collections/LinkedList";
+import TaskHandlerBase from "../node_modules/typescript-dotnet/source/System/Tasks/TaskHandlerBase";
 import Population from "./Population";
+import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
 
-export default class Environment<TGenome extends IGenome> implements IEnvironment<TGenome>
+
+export default class Environment<TGenome extends IGenome>
+extends TaskHandlerBase implements IEnvironment<TGenome>
 {
+
 	protected _populations:LinkedList<Population<TGenome>>;
 	protected _problems:IProblem<TGenome,any>[];
 
+	populationSize:number = 50;
+	testCount:number = 10;
+
 	constructor(private _genomeFactory:IGenomeFactory<TGenome>)
 	{
+		super();
 		this._problems = [];
 		this._populations = new LinkedList<Population<TGenome>>();
 	}
 
-	test():void {
+	test(count:number = this.testCount):void
+	{
 		for(let pr of this._problems)
-			this._populations.forEach(po=>pr.test(po));
+		{
+			this._populations.forEach(po=>pr.test(po, count));
+		}
+	}
+
+	get populations():number
+	{
+		return this._populations.count;
+	}
+
+	protected _onExecute():void
+	{
+		var populations = Enumerable.from(this._populations).reverse(),
+		    problems    = Enumerable.from(this._problems).memoize();
+
+		// Get ranked population for each problem and merge it into a weaved enumeration.
+		var p = this.spawn(
+			this.populationSize,
+			Enumerable.weave<TGenome>(populations
+				.selectMany<IEnumerable<TGenome>>(
+					o => problems.select(r=>r.rank(o))
+				)
+			)
+		);
+
+		this.test();
+
+		p.keepOnly(Enumerable.weave<TGenome>(problems.select(r=>r.rank(p)))
+			.take(this.populationSize/2));
+
+		this.execute(0);
 	}
 
 
@@ -28,7 +68,7 @@ export default class Environment<TGenome extends IGenome> implements IEnvironmen
 		var p = new Population(_._genomeFactory);
 
 		source ? p.populateFrom(source, populationSize) : p.populate(populationSize);
-		
+
 		_._populations.add(p);
 		_._genomeFactory.trimPreviousGenomes();
 		_.trimEarlyPopulations(10);

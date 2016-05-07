@@ -96,13 +96,14 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 	importEntries(genomes:IEnumerableOrArray<TGenome>):number
 	{
 		var imported = 0;
-		forEach(genomes,o=>{
+		forEach(genomes, o=>
+		{
 			this.add(o);
 			imported++;
 		});
 		return imported;
 	}
-	
+
 	populate(count:number = 1):void
 	{
 		for(var i = 0; i<count; i++)
@@ -127,13 +128,12 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 	{
 		var hashed = new Set(Enumerable.from(selected).select(o=>o.hash));
 		var p = this._population;
-		p.toArray().forEach(o=>
+		p.forEach(o=>
 		{
 			var key = o.key;
 			if(!hashed.contains(key))
-			{
 				p.removeByKey(key);
-			}
-		});
+			
+		}, true);
 	}
 }
