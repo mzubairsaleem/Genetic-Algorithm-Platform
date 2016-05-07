@@ -1,6 +1,5 @@
 interface IGenomeFactory<TGenome extends IGenome> {
-	generate(inputParamCount?:number):TGenome;
-	generateFrom(source?:IEnumerableOrArray<TGenome>):TGenome;
+	generate(source?:TGenome[]):TGenome;
 	mutate(source:TGenome, mutations?:number):TGenome;
 
 	maxGenomeTracking:number;

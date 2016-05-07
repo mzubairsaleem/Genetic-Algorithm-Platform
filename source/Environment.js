@@ -56,7 +56,7 @@ var __extends = (this && this.__extends) || function (d, b) {
         Environment.prototype.spawn = function (populationSize, source) {
             var _ = this;
             var p = new Population_1.default(_._genomeFactory);
-            source ? p.populateFrom(source, populationSize) : p.populate(populationSize);
+            p.populate(populationSize, Linq_1.default.from(source).toArray());
             _._populations.add(p);
             _._genomeFactory.trimPreviousGenomes();
             _.trimEarlyPopulations(10);

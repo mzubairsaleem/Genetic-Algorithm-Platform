@@ -67,7 +67,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		var _ = this;
 		var p = new Population(_._genomeFactory);
 
-		source ? p.populateFrom(source, populationSize) : p.populate(populationSize);
+		p.populate(populationSize, Enumerable.from(source).toArray());
 
 		_._populations.add(p);
 		_._genomeFactory.trimPreviousGenomes();

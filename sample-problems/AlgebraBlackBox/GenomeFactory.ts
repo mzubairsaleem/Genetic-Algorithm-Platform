@@ -9,31 +9,23 @@ import ConstantGene from "./Genes/ConstantGene";
 import nextRandomIntegerExcluding from "../../source/nextRandomIntegerExcluding";
 
 
-
-module triangular
-{
-	export function forward(n:number):number
-	{
-		return n*(n + 1)/2;
-	}
-
-	export function reverse(n:number):number
-	{
-		return (Math.sqrt(8*n + 1) - 1)/2 | 0;
-	}
-
-}
-
 export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenome>
 {
 
-	protected generateSimple(paramCount:number = 1):AlgebraGenome
+	protected generateParamOnly(id:number):AlgebraGenome
+	{
+		var result = new AlgebraGenome();
+		result.root = new ParameterGene(id);
+		return result;
+	}
+
+	protected generateOperated(paramCount:number = 1):AlgebraGenome
 	{
 		var result = new AlgebraGenome();
 		var op = OperatorGene.getRandomOperation();
 		result.root = op;
 
-		for(var i = 0; i<paramCount; i++)
+		for(let i = 0; i<paramCount; i++)
 		{
 			op.add(new ParameterGene(i));
 		}
@@ -41,65 +33,72 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		return result;
 	}
 
-	generate(paramCount:number = 1):AlgebraGenome
+	generate(source?:AlgebraGenome[]):AlgebraGenome
 	{
 		var _ = this, p = _._previousGenomes;
-		var tries = 1000;
+		var genome:AlgebraGenome;
+		var hash:string;
 
-		let genome = this.generateSimple(paramCount);
-		let hash:string = genome.hash;
-		while(p.containsKey(hash) && --tries)
+		// Note: for now, we will only mutate by 1.
+
+		// See if it's possible to mutate from the provided genomes.
+		if(source && source.length)
 		{
-			genome = _.mutate(p.getValueByIndex(Integer.random(p.count)));
-			hash = genome.hash;
-			// Is it there some weird possibility that this could get stuck?
+			// Find one that will mutate well and use it.
+			let tries = 1000;
+			do
+			{
+				genome = this.mutate(Integer.random.select(source));
+				hash = genome.hash;
+			}
+			while(p.containsKey(hash) && --tries);
+
+			if(!tries)
+				genome = null; // Failed... Converged? No solutions? Saturated?
 		}
 
-		if(!tries)
-			return null; // Failed... Converged? No solutions? Saturated?
-
-		p.addByKeyValue(hash, genome);
-
-		return genome;
-	}
-
-	/**
-	 * Should be ranked in ascending order with the best as the last in the list.
-	 * @param source
-	 * @param rankingComparer
-	 * @returns {any}
-	 */
-	generateFrom(
-		source:IEnumerableOrArray<AlgebraGenome>,
-		rankingComparer?:Comparison<AlgebraGenome>):AlgebraGenome
-	{
-		var sourceGenomes:AlgebraGenome[];
+		if(!genome)
 		{
-			let s = Enumerable.from(source);
-			if(rankingComparer)
-				s = s.orderUsing(rankingComparer);
 
-			sourceGenomes = s.toArray();
+			// Establish a maximum.
+			let tries = 10, paramCount = 0;
+			var genome:AlgebraGenome, hash:string;
+
+			do {
+				{ // Try a param only version first.
+					genome = this.generateParamOnly(paramCount);
+					hash = genome.hash;
+					if(!p.containsKey(hash)) break;
+				}
+
+				paramCount++;
+
+				{ // Then try an operator based version.
+					genome = this.generateOperated(paramCount);
+					hash = genome.hash;
+					if(!p.containsKey(hash)) break;
+				}
+
+				let t = Math.min(p.count*2, 100); // A local maximum.
+				do {
+					genome = _.mutate(p.getValueByIndex(Integer.random(p.count)));
+					hash = genome.hash;
+				}
+				while(p.containsKey(hash) && --t);
+
+				// t==0 means nothing found :(
+				if(t) break;
+			}
+			while(--tries);
+
+			if(!tries)
+				genome = null; // Failed... Converged? No solutions? Saturated?
+
 		}
 
-		var count = sourceGenomes.length;
-		var t = triangular.forward(count); // Maximum random weighted
 
-		var tries = 1000, p = this._previousGenomes;
-		let genome:AlgebraGenome;
-		let hash:string;
-		do
-		{
-			let i = triangular.reverse(Integer.random(t));
-			genome = this.mutate(sourceGenomes[i]);
-			hash = genome.hash;
-		}
-		while(p.containsKey(hash) && --tries);
-
-		if(!tries)
-			return null; // Failed... Converged? No solutions? Saturated?
-
-		p.addByKeyValue(hash, genome);
+		if(genome && hash)
+			p.addByKeyValue(hash, genome);
 
 		return genome;
 	}

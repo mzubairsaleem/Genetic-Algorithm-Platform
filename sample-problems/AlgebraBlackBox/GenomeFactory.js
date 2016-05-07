@@ -21,23 +21,17 @@ var __extends = (this && this.__extends) || function (d, b) {
     var Operator = require("./Operators");
     var ConstantGene_1 = require("./Genes/ConstantGene");
     var nextRandomIntegerExcluding_1 = require("../../source/nextRandomIntegerExcluding");
-    var triangular;
-    (function (triangular) {
-        function forward(n) {
-            return n * (n + 1) / 2;
-        }
-        triangular.forward = forward;
-        function reverse(n) {
-            return (Math.sqrt(8 * n + 1) - 1) / 2 | 0;
-        }
-        triangular.reverse = reverse;
-    })(triangular || (triangular = {}));
     var AlgebraGenomeFactory = (function (_super) {
         __extends(AlgebraGenomeFactory, _super);
         function AlgebraGenomeFactory() {
             _super.apply(this, arguments);
         }
-        AlgebraGenomeFactory.prototype.generateSimple = function (paramCount) {
+        AlgebraGenomeFactory.prototype.generateParamOnly = function (id) {
+            var result = new Genome_1.default();
+            result.root = new ParameterGene_1.default(id);
+            return result;
+        };
+        AlgebraGenomeFactory.prototype.generateOperated = function (paramCount) {
             if (paramCount === void 0) { paramCount = 1; }
             var result = new Genome_1.default();
             var op = Operator_1.default.getRandomOperation();
@@ -47,42 +41,49 @@ var __extends = (this && this.__extends) || function (d, b) {
             }
             return result;
         };
-        AlgebraGenomeFactory.prototype.generate = function (paramCount) {
-            if (paramCount === void 0) { paramCount = 1; }
+        AlgebraGenomeFactory.prototype.generate = function (source) {
             var _ = this, p = _._previousGenomes;
-            var tries = 1000;
-            var genome = this.generateSimple(paramCount);
-            var hash = genome.hash;
-            while (p.containsKey(hash) && --tries) {
-                genome = _.mutate(p.getValueByIndex(Integer_1.default.random(p.count)));
-                hash = genome.hash;
-            }
-            if (!tries)
-                return null;
-            p.addByKeyValue(hash, genome);
-            return genome;
-        };
-        AlgebraGenomeFactory.prototype.generateFrom = function (source, rankingComparer) {
-            var sourceGenomes;
-            {
-                var s = Linq_1.default.from(source);
-                if (rankingComparer)
-                    s = s.orderUsing(rankingComparer);
-                sourceGenomes = s.toArray();
-            }
-            var count = sourceGenomes.length;
-            var t = triangular.forward(count);
-            var tries = 1000, p = this._previousGenomes;
             var genome;
             var hash;
-            do {
-                var i = triangular.reverse(Integer_1.default.random(t));
-                genome = this.mutate(sourceGenomes[i]);
-                hash = genome.hash;
-            } while (p.containsKey(hash) && --tries);
-            if (!tries)
-                return null;
-            p.addByKeyValue(hash, genome);
+            if (source && source.length) {
+                var tries = 1000;
+                do {
+                    genome = this.mutate(Integer_1.default.random.select(source));
+                    hash = genome.hash;
+                } while (p.containsKey(hash) && --tries);
+                if (!tries)
+                    genome = null;
+            }
+            if (!genome) {
+                var tries = 10, paramCount = 0;
+                var genome, hash;
+                do {
+                    {
+                        genome = this.generateParamOnly(paramCount);
+                        hash = genome.hash;
+                        if (!p.containsKey(hash))
+                            break;
+                    }
+                    paramCount++;
+                    {
+                        genome = this.generateOperated(paramCount);
+                        hash = genome.hash;
+                        if (!p.containsKey(hash))
+                            break;
+                    }
+                    var t = Math.min(p.count * 2, 100);
+                    do {
+                        genome = _.mutate(p.getValueByIndex(Integer_1.default.random(p.count)));
+                        hash = genome.hash;
+                    } while (p.containsKey(hash) && --t);
+                    if (t)
+                        break;
+                } while (--tries);
+                if (!tries)
+                    genome = null;
+            }
+            if (genome && hash)
+                p.addByKeyValue(hash, genome);
             return genome;
         };
         AlgebraGenomeFactory.prototype.mutate = function (source, mutations) {

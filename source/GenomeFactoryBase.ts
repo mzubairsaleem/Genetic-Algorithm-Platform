@@ -28,8 +28,7 @@ implements IGenomeFactory<TGenome>
 	}
 
 
-	abstract generate(inputParamCount:number):TGenome;
-	abstract generateFrom(source?:IEnumerableOrArray<TGenome>):TGenome;
+	abstract generate(source?:TGenome[]):TGenome;
 	abstract mutate(source:TGenome, mutations?:number):TGenome;
 }
 

@@ -81,7 +81,8 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		if(!potential)
 		{
 			// Be sure to add randomness in...
-			this.add(this._genomeFactory.generate());
+			var n = this._genomeFactory.generate();
+			if(n) this.add(n);
 		}
 		else
 		{
@@ -104,22 +105,15 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		return imported;
 	}
 
-	populate(count:number = 1):void
-	{
-		for(var i = 0; i<count; i++)
-		{
-			this.add();
-		}
-	}
-
-	populateFrom(source:IEnumerableOrArray<TGenome>, count:number = 1)
+	populate(count:number, rankedGenomes?:TGenome[]):void
 	{
 		//noinspection UnnecessaryLocalVariableJS
-		var f = this._genomeFactory;
+		let f = this._genomeFactory;
 		// Then add mutations from best in source.
-		for(var i = 0; i<count - 1; i++)
+		for(let i = 0; i<count; i++)
 		{
-			this.add(f.generateFrom(source));
+			var n = f.generate(rankedGenomes);
+			if(n) this.add(n);
 		}
 	}
 

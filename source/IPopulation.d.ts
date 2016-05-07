@@ -6,9 +6,7 @@
 interface IPopulation<TGenome extends IGenome>
 extends ICollection<TGenome>
 {
-	populate(count?:number):void;
-	populateFrom(
-		source:IEnumerableOrArray<TGenome>,
-		count?:number,
-		transferBest?:number):void;
+	populate(
+		count:number,
+		source?:TGenome[]):void;
 }
