@@ -40,6 +40,9 @@ var __extends = (this && this.__extends) || function (d, b) {
                     .select(function (g) { return Utility_1.supplant(g.hash, VARIABLE_NAMES) + ": " + r.getFitnessFor(g).score; });
             }))
                 .take(this._problems.length).toArray();
+            var c = problems.selectMany(function (p) { return p.convergent; }).count();
+            if (c)
+                console.log("Convergent:", c);
             console.log("Top:", top, "\n");
         };
         return AlgebraEnvironmentSample;

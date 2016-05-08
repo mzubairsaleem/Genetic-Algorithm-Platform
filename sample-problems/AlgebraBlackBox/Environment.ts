@@ -40,6 +40,8 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 			)
 			.take(this._problems.length).toArray();
 
+		var c = problems.selectMany(p=>p.convergent).count();
+		if(c) console.log("Convergent:",c);
 		console.log("Top:",top,"\n");
 	}
 

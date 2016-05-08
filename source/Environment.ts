@@ -1,4 +1,5 @@
 ///<reference path="IEnvironment.d.ts"/>
+import {dispose} from "../node_modules/typescript-dotnet/source/System/Disposable/dispose";
 import LinkedList from "../node_modules/typescript-dotnet/source/System/Collections/LinkedList";
 import TaskHandlerBase from "../node_modules/typescript-dotnet/source/System/Tasks/TaskHandlerBase";
 import Population from "./Population";
@@ -10,18 +11,22 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 {
 
 	protected _populations:LinkedList<Population<TGenome>>;
+	protected _populationsEnumerable:Enumerable<Population<TGenome>>;
 	protected _problems:IProblem<TGenome,any>[];
+	protected _problemsEnumerable:Enumerable<IProblem<TGenome,any>>;
 
 	populationSize:number = 50;
-	maxPopulations:number = 100;
+	maxPopulations:number = 20;
 	testCount:number = 10;
 
 
 	constructor(private _genomeFactory:IGenomeFactory<TGenome>)
 	{
 		super();
-		this._problems = [];
-		this._populations = new LinkedList<Population<TGenome>>();
+		this._problemsEnumerable
+			= Enumerable.from(this._problems = []);
+		this._populationsEnumerable
+			= Enumerable.from(this._populations = new LinkedList<Population<TGenome>>());
 	}
 
 	test(count:number = this.testCount):void
@@ -32,6 +37,8 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 			p.forEach(po=>pr.test(po, count));
 		}
 	}
+	
+	
 
 	get populations():number
 	{
@@ -40,8 +47,8 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	protected _onExecute():void
 	{
-		var populations = Enumerable.from(this._populations).reverse(),
-		    problems    = Enumerable.from(this._problems).memoize();
+		var populations = this._populationsEnumerable.reverse(),
+		    problems    = this._problemsEnumerable.memoize();
 
 		// Get ranked population for each problem and merge it into a weaved enumeration.
 		var p = this.spawn(
@@ -62,7 +69,11 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 				problems.select(r=>r.rank(p)))
 			.take(this.populationSize/2));
 
+		dispose(populations);
+
 		this.execute(0);
+
+
 	}
 
 
@@ -85,11 +96,18 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	trimEarlyPopulations(maxPopulations:number):void
 	{
-		var p = this._populations;
-		while(p.count>maxPopulations)
-		{
-			p.removeFirst();
-		}
+		var problems    = this._problemsEnumerable.memoize();
+		this._populationsEnumerable
+			.takeExceptLast(maxPopulations)
+			.forEach(p=>{
+				p.forEach(g=>{
+					if(problems.select(r=>r.getFitnessFor(g).score).max()<0.5)
+						p.remove(g);
+				},true);
+				if(!p.count) {
+					this._populations.remove(p);
+				}
+			});
 	}
 
 }

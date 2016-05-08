@@ -7,11 +7,12 @@
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../node_modules/typescript-dotnet/source/System/Collections/Set", "../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility", "./arithmetic/Correlation", "./Fitness", "../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../node_modules/typescript-dotnet/source/System/Types"], factory);
+        define(["require", "exports", "../../node_modules/typescript-dotnet/source/System/Collections/Set", "../../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary", "../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility", "./arithmetic/Correlation", "./Fitness", "../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../node_modules/typescript-dotnet/source/System/Types"], factory);
     }
 })(function (require, exports) {
     "use strict";
     var Set_1 = require("../../node_modules/typescript-dotnet/source/System/Collections/Set");
+    var StringKeyDictionary_1 = require("../../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary");
     var ArrayUtility = require("../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility");
     var Correlation_1 = require("./arithmetic/Correlation");
     var Fitness_1 = require("./Fitness");
@@ -24,7 +25,15 @@
         function AlgebraBlackBoxProblem(actualFormula) {
             this._fitness = {};
             this._actualFormula = actualFormula;
+            this._convergent = new StringKeyDictionary_1.default();
         }
+        Object.defineProperty(AlgebraBlackBoxProblem.prototype, "convergent", {
+            get: function () {
+                return this._convergent.values;
+            },
+            enumerable: true,
+            configurable: true
+        });
         AlgebraBlackBoxProblem.prototype.getScoreFor = function (genome) {
             if (!genome)
                 return 0;
@@ -107,6 +116,7 @@
                     var c = Correlation_1.correlation(correct, result);
                     _this.getFitnessFor(g)
                         .add((isNaN(c) || !isFinite(c)) ? -2 : c);
+                    _this._convergent.setValue(g.hash, c == 1 ? g : (void 0));
                 });
             }
         };

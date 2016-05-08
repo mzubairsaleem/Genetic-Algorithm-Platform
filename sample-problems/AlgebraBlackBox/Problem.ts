@@ -4,6 +4,7 @@
  */
 
 import Set from "../../node_modules/typescript-dotnet/source/System/Collections/Set";
+import StringKeyDictionary from "../../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
 import * as ArrayUtility from "../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility";
 import {correlation} from "./arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
@@ -22,10 +23,16 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 	private _fitness:IMap<AlgebraFitness>;
 	private _actualFormula:(...params:number[])=>number;
 
+	protected _convergent:StringKeyDictionary<AlgebraGenome>;
+	get convergent():AlgebraGenome[] {
+		return this._convergent.values;
+	}
+
 	constructor(actualFormula:(...params:number[])=>number)
 	{
 		this._fitness = {};
 		this._actualFormula = actualFormula;
+		this._convergent = new StringKeyDictionary<AlgebraGenome>();
 	}
 
 	protected getScoreFor(genome:string):number;
@@ -136,6 +143,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 				let c = correlation(correct, result);
 				this.getFitnessFor(g)
 					.add((isNaN(c) || !isFinite(c))?-2:c);
+				this._convergent.setValue(g.hash,c==1?g:(void 0));
 			});
 
 		}

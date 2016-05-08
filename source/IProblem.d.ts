@@ -5,6 +5,8 @@
 
 interface IProblem<TGenome extends IGenome, TFitness>
 {
+	convergent:TGenome[];
+	
 	getFitnessFor(genome:TGenome, createIfMissing?:boolean):TFitness;
 	
 	// Due to the complexity of potential fitness values, this provides a single place to rank a population.
