@@ -67,15 +67,16 @@ extends List<T> implements IGene
 	}
 
 	_toString:Lazy<string>;
-	protected resetToString():void
+	resetToString():void
 	{
 		var ts = this._toString;
 		if(ts) ts.reset();
 		else this._toString = new Lazy<string>(()=>this.toStringInternal());
+		this.forEach(c=>c.resetToString());
 	}
 
 	protected _onModified() {
-		//super._onModified();
+		super._onModified();
 		this.resetToString();
 	}
 

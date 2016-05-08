@@ -108,15 +108,15 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 
 	test(p:Population<AlgebraGenome>, count:number = 1):void
 	{
-		for(var i = 0; i<count; i++)
+		for(let i = 0; i<count; i++)
 		{
 			var aSample = this.sample();
 			var bSample = this.sample();
 			var correct:number[] = [];
 
-			for(var a of aSample)
+			for(let a of aSample)
 			{
-				for(var b of bSample)
+				for(let b of bSample)
 				{
 					correct.push(actualFormula(a, b));
 				}
@@ -124,17 +124,18 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 
 			p.forEach(g=>
 			{
-				var result:number[] = [];
-				for(var a of aSample)
+				let result:number[] = [];
+				for(let a of aSample)
 				{
-					for(var b of bSample)
+					for(let b of bSample)
 					{
 						result.push(g.calculate([a, b]));
 					}
 				}
 
+				let c = correlation(correct, result);
 				this.getFitnessFor(g)
-					.add(correlation(correct, result));
+					.add((isNaN(c) || !isFinite(c))?-2:c);
 			});
 
 		}

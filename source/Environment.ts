@@ -13,7 +13,9 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	protected _problems:IProblem<TGenome,any>[];
 
 	populationSize:number = 50;
+	maxPopulations:number = 100;
 	testCount:number = 10;
+
 
 	constructor(private _genomeFactory:IGenomeFactory<TGenome>)
 	{
@@ -76,7 +78,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 		_._populations.add(p);
 		_._genomeFactory.trimPreviousGenomes();
-		_.trimEarlyPopulations(10);
+		_.trimEarlyPopulations(_.maxPopulations);
 		return p;
 	}
 

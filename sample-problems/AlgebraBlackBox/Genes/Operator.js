@@ -70,8 +70,10 @@ var __extends = (this && this.__extends) || function (d, b) {
                 return this._operator;
             },
             set: function (value) {
-                this._operator = value;
-                this._onModified();
+                if (this._operator != value) {
+                    this._operator = value;
+                    this._onModified();
+                }
             },
             enumerable: true,
             configurable: true

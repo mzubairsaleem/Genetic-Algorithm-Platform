@@ -8,7 +8,7 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../source/Environment", "./GenomeFactory", "./Problem", "../../node_modules/typescript-dotnet/source/System.Linq/Linq"], factory);
+        define(["require", "exports", "../../source/Environment", "./GenomeFactory", "./Problem", "../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../node_modules/typescript-dotnet/source/System/Text/Utility"], factory);
     }
 })(function (require, exports) {
     "use strict";
@@ -16,9 +16,11 @@ var __extends = (this && this.__extends) || function (d, b) {
     var GenomeFactory_1 = require("./GenomeFactory");
     var Problem_1 = require("./Problem");
     var Linq_1 = require("../../node_modules/typescript-dotnet/source/System.Linq/Linq");
+    var Utility_1 = require("../../node_modules/typescript-dotnet/source/System/Text/Utility");
     function actualFormula(a, b) {
         return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
     }
+    var VARIABLE_NAMES = Linq_1.default.from("abcdefghijklmnopqrstuvwxyz").toArray();
     var AlgebraEnvironmentSample = (function (_super) {
         __extends(AlgebraEnvironmentSample, _super);
         function AlgebraEnvironmentSample() {
@@ -29,17 +31,16 @@ var __extends = (this && this.__extends) || function (d, b) {
         AlgebraEnvironmentSample.prototype._onExecute = function () {
             console.log("Executing...");
             _super.prototype._onExecute.call(this);
-            console.log("super._onExecute() complete.");
             var problems = Linq_1.default.from(this._problems).memoize();
             var p = Linq_1.default.from(this._populations).selectMany(function (s) { return s; });
             var top = Linq_1.default
                 .weave(problems
                 .select(function (r) {
                 return Linq_1.default.from(r.rank(p))
-                    .select(function (g) { return g.hash + ": " + r.getFitnessFor(g).score; });
+                    .select(function (g) { return Utility_1.supplant(g.hash, VARIABLE_NAMES) + ": " + r.getFitnessFor(g).score; });
             }))
                 .take(this._problems.length).toArray();
-            console.log("Top:", top);
+            console.log("Top:", top, "\n");
         };
         return AlgebraEnvironmentSample;
     }(Environment_1.default));

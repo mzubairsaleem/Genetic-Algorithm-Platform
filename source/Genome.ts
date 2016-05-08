@@ -21,8 +21,10 @@ implements IGenome, ICloneable<Genome<T>>
 
 	set root(value:T)
 	{
-		this._hash = null;
-		this._root = value;
+		if(value!=this._root){
+			this.resetHash();
+			this._root = value;
+		}
 	}
 
 	findParent(child:IGene):IGene
@@ -47,6 +49,12 @@ implements IGenome, ICloneable<Genome<T>>
 	get hash():string
 	{
 		return this._hash || (this._hash = this.serialize());
+	}
+
+	resetHash():void {
+		this._hash = null;
+		if(this._root)
+			this._root.resetToString();
 	}
 
 	toString():string

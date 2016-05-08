@@ -16,4 +16,6 @@ extends ISerializable, ICollection<IGene>, ICloneable<IGene>
 	findParent(child:IGene):IGene;
 
 	replace(target:IGene, replacement:IGene):boolean;
+
+	resetToString():void;
 }

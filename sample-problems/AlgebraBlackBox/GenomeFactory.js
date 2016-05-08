@@ -64,7 +64,7 @@ var __extends = (this && this.__extends) || function (d, b) {
                         if (!p.containsKey(hash))
                             break;
                     }
-                    paramCount++;
+                    paramCount += 2;
                     {
                         genome = this.generateOperated(paramCount);
                         hash = genome.hash;
@@ -258,7 +258,7 @@ var __extends = (this && this.__extends) || function (d, b) {
                                 break;
                             case 3:
                                 first = new ParameterGene_1.default(Integer_1.default.random.next(inputParamCount));
-                                newOp = inputParamCount == 1
+                                newOp = inputParamCount <= 1
                                     ? Operator_1.default.getRandomOperation('/')
                                     : Operator_1.default.getRandomOperation();
                                 newOp.add(first);
@@ -355,6 +355,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             for (var i = 0; i < mutations; i++) {
                 _loop_1();
             }
+            newGenome.resetHash();
             return newGenome;
         };
         return AlgebraGenomeFactory;

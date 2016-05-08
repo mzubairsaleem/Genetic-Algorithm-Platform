@@ -87,8 +87,11 @@ class OperatorGene extends AlgebraGene
 
 	set operator(value:OperatorSymbol)
 	{
-		this._operator = value;
-		this._onModified();
+		if(this._operator != value) {
+			this._operator = value;
+			this._onModified();
+		}
+
 	}
 
 	modifyChildren(closure:Predicate<List<AlgebraGene>>)

@@ -4,7 +4,8 @@ const EMPTY = "";
 
 export default class ConstantGene extends AlgebraGene implements IEquatable<ConstantGene>
 {
-	protected toStringInternal():string
+	//protected
+	toStringInternal():string
 	{
 		return this.multiple + EMPTY;
 	}

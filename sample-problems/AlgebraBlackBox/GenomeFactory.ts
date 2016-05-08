@@ -71,7 +71,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 					if(!p.containsKey(hash)) break;
 				}
 
-				paramCount++;
+				paramCount += 2; // Operators need at least 2 params to start.
 
 				{ // Then try an operator based version.
 					genome = this.generateOperated(paramCount);
@@ -374,7 +374,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 							var first = new ParameterGene(Integer.random.next(inputParamCount));
 
-							var newOp = inputParamCount==1
+							var newOp = inputParamCount<=1
 								? OperatorGene.getRandomOperation('/')
 								: OperatorGene.getRandomOperation();
 
@@ -501,8 +501,8 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 		}
 
+		newGenome.resetHash();
 		return newGenome;
-
 
 	}
 

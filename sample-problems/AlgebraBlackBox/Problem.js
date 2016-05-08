@@ -104,8 +104,9 @@
                             result.push(g.calculate([a, b]));
                         }
                     }
+                    var c = Correlation_1.correlation(correct, result);
                     _this.getFitnessFor(g)
-                        .add(Correlation_1.correlation(correct, result));
+                        .add((isNaN(c) || !isFinite(c)) ? -2 : c);
                 });
             }
         };

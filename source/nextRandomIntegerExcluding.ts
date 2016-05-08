@@ -20,6 +20,7 @@ export default function nextRandomIntegerExcluding(
 
 	if(!r.length)
 	{
+		console.log(range,excluding,r);
 		throw new Error("Invalid select.");
 	}
 

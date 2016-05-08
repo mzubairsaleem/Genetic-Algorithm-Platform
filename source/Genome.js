@@ -21,8 +21,10 @@
                 return this._root;
             },
             set: function (value) {
-                this._hash = null;
-                this._root = value;
+                if (value != this._root) {
+                    this.resetHash();
+                    this._root = value;
+                }
             },
             enumerable: true,
             configurable: true
@@ -50,6 +52,11 @@
             enumerable: true,
             configurable: true
         });
+        Genome.prototype.resetHash = function () {
+            this._hash = null;
+            if (this._root)
+                this._root.resetToString();
+        };
         Genome.prototype.toString = function () {
             return this.hash;
         };

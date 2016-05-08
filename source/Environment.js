@@ -23,6 +23,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             _super.call(this);
             this._genomeFactory = _genomeFactory;
             this.populationSize = 50;
+            this.maxPopulations = 100;
             this.testCount = 10;
             this._problems = [];
             this._populations = new LinkedList_1.default();
@@ -60,7 +61,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             p.populate(populationSize, Linq_1.default.from(source).toArray());
             _._populations.add(p);
             _._genomeFactory.trimPreviousGenomes();
-            _.trimEarlyPopulations(10);
+            _.trimEarlyPopulations(_.maxPopulations);
             return p;
         };
         Environment.prototype.trimEarlyPopulations = function (maxPopulations) {
