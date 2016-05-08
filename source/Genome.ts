@@ -6,6 +6,8 @@
 ///<reference path="../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/IDictionary.d.ts"/>
 ///<reference path="IGenome.d.ts"/>
 
+import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
+
 abstract class Genome<T extends IGene>
 implements IGenome, ICloneable<Genome<T>>
 {
@@ -29,6 +31,14 @@ implements IGenome, ICloneable<Genome<T>>
 		return (root && child!=root)
 			? root.findParent(child)
 			: null;
+	}
+
+	get genes():Enumerable<IGene>
+	{
+		var root = this.root;
+		return Enumerable
+			.make<IGene>(root)
+			.concat(root.descendants);
 	}
 
 	abstract serialize():string;

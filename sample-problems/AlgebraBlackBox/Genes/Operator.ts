@@ -57,7 +57,9 @@ function getRandomFromExcluding<T>(source:T[], excluding:IEnumerableOrArray<T>):
 	return getRandomFrom(options);
 }
 
-function getRandomOperator(source:OperatorSymbol[], excluded?:OperatorSymbol|IEnumerableOrArray<OperatorSymbol>):OperatorSymbol
+function getRandomOperator(
+	source:OperatorSymbol[],
+	excluded?:OperatorSymbol|IEnumerableOrArray<OperatorSymbol>):OperatorSymbol
 {
 	if(!excluded)
 		return getRandomFrom(source);
@@ -386,8 +388,8 @@ class OperatorGene extends AlgebraGene
 						let divOperator = values
 							.ofType(OperatorGene)
 							.where(g =>
-								g.operator==Operator.DIVIDE &&
-								g.asEnumerable().take(1)
+							g.operator==Operator.DIVIDE &&
+							g.asEnumerable().take(1)
 								.ofType(ParameterGene)
 								.any(g2 => g2.id==f.id))
 							.firstOrDefault();
@@ -444,8 +446,8 @@ class OperatorGene extends AlgebraGene
 				{
 
 					let f = values.first();
-					let fo:OperatorGene;
-					if(!(f instanceof OperatorGene) || f.operator!=Operator.MULTIPLY)
+					let fo:OperatorGene = f instanceof OperatorGene ? f : null;
+					if(!fo || fo.operator!=Operator.MULTIPLY)
 					{
 						fo = new OperatorGene(Operator.MULTIPLY);
 
@@ -556,7 +558,7 @@ class OperatorGene extends AlgebraGene
 
 				if(opg instanceof ParameterGene || opg instanceof ConstantGene)
 				{
-					if(Operator.Available.Functions.indexOf(o.operator)==-1)
+					if(Operator.Available.Functions.indexOf(o.operator)== -1)
 					{
 
 						o.remove(opg);
@@ -608,7 +610,7 @@ class OperatorGene extends AlgebraGene
 						}
 
 					}
-					else if(Operator.Available.Operators.indexOf(o.operator)!=-1)
+					else if(Operator.Available.Operators.indexOf(o.operator)!= -1)
 					{
 						let children = og.toArray();
 						o.operator = og.operator;
@@ -673,12 +675,12 @@ class OperatorGene extends AlgebraGene
 
 	static getRandomOperator(excluded?:OperatorSymbol|IEnumerableOrArray<OperatorSymbol>):OperatorSymbol
 	{
-		return getRandomOperator(Operator.Available.Operators,excluded);
+		return getRandomOperator(Operator.Available.Operators, excluded);
 	}
 
 	static getRandomFunctionOperator(excluded?:OperatorSymbol|IEnumerableOrArray<OperatorSymbol>):OperatorSymbol
 	{
-		return getRandomOperator(Operator.Available.Functions,excluded);
+		return getRandomOperator(Operator.Available.Functions, excluded);
 	}
 
 	static getRandomOperation(excluded?:OperatorSymbol|IEnumerableOrArray<OperatorSymbol>):OperatorGene
@@ -711,7 +713,6 @@ class OperatorGene extends AlgebraGene
 
 		return NaN;
 	}
-
 
 
 }

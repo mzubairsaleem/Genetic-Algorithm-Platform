@@ -6,6 +6,10 @@ export default class AlgebraFitness
 	private _samples:number[];
 	private _samplesReadOnly:ReadOnlyArrayWrapper<number>;
 
+	constructor(){
+		this._samples = [];
+	}
+
 	get scores():ReadOnlyArrayWrapper<number>
 	{
 		return this._samplesReadOnly || (this._samplesReadOnly

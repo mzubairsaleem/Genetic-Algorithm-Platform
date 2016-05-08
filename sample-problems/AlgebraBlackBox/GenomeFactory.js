@@ -88,10 +88,10 @@ var __extends = (this && this.__extends) || function (d, b) {
         };
         AlgebraGenomeFactory.prototype.mutate = function (source, mutations) {
             if (mutations === void 0) { mutations = 1; }
-            var inputParamCount = source.root.descendants.ofType(ParameterGene_1.default).count();
+            var inputParamCount = source.genes.ofType(ParameterGene_1.default).count();
             var newGenome = source.clone();
             var _loop_1 = function() {
-                var genes = newGenome.root.descendants.toArray();
+                var genes = newGenome.genes.toArray();
                 var gene = Integer_1.default.random.select(genes);
                 var isRoot = gene == newGenome.root;
                 var parent_1 = newGenome.findParent(gene);
@@ -142,7 +142,7 @@ var __extends = (this && this.__extends) || function (d, b) {
                                     break;
                                 }
                             case 1:
-                                var nextParameter = nextRandomIntegerExcluding_1.default(inputParamCount, pg.id);
+                                var nextParameter = nextRandomIntegerExcluding_1.default(inputParamCount + 1, pg.id);
                                 var newPG = new ParameterGene_1.default(nextParameter);
                                 if (isRoot)
                                     newGenome.root = newPG;

@@ -18,5 +18,10 @@ export default function nextRandomIntegerExcluding(
 		if(!excludeSet.contains(i)) r.push(i);
 	}
 
+	if(!r.length)
+	{
+		throw new Error("Invalid select.");
+	}
+
 	return Integer.random.select(r);
 }

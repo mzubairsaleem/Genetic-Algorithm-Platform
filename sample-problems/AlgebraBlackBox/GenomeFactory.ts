@@ -105,7 +105,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 	mutate(source:AlgebraGenome, mutations:number = 1):AlgebraGenome
 	{
-		var inputParamCount = source.root.descendants.ofType(ParameterGene).count();
+		var inputParamCount = source.genes.ofType(ParameterGene).count();
 
 		/* Possible mutations:
 		 * 1) Adding a parameter node to an operation.
@@ -120,7 +120,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		for(var i = 0; i<mutations; i++)
 		{
 			// First randomly select the gene to mutate.
-			let genes = newGenome.root.descendants.toArray();
+			let genes = newGenome.genes.toArray();
 			let gene = Integer.random.select(genes);
 			let isRoot = gene==newGenome.root;
 			let parent = newGenome.findParent(gene);
@@ -198,7 +198,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 						// Simply change parameters
 						case 1:
-							let nextParameter = nextRandomIntegerExcluding(inputParamCount, pg.id);
+							let nextParameter = nextRandomIntegerExcluding(inputParamCount + 1, pg.id);
 
 							let newPG = new ParameterGene(nextParameter);
 							if(isRoot)

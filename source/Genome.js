@@ -7,10 +7,11 @@
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports"], factory);
+        define(["require", "exports", "../node_modules/typescript-dotnet/source/System.Linq/Linq"], factory);
     }
 })(function (require, exports) {
     "use strict";
+    var Linq_1 = require("../node_modules/typescript-dotnet/source/System.Linq/Linq");
     var Genome = (function () {
         function Genome(_root) {
             this._root = _root;
@@ -32,6 +33,16 @@
                 ? root.findParent(child)
                 : null;
         };
+        Object.defineProperty(Genome.prototype, "genes", {
+            get: function () {
+                var root = this.root;
+                return Linq_1.default
+                    .make(root)
+                    .concat(root.descendants);
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(Genome.prototype, "hash", {
             get: function () {
                 return this._hash || (this._hash = this.serialize());

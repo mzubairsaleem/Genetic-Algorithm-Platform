@@ -5,7 +5,7 @@
 
 import Set from "../../node_modules/typescript-dotnet/source/System/Collections/Set";
 import * as ArrayUtility from "../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility";
-import {correlation} from "arithmetic/Correlation";
+import {correlation} from "./arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
 import AlgebraFitness from "./Fitness";
 import Enumerable from "../../node_modules/typescript-dotnet/source/System.Linq/Linq";

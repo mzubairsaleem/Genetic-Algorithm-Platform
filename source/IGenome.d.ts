@@ -11,4 +11,5 @@ interface IGenome extends ISerializable, IEquatable<IGenome>
 {
 	root:IGene;
 	hash:string;
+	genes:IEnumerable<IGene>
 }

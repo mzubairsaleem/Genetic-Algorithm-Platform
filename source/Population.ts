@@ -12,6 +12,7 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 
 	constructor(private _genomeFactory:IGenomeFactory<TGenome>)
 	{
+		this._population = new StringKeyDictionary<TGenome>();
 	}
 
 
@@ -120,7 +121,11 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 	// Provide a mechanism for culling the herd without requiring IProblem to be imported.
 	keepOnly(selected:IEnumerableOrArray<TGenome>):void
 	{
-		var hashed = new Set(Enumerable.from(selected).select(o=>o.hash));
+		var hashed = new Set(
+			Enumerable
+				.from(selected)
+				.select(o=>o.hash));
+
 		var p = this._population;
 		p.forEach(o=>
 		{

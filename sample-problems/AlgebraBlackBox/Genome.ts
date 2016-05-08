@@ -2,9 +2,11 @@ import Genome from "../../source/Genome";
 import InvalidOperationException from "../../node_modules/typescript-dotnet/source/System/Exceptions/InvalidOperationException";
 import AlgebraGene from "./Gene";
 
-export default class AlgebraGenome extends Genome<AlgebraGene> {
+export default class AlgebraGenome extends Genome<AlgebraGene>
+{
 
-	constructor(root?:AlgebraGene) {
+	constructor(root?:AlgebraGene)
+	{
 		super(root);
 	}
 

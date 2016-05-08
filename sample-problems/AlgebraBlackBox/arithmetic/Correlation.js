@@ -7,13 +7,13 @@
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure", "../../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator", "../../node_modules/typescript-dotnet/source/System/Exception"], factory);
+        define(["require", "exports", "../../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure", "../../../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator", "../../../node_modules/typescript-dotnet/source/System/Exception"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Procedure_1 = require("../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure");
-    var Enumerator_1 = require("../../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator");
-    var Exception_1 = require("../../node_modules/typescript-dotnet/source/System/Exception");
+    var Procedure_1 = require("../../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure");
+    var Enumerator_1 = require("../../../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator");
+    var Exception_1 = require("../../../node_modules/typescript-dotnet/source/System/Exception");
     function abs(source) {
         return source.map(function (v) { return isNaN(v) ? v : Math.abs(v); });
     }

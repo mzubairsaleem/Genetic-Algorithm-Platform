@@ -55,7 +55,9 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 		this.test();
 
-		p.keepOnly(Enumerable.weave<TGenome>(problems.select(r=>r.rank(p)))
+		p.keepOnly(
+			Enumerable.weave<TGenome>(
+				problems.select(r=>r.rank(p)))
 			.take(this.populationSize/2));
 
 		this.execute(0);
