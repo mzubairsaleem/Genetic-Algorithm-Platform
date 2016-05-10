@@ -39,8 +39,10 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 							.select(
 								g=>
 								{
+									let red = g.root.asReduced(), suffix = "";
+									if(red!=g.root) suffix = " => " + supplant(red.toString(), VARIABLE_NAMES);
 									return {
-										label: supplant(g.hash, VARIABLE_NAMES) + ": " + r.getFitnessFor(g).score,
+										label: r.getFitnessFor(g).score + ": " + supplant(g.hash, VARIABLE_NAMES) + suffix,
 										gene: g
 									};
 								}

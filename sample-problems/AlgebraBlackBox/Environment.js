@@ -38,8 +38,11 @@ var __extends = (this && this.__extends) || function (d, b) {
                 .select(function (r) {
                 return Linq_1.default.from(r.rank(p))
                     .select(function (g) {
+                    var red = g.root.asReduced(), suffix = "";
+                    if (red != g.root)
+                        suffix = " => " + Utility_1.supplant(red.toString(), VARIABLE_NAMES);
                     return {
-                        label: Utility_1.supplant(g.hash, VARIABLE_NAMES) + ": " + r.getFitnessFor(g).score,
+                        label: r.getFitnessFor(g).score + ": " + Utility_1.supplant(g.hash, VARIABLE_NAMES) + suffix,
                         gene: g
                     };
                 });
