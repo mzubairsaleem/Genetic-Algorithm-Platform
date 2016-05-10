@@ -10,6 +10,7 @@ export default class Environment<TGenome extends IGenome>
 extends TaskHandlerBase implements IEnvironment<TGenome>
 {
 
+	protected _generations:number = 0;
 	protected _populations:LinkedList<Population<TGenome>>;
 	protected _populationsEnumerable:Enumerable<Population<TGenome>>;
 	protected _problems:IProblem<TGenome,any>[];
@@ -38,7 +39,9 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		}
 	}
 	
-	
+	get generations():number {
+		return this._generations;
+	}
 
 	get populations():number
 	{
@@ -63,6 +66,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		);
 
 		this.test();
+		this._generations++;
 
 		p.keepOnly(
 			Enumerable.weave<TGenome>(

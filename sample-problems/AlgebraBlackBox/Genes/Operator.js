@@ -78,6 +78,9 @@ var __extends = (this && this.__extends) || function (d, b) {
             enumerable: true,
             configurable: true
         });
+        OperatorGene.prototype.isReducible = function () {
+            return true;
+        };
         OperatorGene.prototype.modifyChildren = function (closure) {
             if (closure(this))
                 this._onModified();
@@ -466,9 +469,17 @@ var __extends = (this && this.__extends) || function (d, b) {
             return somethingDone;
         };
         OperatorGene.prototype.asReduced = function () {
-            var gene = this.clone();
-            gene.reduce();
-            return gene;
+            var r = this._reduced;
+            if (!r) {
+                var gene = this.clone();
+                gene.reduce();
+                this._reduced = r = gene.toString() === this.toString() ? this : gene;
+            }
+            return r;
+        };
+        OperatorGene.prototype.resetToString = function () {
+            this._reduced = null;
+            _super.prototype.resetToString.call(this);
         };
         OperatorGene.prototype.toStringContents = function () {
             var _ = this;

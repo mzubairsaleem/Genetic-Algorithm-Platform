@@ -29,21 +29,37 @@ var __extends = (this && this.__extends) || function (d, b) {
                 .push(new Problem_1.default(actualFormula));
         }
         AlgebraEnvironmentSample.prototype._onExecute = function () {
-            console.log("Executing...");
             _super.prototype._onExecute.call(this);
+            console.log("Generation:", this._generations);
             var problems = Linq_1.default.from(this._problems).memoize();
             var p = Linq_1.default.from(this._populations).selectMany(function (s) { return s; });
             var top = Linq_1.default
                 .weave(problems
                 .select(function (r) {
                 return Linq_1.default.from(r.rank(p))
-                    .select(function (g) { return Utility_1.supplant(g.hash, VARIABLE_NAMES) + ": " + r.getFitnessFor(g).score; });
+                    .select(function (g) {
+                    return {
+                        label: Utility_1.supplant(g.hash, VARIABLE_NAMES) + ": " + r.getFitnessFor(g).score,
+                        gene: g
+                    };
+                });
             }))
-                .take(this._problems.length).toArray();
+                .take(this._problems.length)
+                .memoize();
+            var n = this._populations.last.value;
+            n.importEntries(top
+                .select(function (g) { return g.gene; })
+                .where(function (g) { return g.root.isReducible() && g.root.asReduced() != g.root; })
+                .select(function (g) {
+                var n = g.clone();
+                n.root = g.root.asReduced();
+                return n;
+            }));
+            console.log("Population Size:", n.count);
             var c = problems.selectMany(function (p) { return p.convergent; }).count();
             if (c)
                 console.log("Convergent:", c);
-            console.log("Top:", top, "\n");
+            console.log("Top:", top.select(function (s) { return s.label; }).toArray(), "\n");
         };
         return AlgebraEnvironmentSample;
     }(Environment_1.default));

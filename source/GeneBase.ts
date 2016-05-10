@@ -6,7 +6,7 @@ import List from "../node_modules/typescript-dotnet/source/System/Collections/Li
 import ArgumentException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentException";
 
 abstract class GeneBase<T extends IGene>
-extends List<T> implements IGene
+extends List<T> implements IGene, IEquatable<GeneBase<T>>
 {
 	constructor()
 	{
@@ -85,6 +85,11 @@ extends List<T> implements IGene
 	toString()
 	{
 		return this._toString.value;
+	}
+
+	equals(other:GeneBase<T>):boolean
+	{
+		return this===other || this.toString()==other.toString();
 	}
 }
 

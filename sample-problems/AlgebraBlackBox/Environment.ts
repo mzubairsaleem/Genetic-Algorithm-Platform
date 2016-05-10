@@ -26,24 +26,48 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 
 	protected _onExecute():void
 	{
-		console.log("Executing...");
 		super._onExecute();
+		console.log("Generation:", this._generations);
 
 		var problems = Enumerable.from(this._problems).memoize();
 		var p = Enumerable.from(this._populations).selectMany(s=>s);
 		var top = Enumerable
-			.weave<string>(
+			.weave<{label:string,gene:AlgebraGenome}>(
 				problems
 					.select(r=>
 						Enumerable.from(r.rank(p))
-							.select(g=>supplant(g.hash,VARIABLE_NAMES) +": "+ r.getFitnessFor(g).score))
+							.select(
+								g=>
+								{
+									return {
+										label: supplant(g.hash, VARIABLE_NAMES) + ": " + r.getFitnessFor(g).score,
+										gene: g
+									};
+								}
+							)
+					)
 			)
-			.take(this._problems.length).toArray();
+			.take(this._problems.length)
+			.memoize();
+
+		var n = this._populations.last.value;
+		n.importEntries(top
+			.select(g=>g.gene)
+			.where(g=>g.root.isReducible() && g.root.asReduced()!=g.root)
+			.select(g=>
+			{
+				let n = g.clone();
+				n.root = g.root.asReduced();
+				return n;
+			}));
+
+		console.log("Population Size:", n.count);
 
 		var c = problems.selectMany(p=>p.convergent).count();
-		if(c) console.log("Convergent:",c);
-		console.log("Top:",top,"\n");
+		if(c) console.log("Convergent:", c);
+		console.log("Top:", top.select(s=>s.label).toArray(), "\n");
 	}
+
 
 }
 

@@ -1,13 +1,14 @@
 import AlgebraGene from "../Gene";
+import UnreducibleGene from "./UnreducibleGene";
 
 const EMPTY = "";
 
-export default class ConstantGene extends AlgebraGene implements IEquatable<ConstantGene>
+export default class ConstantGene extends UnreducibleGene
 {
 	//protected
 	toStringInternal():string
 	{
-		return this.multiple + EMPTY;
+		return this._multiple + EMPTY;
 	}
 
 	toStringContents():string
@@ -17,7 +18,7 @@ export default class ConstantGene extends AlgebraGene implements IEquatable<Cons
 
 	clone():ConstantGene
 	{
-		return new ConstantGene(this.multiple);
+		return new ConstantGene(this._multiple);
 	}
 
 	calculateWithoutMultiple(values:number[]):number
@@ -25,13 +26,8 @@ export default class ConstantGene extends AlgebraGene implements IEquatable<Cons
 		return 1;
 	}
 
-	asReduced():ConstantGene
+	equals(other:AlgebraGene):boolean
 	{
-		return this.clone();
-	}
-	
-	equals(other:ConstantGene):boolean
-	{
-		return this.multiple==other.multiple;
+		return other instanceof ConstantGene && this._multiple==other._multiple || super.equals(other);
 	}
 }

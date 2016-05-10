@@ -72,7 +72,6 @@ function getRandomOperator(
 
 class OperatorGene extends AlgebraGene
 {
-
 	constructor(
 		private _operator:OperatorSymbol,
 		multiple:number = 1)
@@ -92,6 +91,11 @@ class OperatorGene extends AlgebraGene
 			this._onModified();
 		}
 
+	}
+
+	isReducible():boolean
+	{
+		return true;
 	}
 
 	modifyChildren(closure:Predicate<List<AlgebraGene>>)
@@ -642,12 +646,23 @@ class OperatorGene extends AlgebraGene
 		return somethingDone;
 	}
 
+	private _reduced:OperatorGene;
 	asReduced():OperatorGene
 	{
+		var r = this._reduced;
+		if(!r) {
+			var gene = this.clone();
+			gene.reduce();
+			this._reduced = r = gene.toString()===this.toString() ? this : gene;
+		}
+		return r;
+	}
 
-		var gene = this.clone();
-		gene.reduce();
-		return gene;
+
+	resetToString():void
+	{
+		this._reduced = null;
+		super.resetToString();
 	}
 
 	toStringContents():string

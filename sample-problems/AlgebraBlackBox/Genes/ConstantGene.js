@@ -8,11 +8,11 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../Gene"], factory);
+        define(["require", "exports", "./UnreducibleGene"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Gene_1 = require("../Gene");
+    var UnreducibleGene_1 = require("./UnreducibleGene");
     var EMPTY = "";
     var ConstantGene = (function (_super) {
         __extends(ConstantGene, _super);
@@ -20,25 +20,22 @@ var __extends = (this && this.__extends) || function (d, b) {
             _super.apply(this, arguments);
         }
         ConstantGene.prototype.toStringInternal = function () {
-            return this.multiple + EMPTY;
+            return this._multiple + EMPTY;
         };
         ConstantGene.prototype.toStringContents = function () {
             return EMPTY;
         };
         ConstantGene.prototype.clone = function () {
-            return new ConstantGene(this.multiple);
+            return new ConstantGene(this._multiple);
         };
         ConstantGene.prototype.calculateWithoutMultiple = function (values) {
             return 1;
         };
-        ConstantGene.prototype.asReduced = function () {
-            return this.clone();
-        };
         ConstantGene.prototype.equals = function (other) {
-            return this.multiple == other.multiple;
+            return other instanceof ConstantGene && this._multiple == other._multiple || _super.prototype.equals.call(this, other);
         };
         return ConstantGene;
-    }(Gene_1.default));
+    }(UnreducibleGene_1.default));
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = ConstantGene;
 });

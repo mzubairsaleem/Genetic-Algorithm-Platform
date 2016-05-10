@@ -23,6 +23,7 @@ var __extends = (this && this.__extends) || function (d, b) {
         function Environment(_genomeFactory) {
             _super.call(this);
             this._genomeFactory = _genomeFactory;
+            this._generations = 0;
             this.populationSize = 50;
             this.maxPopulations = 20;
             this.testCount = 10;
@@ -42,6 +43,13 @@ var __extends = (this && this.__extends) || function (d, b) {
                 _loop_1(pr);
             }
         };
+        Object.defineProperty(Environment.prototype, "generations", {
+            get: function () {
+                return this._generations;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(Environment.prototype, "populations", {
             get: function () {
                 return this._populations.count;
@@ -54,6 +62,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             var p = this.spawn(this.populationSize, Triangular.dispurse.decreasing(Linq_1.default.weave(populations
                 .selectMany(function (o) { return problems.select(function (r) { return r.rank(o); }); }))));
             this.test();
+            this._generations++;
             p.keepOnly(Linq_1.default.weave(problems.select(function (r) { return r.rank(p); }))
                 .take(this.populationSize / 2));
             dispose_1.dispose(populations);

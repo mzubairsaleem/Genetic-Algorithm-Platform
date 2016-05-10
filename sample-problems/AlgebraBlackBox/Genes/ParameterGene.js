@@ -8,12 +8,12 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../../node_modules/typescript-dotnet/source/System/Integer", "../Gene"], factory);
+        define(["require", "exports", "../../../node_modules/typescript-dotnet/source/System/Integer", "./UnreducibleGene"], factory);
     }
 })(function (require, exports) {
     "use strict";
     var Integer_1 = require("../../../node_modules/typescript-dotnet/source/System/Integer");
-    var Gene_1 = require("../Gene");
+    var UnreducibleGene_1 = require("./UnreducibleGene");
     var ParameterGene = (function (_super) {
         __extends(ParameterGene, _super);
         function ParameterGene(_id, multiple) {
@@ -38,14 +38,11 @@ var __extends = (this && this.__extends) || function (d, b) {
         ParameterGene.prototype.calculateWithoutMultiple = function (values) {
             return values[this._id];
         };
-        ParameterGene.prototype.asReduced = function () {
-            return this.clone();
-        };
         ParameterGene.prototype.equals = function (other) {
-            return this._id == other._id && this._multiple == other._multiple;
+            return other == this || other instanceof ParameterGene && this._id == other._id && this._multiple == other._multiple || _super.prototype.equals.call(this, other);
         };
         return ParameterGene;
-    }(Gene_1.default));
+    }(UnreducibleGene_1.default));
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = ParameterGene;
 });

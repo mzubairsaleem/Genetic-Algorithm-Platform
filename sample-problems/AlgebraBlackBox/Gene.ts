@@ -12,6 +12,7 @@ extends GeneBase<AlgebraGene> {
 
 	abstract clone():AlgebraGene;
 
+	abstract isReducible():boolean;
 	abstract asReduced():AlgebraGene;
 
 	serialize():string {
@@ -52,7 +53,6 @@ extends GeneBase<AlgebraGene> {
 	}
 
 	protected abstract calculateWithoutMultiple(values:number[]):number;
-
 }
 
 export default AlgebraGene;

@@ -1,7 +1,8 @@
 import Integer from "../../../node_modules/typescript-dotnet/source/System/Integer";
 import AlgebraGene from "../Gene";
+import UnreducibleGene from "./UnreducibleGene";
 
-export default class ParameterGene extends AlgebraGene implements IEquatable<ParameterGene>
+export default class ParameterGene extends UnreducibleGene
 {
 	constructor(protected _id:number, multiple:number = 1)
 	{
@@ -30,15 +31,8 @@ export default class ParameterGene extends AlgebraGene implements IEquatable<Par
 		return values[this._id];
 	}
 
-	asReduced():ParameterGene
+	equals(other:AlgebraGene):boolean
 	{
-
-		return this.clone();
-
-	}
-
-	equals(other:ParameterGene):boolean
-	{
-		return this._id==other._id && this._multiple==other._multiple;
+		return other==this || other instanceof ParameterGene && this._id==other._id && this._multiple==other._multiple || super.equals(other);
 	}
 }
