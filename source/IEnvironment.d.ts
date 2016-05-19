@@ -3,7 +3,12 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-interface IEnvironment<TGenome extends IGenome>
+
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {IGenome} from "./IGenome";
+import {IPopulation} from "./IPopulation";
+
+export interface IEnvironment<TGenome extends IGenome>
 {
 	/**
 	 * Initiates a cycle of testing with the current populations and problems.
@@ -17,3 +22,5 @@ interface IEnvironment<TGenome extends IGenome>
 	 */
 	spawn(populationSize:number, source?:IEnumerableOrArray<TGenome>):IPopulation<TGenome>;
 }
+
+export default IEnvironment;

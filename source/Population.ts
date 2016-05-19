@@ -1,11 +1,22 @@
-///<reference path="../node_modules/typescript-dotnet/source/System/Collections/Enumeration/IEnumerateEach.d.ts"/>
-import Set from "../node_modules/typescript-dotnet/source/System/Collections/Set";
-import StringKeyDictionary from "../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
-import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
-import ArgumentNullException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentNullException";
-import {forEach} from "../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
 
-export default class Population<TGenome extends IGenome>
+import {Set} from "typescript-dotnet/source/System/Collections/Set";
+import {StringKeyDictionary} from "typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
+import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
+import {ArgumentNullException} from "typescript-dotnet/source/System/Exceptions/ArgumentNullException";
+import {forEach} from "typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
+import {IEnumerateEach} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerateEach";
+import {Predicate, Action} from "typescript-dotnet/source/System/FunctionTypes";
+import {IEnumerator} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerator";
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {IGenome} from "./IGenome";
+import {IPopulation} from "./IPopulation";
+import {IGenomeFactory} from "./IGenomeFactory";
+
+export class Population<TGenome extends IGenome>
 implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 {
 	private _population:StringKeyDictionary<TGenome>;
@@ -136,3 +147,5 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		}, true);
 	}
 }
+
+export default Population;

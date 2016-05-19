@@ -1,12 +1,23 @@
-///<reference path="IEnvironment.d.ts"/>
-import {dispose} from "../node_modules/typescript-dotnet/source/System/Disposable/dispose";
-import LinkedList from "../node_modules/typescript-dotnet/source/System/Collections/LinkedList";
-import TaskHandlerBase from "../node_modules/typescript-dotnet/source/System/Tasks/TaskHandlerBase";
-import Population from "./Population";
-import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
-import * as Triangular from "./Triangular";
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
 
-export default class Environment<TGenome extends IGenome>
+
+import * as Triangular from "./Triangular";
+import {dispose} from "typescript-dotnet/source/System/Disposable/dispose";
+import {LinkedList} from "typescript-dotnet/source/System/Collections/LinkedList";
+import {TaskHandlerBase} from "typescript-dotnet/source/System/Tasks/TaskHandlerBase";
+import {Population} from "./Population";
+import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
+import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {IGenome} from "./IGenome";
+import {IEnvironment} from "./IEnvironment";
+import {IProblem} from "./IProblem";
+import {IGenomeFactory} from "./IGenomeFactory";
+
+export class Environment<TGenome extends IGenome>
 extends TaskHandlerBase implements IEnvironment<TGenome>
 {
 
@@ -38,8 +49,9 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 			p.forEach(po=>pr.test(po, count));
 		}
 	}
-	
-	get generations():number {
+
+	get generations():number
+	{
 		return this._generations;
 	}
 
@@ -56,7 +68,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		// Get ranked population for each problem and merge it into a weaved enumeration.
 		var p = this.spawn(
 			this.populationSize,
-			Triangular.dispurse.decreasing<TGenome>(
+			Triangular.disperse.decreasing<TGenome>(
 				Enumerable.weave<TGenome>(populations
 					.selectMany<IEnumerable<TGenome>>(
 						o => problems.select(r=>r.rank(o))
@@ -71,7 +83,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		p.keepOnly(
 			Enumerable.weave<TGenome>(
 				problems.select(r=>r.rank(p)))
-			.take(this.populationSize/2));
+				.take(this.populationSize/2));
 
 		dispose(populations);
 
@@ -100,18 +112,23 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	trimEarlyPopulations(maxPopulations:number):void
 	{
-		var problems    = this._problemsEnumerable.memoize();
+		var problems = this._problemsEnumerable.memoize();
 		this._populationsEnumerable
 			.takeExceptLast(maxPopulations)
-			.forEach(p=>{
-				p.forEach(g=>{
+			.forEach(p=>
+			{
+				p.forEach(g=>
+				{
 					if(problems.select(r=>r.getFitnessFor(g).score).max()<0.5)
 						p.remove(g);
-				},true);
-				if(!p.count) {
+				}, true);
+				if(!p.count)
+				{
 					this._populations.remove(p);
 				}
 			});
 	}
 
 }
+
+export default Environment;

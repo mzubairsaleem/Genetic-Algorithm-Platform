@@ -1,3 +1,7 @@
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -8,11 +12,11 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../../node_modules/typescript-dotnet/source/System/Integer", "./UnreducibleGene"], factory);
+        define(["require", "exports", "typescript-dotnet/source/System/Integer", "./UnreducibleGene"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Integer_1 = require("../../../node_modules/typescript-dotnet/source/System/Integer");
+    var Integer_1 = require("typescript-dotnet/source/System/Integer");
     var UnreducibleGene_1 = require("./UnreducibleGene");
     var ParameterGene = (function (_super) {
         __extends(ParameterGene, _super);

@@ -7,11 +7,11 @@
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../node_modules/typescript-dotnet/source/System.Linq/Linq"], factory);
+        define(["require", "exports", "typescript-dotnet/source/System.Linq/Linq"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Linq_1 = require("../node_modules/typescript-dotnet/source/System.Linq/Linq");
+    var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
     var Genome = (function () {
         function Genome(_root) {
             this._root = _root;
@@ -38,7 +38,7 @@
         Object.defineProperty(Genome.prototype, "genes", {
             get: function () {
                 var root = this.root;
-                return Linq_1.default
+                return Linq_1.Enumerable
                     .make(root)
                     .concat(root.descendants);
             },
@@ -65,6 +65,7 @@
         };
         return Genome;
     }());
+    exports.Genome = Genome;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = Genome;
 });

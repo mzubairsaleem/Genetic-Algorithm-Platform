@@ -2,13 +2,13 @@
   "name": "genetic-algorithm-platform",
   "version": "1.0.0",
   "description": "Presents the basic architecture and code for implementing Genetic Algorithm.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/electricessence/Genetic-Algorithm-Platform.git"
+  },
+  "directories": {
+    "lib": "source",
+    "src": "source"
   },
   "keywords": [
     "Genetic",
@@ -23,6 +23,9 @@
   },
   "homepage": "https://github.com/electricessence/Genetic-Algorithm-Platform#readme",
   "dependencies": {
-    "typescript-dotnet": "^2.10.13"
+    "typescript-dotnet": "^2.13.3"
+  },
+  "engines": {
+    "node": "~0.6"
   }
 }

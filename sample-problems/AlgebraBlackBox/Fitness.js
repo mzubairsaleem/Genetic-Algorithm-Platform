@@ -3,12 +3,12 @@
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure", "../../node_modules/typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper"], factory);
+        define(["require", "exports", "typescript-dotnet/source/System/Collections/Array/Procedure", "typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Procedure = require("../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure");
-    var ReadOnlyArrayWrapper_1 = require("../../node_modules/typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper");
+    var Procedure = require("typescript-dotnet/source/System/Collections/Array/Procedure");
+    var ReadOnlyArrayWrapper_1 = require("typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper");
     var AlgebraFitness = (function () {
         function AlgebraFitness() {
             this._score = NaN;

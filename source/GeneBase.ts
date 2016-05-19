@@ -1,9 +1,15 @@
-///<reference path="IGene.d.ts"/>
-///<reference path="../node_modules/typescript-dotnet/source/System/Collections/Enumeration/IEnumerable.d.ts"/>
-import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
-import Lazy from "../node_modules/typescript-dotnet/source/System/Lazy";
-import List from "../node_modules/typescript-dotnet/source/System/Collections/List";
-import ArgumentException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentException";
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
+
+
+import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
+import {Lazy} from "typescript-dotnet/source/System/Lazy";
+import {List} from "typescript-dotnet/source/System/Collections/List";
+import {ArgumentException} from "typescript-dotnet/source/System/Exceptions/ArgumentException";
+import {IEquatable} from "typescript-dotnet/source/System/IEquatable";
+import {IGene} from "./IGene";
 
 abstract class GeneBase<T extends IGene>
 extends List<T> implements IGene, IEquatable<GeneBase<T>>

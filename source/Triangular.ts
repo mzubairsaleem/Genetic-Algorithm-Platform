@@ -1,4 +1,11 @@
-import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
+
+
+import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
 
 export function forward(n:number):number
 {
@@ -10,7 +17,7 @@ export function reverse(n:number):number
 	return (Math.sqrt(8*n + 1) - 1)/2 | 0;
 }
 
-export module dispurse
+export module disperse
 {
 	/**
 	 * Increases the number an element based on it's index.

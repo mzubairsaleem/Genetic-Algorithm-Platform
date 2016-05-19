@@ -1,3 +1,7 @@
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -8,14 +12,14 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure", "../../../node_modules/typescript-dotnet/source/System/Integer", "../../../node_modules/typescript-dotnet/source/System/Types", "../Gene", "./ConstantGene", "./ParameterGene", "../Operators"], factory);
+        define(["require", "exports", "typescript-dotnet/source/System.Linq/Linq", "typescript-dotnet/source/System/Collections/Array/Procedure", "typescript-dotnet/source/System/Integer", "typescript-dotnet/source/System/Types", "../Gene", "./ConstantGene", "./ParameterGene", "../Operators"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Linq_1 = require("../../../node_modules/typescript-dotnet/source/System.Linq/Linq");
-    var Procedure = require("../../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure");
-    var Integer_1 = require("../../../node_modules/typescript-dotnet/source/System/Integer");
-    var Types_1 = require("../../../node_modules/typescript-dotnet/source/System/Types");
+    var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
+    var Procedure = require("typescript-dotnet/source/System/Collections/Array/Procedure");
+    var Integer_1 = require("typescript-dotnet/source/System/Integer");
+    var Types_1 = require("typescript-dotnet/source/System/Types");
     var Gene_1 = require("../Gene");
     var ConstantGene_1 = require("./ConstantGene");
     var ParameterGene_1 = require("./ParameterGene");

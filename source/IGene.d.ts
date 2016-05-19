@@ -3,11 +3,13 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-///<reference path="../node_modules/typescript-dotnet/source/System/Serialization/ISerializable.d.ts"/>
-///<reference path="../node_modules/typescript-dotnet/source/System/ICloneable.d.ts"/>
 
-interface IGene
-extends ISerializable, ICollection<IGene>, ICloneable<IGene>
+import {ISerializable} from "typescript-dotnet/source/System/Serialization/ISerializable";
+import {ICollection} from "typescript-dotnet/source/System/Collections/ICollection";
+import {ICloneable} from "typescript-dotnet/source/System/ICloneable";
+import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
+
+interface IGene extends ISerializable, ICollection<IGene>, ICloneable<IGene>
 {
 	clone():IGene;
 

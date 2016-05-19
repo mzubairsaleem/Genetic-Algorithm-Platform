@@ -3,9 +3,11 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-import {average} from "../../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure";
-import {from as enumeratorFrom} from "../../../node_modules/typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
-import Exception from "../../../node_modules/typescript-dotnet/source/System/Exception";
+
+import {average} from "typescript-dotnet/source/System/Collections/Array/Procedure";
+import {from as enumeratorFrom} from "typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
+import Exception from "typescript-dotnet/source/System/Exception";
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
 
 
 export function abs(source:number[]):number[]

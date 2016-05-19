@@ -1,4 +1,10 @@
-import Integer from "../../../node_modules/typescript-dotnet/source/System/Integer";
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
+
+
+import Integer from "typescript-dotnet/source/System/Integer";
 import AlgebraGene from "../Gene";
 import UnreducibleGene from "./UnreducibleGene";
 

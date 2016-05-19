@@ -3,12 +3,18 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-interface IProblem<TGenome extends IGenome, TFitness>
+
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
+import {IPopulation} from "./IPopulation";
+import {IGenome} from "./IGenome";
+
+export interface IProblem<TGenome extends IGenome, TFitness>
 {
 	convergent:TGenome[];
-	
+
 	getFitnessFor(genome:TGenome, createIfMissing?:boolean):TFitness;
-	
+
 	// Due to the complexity of potential fitness values, this provides a single place to rank a population.
 	rank(
 		population:IEnumerableOrArray<TGenome>):IEnumerable<TGenome>;
@@ -20,3 +26,5 @@ interface IProblem<TGenome extends IGenome, TFitness>
 
 	test(p:IPopulation<TGenome>, count?:number):void;
 }
+
+export default IProblem;

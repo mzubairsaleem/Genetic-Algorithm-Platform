@@ -1,8 +1,14 @@
-///<reference path="IGenomeFactory.d.ts"/>
-///<reference path="IGenome.d.ts"/>
-import OrderedStringKeyDictionary from "../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/OrderedStringKeyDictionary";
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
 
-abstract class GenomeFactoryBase<TGenome extends IGenome>
+
+import {OrderedStringKeyDictionary} from "typescript-dotnet/source/System/Collections/Dictionaries/OrderedStringKeyDictionary";
+import {IGenome} from "./IGenome";
+import {IGenomeFactory} from "./IGenomeFactory";
+
+export abstract class GenomeFactoryBase<TGenome extends IGenome>
 implements IGenomeFactory<TGenome>
 {
 	protected _previousGenomes:OrderedStringKeyDictionary<TGenome>; // Track by hash...
@@ -17,18 +23,22 @@ implements IGenomeFactory<TGenome>
 		return this._previousGenomes.keys;
 	}
 
-	getPrevious(hash:string):TGenome {
+	getPrevious(hash:string):TGenome
+	{
 		return this._previousGenomes.getValue(hash);
 	}
 
 	trimPreviousGenomes():void
 	{
 		while(this._previousGenomes.count>this.maxGenomeTracking)
+		{
 			this._previousGenomes.removeByIndex(0);
+		}
 	}
 
 
 	abstract generate(source?:TGenome[]):TGenome;
+
 	abstract mutate(source:TGenome, mutations?:number):TGenome;
 }
 

@@ -1,5 +1,5 @@
-import * as Procedure from "../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure";
-import ReadOnlyArrayWrapper from "../../node_modules/typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper";
+import * as Procedure from "typescript-dotnet/source/System/Collections/Array/Procedure";
+import ReadOnlyArrayWrapper from "typescript-dotnet/source/System/Collections/Array/ReadOnlyArrayWrapper";
 
 export default class AlgebraFitness
 {

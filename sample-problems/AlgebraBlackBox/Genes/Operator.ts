@@ -1,15 +1,21 @@
-///<reference path="../../../node_modules/typescript-dotnet/source/System/FunctionTypes"/>
-///<reference path="../OperatorSymbol"/>
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
 
-import List from "../../../node_modules/typescript-dotnet/source/System/Collections/List";
-import Enumerable from "../../../node_modules/typescript-dotnet/source/System.Linq/Linq";
-import * as Procedure from "../../../node_modules/typescript-dotnet/source/System/Collections/Array/Procedure";
-import Integer from "../../../node_modules/typescript-dotnet/source/System/Integer";
-import Type from "../../../node_modules/typescript-dotnet/source/System/Types";
+
+import {List} from "typescript-dotnet/source/System/Collections/List";
+import Enumerable from "typescript-dotnet/source/System.Linq/Linq";
+import * as Procedure from "typescript-dotnet/source/System/Collections/Array/Procedure";
+import Integer from "typescript-dotnet/source/System/Integer";
+import Type from "typescript-dotnet/source/System/Types";
 import AlgebraGene from "../Gene";
 import ConstantGene from "./ConstantGene";
 import ParameterGene from "./ParameterGene";
 import * as Operator from "../Operators";
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {Predicate} from "typescript-dotnet/source/System/FunctionTypes";
+import {CompareResult} from "typescript-dotnet/source/System/CompareResult";
 
 function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 {

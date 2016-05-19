@@ -1,9 +1,16 @@
-import Type from "../node_modules/typescript-dotnet/source/System/Types";
-import Integer from "../node_modules/typescript-dotnet/source/System/Integer";
-import Set from "../node_modules/typescript-dotnet/source/System/Collections/Set";
-import ArgumentOutOfRangeException from "../node_modules/typescript-dotnet/source/System/Exceptions/ArgumentOutOfRangeException";
+/*!
+ * @author electricessence / https://github.com/electricessence/
+ * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
+ */
 
-export default function nextRandomIntegerExcluding(
+
+import {Type} from "typescript-dotnet/source/System/Types";
+import {Integer} from "typescript-dotnet/source/System/Integer";
+import {Set} from "typescript-dotnet/source/System/Collections/Set";
+import {ArgumentOutOfRangeException} from "typescript-dotnet/source/System/Exceptions/ArgumentOutOfRangeException";
+import {IEnumerableOrArray} from "../node_modules/typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+
+export function nextRandomIntegerExcluding(
 	range:number,
 	excluding:number|IEnumerableOrArray<number>):number
 {
@@ -20,9 +27,11 @@ export default function nextRandomIntegerExcluding(
 
 	if(!r.length)
 	{
-		console.log(range,excluding,r);
+		console.log(range, excluding, r);
 		throw new Error("Invalid select.");
 	}
 
 	return Integer.random.select(r);
 }
+
+export default nextRandomIntegerExcluding;

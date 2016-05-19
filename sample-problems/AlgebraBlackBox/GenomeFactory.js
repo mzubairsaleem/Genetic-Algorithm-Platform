@@ -8,13 +8,13 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../source/GenomeFactoryBase", "../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../node_modules/typescript-dotnet/source/System/Integer", "./Genome", "./Genes/Operator", "./Genes/ParameterGene", "./Operators", "./Genes/ConstantGene", "../../source/nextRandomIntegerExcluding"], factory);
+        define(["require", "exports", "../../source/GenomeFactoryBase", "typescript-dotnet/source/System.Linq/Linq", "typescript-dotnet/source/System/Integer", "./Genome", "./Genes/Operator", "./Genes/ParameterGene", "./Operators", "./Genes/ConstantGene", "../../source/nextRandomIntegerExcluding"], factory);
     }
 })(function (require, exports) {
     "use strict";
     var GenomeFactoryBase_1 = require("../../source/GenomeFactoryBase");
-    var Linq_1 = require("../../node_modules/typescript-dotnet/source/System.Linq/Linq");
-    var Integer_1 = require("../../node_modules/typescript-dotnet/source/System/Integer");
+    var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
+    var Integer_1 = require("typescript-dotnet/source/System/Integer");
     var Genome_1 = require("./Genome");
     var Operator_1 = require("./Genes/Operator");
     var ParameterGene_1 = require("./Genes/ParameterGene");

@@ -8,12 +8,12 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../source/Genome", "../../node_modules/typescript-dotnet/source/System/Exceptions/InvalidOperationException"], factory);
+        define(["require", "exports", "../../source/Genome", "typescript-dotnet/source/System/Exceptions/InvalidOperationException"], factory);
     }
 })(function (require, exports) {
     "use strict";
     var Genome_1 = require("../../source/Genome");
-    var InvalidOperationException_1 = require("../../node_modules/typescript-dotnet/source/System/Exceptions/InvalidOperationException");
+    var InvalidOperationException_1 = require("typescript-dotnet/source/System/Exceptions/InvalidOperationException");
     var AlgebraGenome = (function (_super) {
         __extends(AlgebraGenome, _super);
         function AlgebraGenome(root) {

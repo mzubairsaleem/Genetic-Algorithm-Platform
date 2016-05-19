@@ -7,17 +7,17 @@
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../node_modules/typescript-dotnet/source/System/Collections/Set", "../../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary", "../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility", "./arithmetic/Correlation", "./Fitness", "../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../node_modules/typescript-dotnet/source/System/Types"], factory);
+        define(["require", "exports", "typescript-dotnet/source/System/Collections/Set", "typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary", "typescript-dotnet/source/System/Collections/Array/Utility", "./arithmetic/Correlation", "./Fitness", "typescript-dotnet/source/System.Linq/Linq", "typescript-dotnet/source/System/Types"], factory);
     }
 })(function (require, exports) {
     "use strict";
-    var Set_1 = require("../../node_modules/typescript-dotnet/source/System/Collections/Set");
-    var StringKeyDictionary_1 = require("../../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary");
-    var ArrayUtility = require("../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility");
+    var Set_1 = require("typescript-dotnet/source/System/Collections/Set");
+    var StringKeyDictionary_1 = require("typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary");
+    var ArrayUtility = require("typescript-dotnet/source/System/Collections/Array/Utility");
     var Correlation_1 = require("./arithmetic/Correlation");
     var Fitness_1 = require("./Fitness");
-    var Linq_1 = require("../../node_modules/typescript-dotnet/source/System.Linq/Linq");
-    var Types_1 = require("../../node_modules/typescript-dotnet/source/System/Types");
+    var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
+    var Types_1 = require("typescript-dotnet/source/System/Types");
     function actualFormula(a, b) {
         return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
     }

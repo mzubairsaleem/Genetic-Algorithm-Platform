@@ -8,19 +8,19 @@ var __extends = (this && this.__extends) || function (d, b) {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports", "../../source/Environment", "./GenomeFactory", "./Problem", "../../node_modules/typescript-dotnet/source/System.Linq/Linq", "../../node_modules/typescript-dotnet/source/System/Text/Utility"], factory);
+        define(["require", "exports", "../../source/Environment", "./GenomeFactory", "./Problem", "typescript-dotnet/source/System.Linq/Linq", "typescript-dotnet/source/System/Text/Utility"], factory);
     }
 })(function (require, exports) {
     "use strict";
     var Environment_1 = require("../../source/Environment");
     var GenomeFactory_1 = require("./GenomeFactory");
     var Problem_1 = require("./Problem");
-    var Linq_1 = require("../../node_modules/typescript-dotnet/source/System.Linq/Linq");
-    var Utility_1 = require("../../node_modules/typescript-dotnet/source/System/Text/Utility");
+    var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
+    var Utility_1 = require("typescript-dotnet/source/System/Text/Utility");
     function actualFormula(a, b) {
         return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
     }
-    var VARIABLE_NAMES = Linq_1.default.from("abcdefghijklmnopqrstuvwxyz").toArray();
+    var VARIABLE_NAMES = Linq_1.Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();
     var AlgebraEnvironmentSample = (function (_super) {
         __extends(AlgebraEnvironmentSample, _super);
         function AlgebraEnvironmentSample() {
@@ -31,12 +31,12 @@ var __extends = (this && this.__extends) || function (d, b) {
         AlgebraEnvironmentSample.prototype._onExecute = function () {
             _super.prototype._onExecute.call(this);
             console.log("Generation:", this._generations);
-            var problems = Linq_1.default.from(this._problems).memoize();
-            var p = Linq_1.default.from(this._populations).selectMany(function (s) { return s; });
-            var top = Linq_1.default
+            var problems = Linq_1.Enumerable.from(this._problems).memoize();
+            var p = Linq_1.Enumerable.from(this._populations).selectMany(function (s) { return s; });
+            var top = Linq_1.Enumerable
                 .weave(problems
                 .select(function (r) {
-                return Linq_1.default.from(r.rank(p))
+                return Linq_1.Enumerable.from(r.rank(p))
                     .select(function (g) {
                     var red = g.root.asReduced(), suffix = "";
                     if (red != g.root)

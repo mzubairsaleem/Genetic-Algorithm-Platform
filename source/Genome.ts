@@ -3,12 +3,13 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-///<reference path="../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/IDictionary.d.ts"/>
-///<reference path="IGenome.d.ts"/>
 
-import Enumerable from "../node_modules/typescript-dotnet/source/System.Linq/Linq";
+import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
+import {ICloneable} from "typescript-dotnet/source/System/ICloneable";
+import {IGene} from "./IGene";
+import {IGenome} from "./IGenome";
 
-abstract class Genome<T extends IGene>
+export abstract class Genome<T extends IGene>
 implements IGenome, ICloneable<Genome<T>>
 {
 

@@ -3,15 +3,19 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-import Set from "../../node_modules/typescript-dotnet/source/System/Collections/Set";
-import StringKeyDictionary from "../../node_modules/typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
-import * as ArrayUtility from "../../node_modules/typescript-dotnet/source/System/Collections/Array/Utility";
+
+import Set from "typescript-dotnet/source/System/Collections/Set";
+import StringKeyDictionary from "typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
+import * as ArrayUtility from "typescript-dotnet/source/System/Collections/Array/Utility";
 import {correlation} from "./arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
 import AlgebraFitness from "./Fitness";
-import Enumerable from "../../node_modules/typescript-dotnet/source/System.Linq/Linq";
-import Type from "../../node_modules/typescript-dotnet/source/System/Types";
+import Enumerable from "typescript-dotnet/source/System.Linq/Linq";
+import Type from "typescript-dotnet/source/System/Types";
 import Population from "../../source/Population";
+import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {IMap} from "typescript-dotnet/source/System/Collections/Dictionaries/IDictionary";
+import {IProblem} from "../../source/IProblem";
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
