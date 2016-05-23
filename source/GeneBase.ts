@@ -20,15 +20,13 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 		this.resetToString();
 	}
 
-	protected _enumerable:Enumerable<T>;
-
 	abstract serialize():string;
 
 	abstract clone():GeneBase<T>;
 
 	asEnumerable():Enumerable<T>
 	{
-		return this._enumerable || (this._enumerable = Enumerable.from(this));
+		return <any>this.linq;
 	}
 
 	get descendants():Enumerable<IGene>
