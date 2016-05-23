@@ -30,7 +30,7 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 		console.log("Generation:", this._generations);
 
 		var problems = Enumerable.from(this._problems).memoize();
-		var p = Enumerable.from(this._populations).selectMany(s=>s);
+		var p = this._populations.linq.selectMany(s=>s);
 		var top = Enumerable
 			.weave<{label:string,gene:AlgebraGenome}>(
 				problems

@@ -23,7 +23,6 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	protected _generations:number = 0;
 	protected _populations:LinkedList<Population<TGenome>>;
-	protected _populationsEnumerable:Enumerable<Population<TGenome>>;
 	protected _problems:IProblem<TGenome,any>[];
 	protected _problemsEnumerable:Enumerable<IProblem<TGenome,any>>;
 
@@ -37,8 +36,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		super();
 		this._problemsEnumerable
 			= Enumerable.from(this._problems = []);
-		this._populationsEnumerable
-			= Enumerable.from(this._populations = new LinkedList<Population<TGenome>>());
+		this._populations = new LinkedList<Population<TGenome>>();
 	}
 
 	test(count:number = this.testCount):void
@@ -62,7 +60,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	protected _onExecute():void
 	{
-		var populations = this._populationsEnumerable.reverse(),
+		var populations = this._populations.linq.reverse(),
 		    problems    = this._problemsEnumerable.memoize();
 
 		// Get ranked population for each problem and merge it into a weaved enumeration.
@@ -113,7 +111,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	trimEarlyPopulations(maxPopulations:number):void
 	{
 		var problems = this._problemsEnumerable.memoize();
-		this._populationsEnumerable
+		this._populations.linq
 			.takeExceptLast(maxPopulations)
 			.forEach(p=>
 			{

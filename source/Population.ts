@@ -75,9 +75,9 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 
 	forEach(
 		action:Predicate<TGenome>|Action<TGenome>,
-		useCopy?:boolean):void
+		useCopy?:boolean):number
 	{
-		forEach(useCopy ? this.toArray() : this, action);
+		return forEach(useCopy ? this.toArray() : this, action);
 	}
 
 	getEnumerator():IEnumerator<TGenome>
