@@ -21,7 +21,7 @@ export default class AlgebraFitness implements IComparable<AlgebraFitness>
 	private _scores:number[];
 
 	get scores():number[] {
-		return this._scores.slice();
+		return this._scores.map((v,i)=>this.getScore(i));
 	}
 
 	add(score:number[]):void

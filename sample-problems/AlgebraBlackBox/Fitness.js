@@ -15,7 +15,8 @@ var AlgebraFitness = (function () {
     });
     Object.defineProperty(AlgebraFitness.prototype, "scores", {
         get: function () {
-            return this._scores.slice();
+            var _this = this;
+            return this._scores.map(function (v, i) { return _this.getScore(i); });
         },
         enumerable: true,
         configurable: true

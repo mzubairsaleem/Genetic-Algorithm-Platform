@@ -9,6 +9,7 @@ var ArrayUtility = require("typescript-dotnet/source/System/Collections/Array/Ut
 var Correlation_1 = require("./arithmetic/Correlation");
 var Fitness_1 = require("./Fitness");
 var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
+var Procedure_1 = require("typescript-dotnet/source/System/Collections/Array/Procedure");
 var AlgebraBlackBoxProblem = (function () {
     function AlgebraBlackBoxProblem(actualFormula) {
         this._fitness = {};
@@ -79,13 +80,11 @@ var AlgebraBlackBoxProblem = (function () {
             var aSample = this_1.sample();
             var bSample = this_1.sample();
             var correct = [];
-            var flat = [];
             for (var _i = 0, aSample_2 = aSample; _i < aSample_2.length; _i++) {
                 var a = aSample_2[_i];
                 for (var _a = 0, bSample_2 = bSample; _a < bSample_2.length; _a++) {
                     var b = bSample_2[_a];
                     correct.push(f(a, b));
-                    flat.push(0);
                 }
             }
             p.forEach(function (g) {
@@ -101,14 +100,14 @@ var AlgebraBlackBoxProblem = (function () {
                 var len = correct.length;
                 divergence.length = correct.length;
                 for (var i_1 = 0; i_1 < len; i_1++) {
-                    divergence[i_1] = result[i_1] = correct[i_1];
+                    divergence[i_1] = -Math.abs(result[i_1] - correct[i_1]);
                 }
                 var c = Correlation_1.correlation(correct, result);
-                var d = Correlation_1.correlation(flat, divergence);
+                var d = Procedure_1.average(divergence);
                 var f = _this.getFitnessFor(g);
                 f.add([
                     (isNaN(c) || !isFinite(c)) ? -2 : c,
-                    (isNaN(d) || !isFinite(d)) ? -2 : d
+                    (isNaN(d) || !isFinite(d)) ? -Infinity : d
                 ]);
                 _this._convergent.setValue(g.hash, f.hasConverged ? g : (void 0));
             });

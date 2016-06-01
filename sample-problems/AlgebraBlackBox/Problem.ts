@@ -16,6 +16,7 @@ import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IE
 import {IMap} from "typescript-dotnet/source/System/Collections/Dictionaries/IDictionary";
 import {IProblem} from "../../source/IProblem";
 import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
+import {average} from "typescript-dotnet/source/System/Collections/Array/Procedure";
 
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, AlgebraFitness>
 {
@@ -123,14 +124,12 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 			const aSample = this.sample();
 			const bSample = this.sample();
 			const correct:number[] = [];
-			const flat:number[] = [];
 
 			for(let a of aSample)
 			{
 				for(let b of bSample)
 				{
 					correct.push(f(a, b));
-					flat.push(0);
 				}
 			}
 
@@ -151,16 +150,16 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 
 				for(let i = 0; i<len; i++)
 				{
-					divergence[i] = result[i] = correct[i];
+					divergence[i] = -Math.abs(result[i] - correct[i]);
 				}
 
 				let c = correlation(correct, result);
-				let d = correlation(flat, divergence);
+				let d = average(divergence);
 
 				let f = this.getFitnessFor(g);
 				f.add([
 					(isNaN(c) || !isFinite(c)) ? -2 : c,
-					(isNaN(d) || !isFinite(d)) ? -2 : d
+					(isNaN(d) || !isFinite(d)) ? -Infinity : d
 				]);
 
 				this._convergent.setValue(g.hash, f.hasConverged ? g : (void 0));
