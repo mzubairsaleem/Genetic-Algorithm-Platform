@@ -9,7 +9,7 @@ declare const process:any;
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
-	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+	return  Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
 const VARIABLE_NAMES = Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();
@@ -36,7 +36,12 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 		console.log("Generation:", this._generations);
 
 		var problems = Enumerable.from(this._problems).memoize();
-		var p = this._populations.linq.selectMany(s=>s);
+		var p = this._populations.linq
+			.selectMany(s=>s)
+			.orderBy(g=>g.hash.length)
+			.groupBy(g=>g.hashReduced)
+			.select(g=>g.first());
+
 		var top = Enumerable
 			.weave<{label:string,gene:AlgebraGenome}>(
 				problems
@@ -49,7 +54,7 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 									if(red!=g.root)
 										suffix = " => " + convertParameterToAlphabet(red.toString());
 									return {
-										label: r.getFitnessFor(g).score + ": " + convertParameterToAlphabet(g.hash) + suffix,
+										label: r.getFitnessFor(g).scores + ": " + convertParameterToAlphabet(g.hash) + suffix,
 										gene: g
 									};
 								}

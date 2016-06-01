@@ -9,10 +9,6 @@ var ArrayUtility = require("typescript-dotnet/source/System/Collections/Array/Ut
 var Correlation_1 = require("./arithmetic/Correlation");
 var Fitness_1 = require("./Fitness");
 var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
-var Types_1 = require("typescript-dotnet/source/System/Types");
-function actualFormula(a, b) {
-    return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
-}
 var AlgebraBlackBoxProblem = (function () {
     function AlgebraBlackBoxProblem(actualFormula) {
         this._fitness = {};
@@ -26,17 +22,9 @@ var AlgebraBlackBoxProblem = (function () {
         enumerable: true,
         configurable: true
     });
-    AlgebraBlackBoxProblem.prototype.getScoreFor = function (genome) {
-        if (!genome)
-            return 0;
-        if (!Types_1.default.isString(genome))
-            genome = genome.hash;
-        var s = this._fitness[genome];
-        return s && s.score || 0;
-    };
     AlgebraBlackBoxProblem.prototype.getFitnessFor = function (genome, createIfMissing) {
         if (createIfMissing === void 0) { createIfMissing = true; }
-        var h = genome.hash, f = this._fitness, s = f[h];
+        var h = genome.hashReduced, f = this._fitness, s = f[h];
         if (!s && createIfMissing)
             f[h] = s = new Fitness_1.default();
         return s;
@@ -45,16 +33,17 @@ var AlgebraBlackBoxProblem = (function () {
         var _this = this;
         return Linq_1.default
             .from(population)
-            .orderByDescending(function (g) { return _this.getScoreFor(g); });
+            .orderByDescending(function (g) { return _this.getFitnessFor(g); })
+            .thenBy(function (g) { return g.hash.length; });
     };
     AlgebraBlackBoxProblem.prototype.rankAndReduce = function (population, targetMaxPopulation) {
         var _this = this;
-        var lastValue;
+        var lastFitness;
         return this.rank(population)
             .takeWhile(function (g, i) {
-            var lv = lastValue, s = _this.getScoreFor(g);
-            lastValue = s;
-            return i < targetMaxPopulation || lv === s;
+            var lf = lastFitness, f = _this.getFitnessFor(g);
+            lastFitness = f;
+            return i < targetMaxPopulation || lf.compareTo(f) === 0;
         });
     };
     AlgebraBlackBoxProblem.prototype.correlation = function (aSample, bSample, gA, gB) {
@@ -85,15 +74,18 @@ var AlgebraBlackBoxProblem = (function () {
     AlgebraBlackBoxProblem.prototype.test = function (p, count) {
         var _this = this;
         if (count === void 0) { count = 1; }
-        for (var i = 0; i < count; i++) {
-            var aSample = this.sample();
-            var bSample = this.sample();
+        var f = this._actualFormula;
+        var _loop_1 = function(i) {
+            var aSample = this_1.sample();
+            var bSample = this_1.sample();
             var correct = [];
+            var flat = [];
             for (var _i = 0, aSample_2 = aSample; _i < aSample_2.length; _i++) {
                 var a = aSample_2[_i];
                 for (var _a = 0, bSample_2 = bSample; _a < bSample_2.length; _a++) {
                     var b = bSample_2[_a];
-                    correct.push(actualFormula(a, b));
+                    correct.push(f(a, b));
+                    flat.push(0);
                 }
             }
             p.forEach(function (g) {
@@ -105,11 +97,25 @@ var AlgebraBlackBoxProblem = (function () {
                         result.push(g.calculate([a, b]));
                     }
                 }
+                var divergence = [];
+                var len = correct.length;
+                divergence.length = correct.length;
+                for (var i_1 = 0; i_1 < len; i_1++) {
+                    divergence[i_1] = result[i_1] = correct[i_1];
+                }
                 var c = Correlation_1.correlation(correct, result);
-                _this.getFitnessFor(g)
-                    .add((isNaN(c) || !isFinite(c)) ? -2 : c);
-                _this._convergent.setValue(g.hash, c == 1 ? g : (void 0));
+                var d = Correlation_1.correlation(flat, divergence);
+                var f = _this.getFitnessFor(g);
+                f.add([
+                    (isNaN(c) || !isFinite(c)) ? -2 : c,
+                    (isNaN(d) || !isFinite(d)) ? -2 : d
+                ]);
+                _this._convergent.setValue(g.hash, f.hasConverged ? g : (void 0));
             });
+        };
+        var this_1 = this;
+        for (var i = 0; i < count; i++) {
+            _loop_1(i);
         }
     };
     return AlgebraBlackBoxProblem;

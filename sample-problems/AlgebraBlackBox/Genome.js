@@ -20,6 +20,23 @@ var AlgebraGenome = (function (_super) {
             throw new InvalidOperationException_1.default("Cannot calculate a gene with no root.");
         return root.serialize();
     };
+    AlgebraGenome.prototype.serializeReduced = function () {
+        var root = this.root;
+        if (!root)
+            throw new InvalidOperationException_1.default("Cannot calculate a gene with no root.");
+        return root.asReduced().serialize();
+    };
+    Object.defineProperty(AlgebraGenome.prototype, "hashReduced", {
+        get: function () {
+            return this._hashReduced || (this._hashReduced = this.serializeReduced());
+        },
+        enumerable: true,
+        configurable: true
+    });
+    AlgebraGenome.prototype.resetHash = function () {
+        _super.prototype.resetHash.call(this);
+        this._hashReduced = null;
+    };
     AlgebraGenome.prototype.calculate = function (values) {
         var root = this.root;
         if (!root)

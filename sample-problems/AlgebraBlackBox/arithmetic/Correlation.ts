@@ -71,6 +71,7 @@ export function covariance(source:number[], target:number[]):number
 	return average(products(source, target)) - average(source)*average(target);
 }
 
+
 export function correlationUsing(
 	covariance:number,
 	sourceVariance:number,

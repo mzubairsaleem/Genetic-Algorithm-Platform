@@ -11,17 +11,11 @@ import {correlation} from "./arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
 import AlgebraFitness from "./Fitness";
 import Enumerable from "typescript-dotnet/source/System.Linq/Linq";
-import Type from "typescript-dotnet/source/System/Types";
 import Population from "../../source/Population";
 import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
 import {IMap} from "typescript-dotnet/source/System/Collections/Dictionaries/IDictionary";
 import {IProblem} from "../../source/IProblem";
 import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
-
-function actualFormula(a:number, b:number):number // Solve for 'c'.
-{
-	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
-}
 
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, AlgebraFitness>
 {
@@ -41,19 +35,20 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 		this._convergent = new StringKeyDictionary<AlgebraGenome>();
 	}
 
-	protected getScoreFor(genome:string):number;
-	protected getScoreFor(genome:AlgebraGenome):number;
-	protected getScoreFor(genome:any):number
-	{
-		if(!genome) return 0;
-		if(!Type.isString(genome)) genome = genome.hash;
-		let s = this._fitness[genome];
-		return s && s.score || 0;
-	}
+	// protected getScoreFor(genome:string):number;
+	// protected getScoreFor(genome:AlgebraGenome):number;
+	// protected getScoreFor(genome:any):number
+	// {
+	// 	if(!genome) return 0;
+	// 	if(!Type.isString(genome)) genome = genome.hashReduced;
+	// 	let s = this._fitness[genome];
+	// 	return s && s.score || 0;
+	// }
 
 	getFitnessFor(genome:AlgebraGenome, createIfMissing:boolean = true):AlgebraFitness
 	{
-		var h = genome.hash, f = this._fitness, s = f[h];
+		// Avoid repeating processes by using the reduced hash as a key.
+		var h = genome.hashReduced, f = this._fitness, s = f[h];
 		if(!s && createIfMissing) f[h] = s = new AlgebraFitness();
 		return s;
 	}
@@ -62,20 +57,21 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 	{
 		return Enumerable
 			.from(population)
-			.orderByDescending(g=>this.getScoreFor(g));
+			.orderByDescending(g=>this.getFitnessFor(g))
+			.thenBy(g=>g.hash.length);
 	}
 
 	rankAndReduce(
 		population:IEnumerableOrArray<AlgebraGenome>,
 		targetMaxPopulation:number):ILinqEnumerable<AlgebraGenome>
 	{
-		var lastValue:number;
+		var lastFitness:AlgebraFitness;
 		return this.rank(population)
 			.takeWhile((g, i)=>
 			{
-				let lv = lastValue, s = this.getScoreFor(g);
-				lastValue = s;
-				return i<targetMaxPopulation || lv===s
+				let lf = lastFitness, f = this.getFitnessFor(g);
+				lastFitness = f;
+				return i<targetMaxPopulation || lf.compareTo(f)===0;
 			});
 	}
 
@@ -121,19 +117,23 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 
 	test(p:Population<AlgebraGenome>, count:number = 1):void
 	{
+		let f = this._actualFormula;
 		for(let i = 0; i<count; i++)
 		{
-			var aSample = this.sample();
-			var bSample = this.sample();
-			var correct:number[] = [];
+			const aSample = this.sample();
+			const bSample = this.sample();
+			const correct:number[] = [];
+			const flat:number[] = [];
 
 			for(let a of aSample)
 			{
 				for(let b of bSample)
 				{
-					correct.push(actualFormula(a, b));
+					correct.push(f(a, b));
+					flat.push(0);
 				}
 			}
+
 
 			p.forEach(g=>
 			{
@@ -145,11 +145,25 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 						result.push(g.calculate([a, b]));
 					}
 				}
+				let divergence:number[] = [];
+				let len = correct.length;
+				divergence.length = correct.length;
+
+				for(let i = 0; i<len; i++)
+				{
+					divergence[i] = result[i] = correct[i];
+				}
 
 				let c = correlation(correct, result);
-				this.getFitnessFor(g)
-					.add((isNaN(c) || !isFinite(c)) ? -2 : c);
-				this._convergent.setValue(g.hash, c==1 ? g : (void 0));
+				let d = correlation(flat, divergence);
+
+				let f = this.getFitnessFor(g);
+				f.add([
+					(isNaN(c) || !isFinite(c)) ? -2 : c,
+					(isNaN(d) || !isFinite(d)) ? -2 : d
+				]);
+
+				this._convergent.setValue(g.hash, f.hasConverged ? g : (void 0));
 			});
 
 		}
@@ -157,3 +171,4 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 
 
 }
+

@@ -28,7 +28,11 @@ var AlgebraEnvironmentSample = (function (_super) {
         _super.prototype._onExecute.call(this);
         console.log("Generation:", this._generations);
         var problems = Linq_1.Enumerable.from(this._problems).memoize();
-        var p = this._populations.linq.selectMany(function (s) { return s; });
+        var p = this._populations.linq
+            .selectMany(function (s) { return s; })
+            .orderBy(function (g) { return g.hash.length; })
+            .groupBy(function (g) { return g.hashReduced; })
+            .select(function (g) { return g.first(); });
         var top = Linq_1.Enumerable
             .weave(problems
             .select(function (r) {
@@ -38,7 +42,7 @@ var AlgebraEnvironmentSample = (function (_super) {
                 if (red != g.root)
                     suffix = " => " + convertParameterToAlphabet(red.toString());
                 return {
-                    label: r.getFitnessFor(g).score + ": " + convertParameterToAlphabet(g.hash) + suffix,
+                    label: r.getFitnessFor(g).scores + ": " + convertParameterToAlphabet(g.hash) + suffix,
                     gene: g
                 };
             });
