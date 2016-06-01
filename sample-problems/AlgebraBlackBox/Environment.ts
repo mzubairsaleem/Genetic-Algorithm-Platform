@@ -80,6 +80,7 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 		// process.stdout.write("Hit enter to continue.");
 		// process.stdin.once("data", ()=>
 		// {
+		if(c<this._problems.length)
 			this.start();
 		// });
 

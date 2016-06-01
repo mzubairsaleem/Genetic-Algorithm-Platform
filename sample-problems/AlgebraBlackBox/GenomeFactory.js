@@ -174,7 +174,9 @@ var AlgebraGenomeFactory = (function (_super) {
                                 if (parentOp.linq.all(function (o) { return o instanceof ParameterGene_1.default || o instanceof ConstantGene_1.default; }))
                                     doNotRemove = true;
                                 else {
-                                    replacement = parentOp.linq.where(function (o) { return o instanceof Operator_1.default; }).single();
+                                    replacement = parentOp.linq
+                                        .where(function (o) { return o instanceof Operator_1.default; })
+                                        .single();
                                     if (parentOp == newGenome.root)
                                         newGenome.root = replacement;
                                     else

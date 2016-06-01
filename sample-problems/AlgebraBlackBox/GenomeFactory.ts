@@ -111,10 +111,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		 * 1) Adding a parameter node to an operation.
 		 * 2) Apply a function to node.
 		 * 3) Adding an operator and a parameter node.
-		 * 4) Removing a parameter from an operation.
+		 * 4) Removing a node from an operation.
 		 * 5) Removing an operation.
 		 * 6) Removing a function. */
-		
+
 		var newGenome = source.clone();
 
 		for(var i = 0; i<mutations; i++)
@@ -257,8 +257,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 									doNotRemove = true;
 								else
 								{
-									var replacement = parentOp.linq.where(
-										o => o instanceof OperatorGene).single();
+									var replacement = parentOp.linq
+										.where(o => o instanceof OperatorGene)
+										.single();
+
 									if(parentOp==newGenome.root)
 										newGenome.root = replacement;
 									else

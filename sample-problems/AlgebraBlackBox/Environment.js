@@ -59,7 +59,8 @@ var AlgebraEnvironmentSample = (function (_super) {
         if (c)
             console.log("Convergent:", c);
         console.log("Top:", top.select(function (s) { return s.label; }).toArray(), "\n");
-        this.start();
+        if (c < this._problems.length)
+            this.start();
     };
     return AlgebraEnvironmentSample;
 }(Environment_1.default));
