@@ -12,7 +12,7 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 
 	clone():AlgebraGenome
 	{
-		return new AlgebraGenome(this.root);
+		return new AlgebraGenome(this.root.clone());
 	}
 
 	serialize():string

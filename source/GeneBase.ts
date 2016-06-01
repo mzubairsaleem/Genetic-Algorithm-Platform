@@ -4,12 +4,12 @@
  */
 
 
-import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
 import {Lazy} from "typescript-dotnet/source/System/Lazy";
 import {List} from "typescript-dotnet/source/System/Collections/List";
 import {ArgumentException} from "typescript-dotnet/source/System/Exceptions/ArgumentException";
 import {IEquatable} from "typescript-dotnet/source/System/IEquatable";
 import {IGene} from "./IGene";
+import {ILinqEnumerable} from "typescript-dotnet/dist/es6/System.Linq/Enumerable";
 
 abstract class GeneBase<T extends IGene>
 extends List<T> implements IGene, IEquatable<GeneBase<T>>
@@ -24,14 +24,9 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 
 	abstract clone():GeneBase<T>;
 
-	asEnumerable():Enumerable<T>
+	get descendants():ILinqEnumerable<IGene>
 	{
-		return <any>this.linq;
-	}
-
-	get descendants():Enumerable<IGene>
-	{
-		var e:Enumerable<IGene> = this.asEnumerable();
+		var e:ILinqEnumerable<IGene> = this.linq;
 		return e.concat(e.selectMany(s=>s.descendants));
 	}
 
@@ -39,9 +34,10 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 	{
 		var children = this._source;
 		if(!children || !children.length) return null;
-		if(children.indexOf(child)!=-1) return this;
+		if(children.indexOf(child)!= -1) return this;
 
-		for(let c of children) {
+		for(let c of children)
+		{
 			let p = c.findParent(child);
 			if(p) return p;
 		}
@@ -53,7 +49,8 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 	{
 		var s = this._source;
 		var index = this._source.indexOf(target);
-		if(index == -1) {
+		if(index== -1)
+		{
 			if(throwIfNotFound)
 				throw new ArgumentException('target', "gene not found.");
 			return false;
@@ -71,15 +68,18 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 	}
 
 	_toString:Lazy<string>;
+
 	resetToString():void
 	{
 		var ts = this._toString;
 		if(ts) ts.tryReset();
-		else this._toString = new Lazy<string>(()=>this.toStringInternal(),false,true);
+		else this._toString = new Lazy<string>(()=>this.toStringInternal(), false, true);
+		
 		this.forEach(c=>c.resetToString());
 	}
 
-	protected _onModified() {
+	protected _onModified()
+	{
 		super._onModified();
 		this.resetToString();
 	}

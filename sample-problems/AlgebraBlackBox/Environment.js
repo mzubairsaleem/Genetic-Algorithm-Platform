@@ -13,6 +13,10 @@ function actualFormula(a, b) {
     return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 var VARIABLE_NAMES = Linq_1.Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();
+function convertParameterToAlphabet(source) {
+    return Utility_1.supplant(source, VARIABLE_NAMES);
+}
+exports.convertParameterToAlphabet = convertParameterToAlphabet;
 var AlgebraEnvironmentSample = (function (_super) {
     __extends(AlgebraEnvironmentSample, _super);
     function AlgebraEnvironmentSample() {
@@ -32,9 +36,9 @@ var AlgebraEnvironmentSample = (function (_super) {
                 .select(function (g) {
                 var red = g.root.asReduced(), suffix = "";
                 if (red != g.root)
-                    suffix = " => " + Utility_1.supplant(red.toString(), VARIABLE_NAMES);
+                    suffix = " => " + convertParameterToAlphabet(red.toString());
                 return {
-                    label: r.getFitnessFor(g).score + ": " + Utility_1.supplant(g.hash, VARIABLE_NAMES) + suffix,
+                    label: r.getFitnessFor(g).score + ": " + convertParameterToAlphabet(g.hash) + suffix,
                     gene: g
                 };
             });
@@ -55,6 +59,7 @@ var AlgebraEnvironmentSample = (function (_super) {
         if (c)
             console.log("Convergent:", c);
         console.log("Top:", top.select(function (s) { return s.label; }).toArray(), "\n");
+        this.start();
     };
     return AlgebraEnvironmentSample;
 }(Environment_1.default));

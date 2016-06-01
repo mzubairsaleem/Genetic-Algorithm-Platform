@@ -16,6 +16,8 @@ import * as Operator from "../Operators";
 import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
 import {Predicate} from "typescript-dotnet/source/System/FunctionTypes";
 import {CompareResult} from "typescript-dotnet/source/System/CompareResult";
+import {ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
+import {startsWith,trim} from "typescript-dotnet/source/System/Text/Utility";
 
 function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 {
@@ -92,7 +94,8 @@ class OperatorGene extends AlgebraGene
 
 	set operator(value:OperatorSymbol)
 	{
-		if(this._operator != value) {
+		if(this._operator!=value)
+		{
 			this._operator = value;
 			this._onModified();
 		}
@@ -132,10 +135,10 @@ class OperatorGene extends AlgebraGene
 
 	protected _reduceLoop(reduceGroupings:boolean = false):boolean
 	{
-		var _ = this, values = _.asEnumerable(), somethingDone = false;
+		var _ = this, values:ILinqEnumerable<AlgebraGene> = _.linq, somethingDone = false;
 
 		Enumerable
-			.from(_._source.slice()) // use a copy...
+			.from<AlgebraGene>(_._source.slice()) // use a copy...
 			.groupBy(g=>g.toStringContents())
 			.where(g=>g.count()>1)
 			.forEach(p=>
@@ -157,8 +160,8 @@ class OperatorGene extends AlgebraGene
 						pa.skip(1).forEach(g=>_._removeInternal(g));
 
 						somethingDone = true;
-					}
 						break;
+					}
 
 					case Operator.DIVIDE:
 					{
@@ -230,7 +233,7 @@ class OperatorGene extends AlgebraGene
 						.ofType(OperatorGene)
 						.where(g =>
 							g.operator==Operator.DIVIDE &&
-							g.asEnumerable()
+							g.linq
 								.skip(1)
 								.ofType(ParameterGene)
 								.any(g2 =>
@@ -240,7 +243,7 @@ class OperatorGene extends AlgebraGene
 
 					if(divOperator!=null)
 					{
-						let oneToKill = divOperator.asEnumerable()
+						let oneToKill = divOperator.linq
 							.skip(1)
 							.ofType(ParameterGene)
 							.where(p => mParams.any(pn => pn.id==p.id))
@@ -336,15 +339,15 @@ class OperatorGene extends AlgebraGene
 
 				if(f instanceof OperatorGene)
 				{
-					let mSource:Enumerable<AlgebraGene> = null;
+					let mSource:ILinqEnumerable<AlgebraGene> = null;
 
 					switch(f.operator)
 					{
 						case Operator.MULTIPLY:
-							mSource = f.asEnumerable();
+							mSource = f.linq;
 							break;
 						case Operator.DIVIDE:
-							mSource = f.asEnumerable().take(1);
+							mSource = f.linq.take(1);
 							break;
 						default:
 							mSource = Enumerable.empty<AlgebraGene>();
@@ -379,14 +382,14 @@ class OperatorGene extends AlgebraGene
 					let multiplyOperator = values
 						.ofType(OperatorGene)
 						.where(g => g.operator==Operator.MULTIPLY
-						&& g.asEnumerable()
+						&& g.linq
 							.ofType(ParameterGene)
 							.any(g2 => g2.id==f.id))
 						.firstOrDefault();
 
 					if(multiplyOperator!=null)
 					{
-						let oneToKill = multiplyOperator.asEnumerable()
+						let oneToKill = multiplyOperator.linq
 							.ofType(ParameterGene)
 							.where(p => p.id==f.id)
 							.first();
@@ -402,14 +405,14 @@ class OperatorGene extends AlgebraGene
 							.ofType(OperatorGene)
 							.where(g =>
 							g.operator==Operator.DIVIDE &&
-							g.asEnumerable().take(1)
+							g.linq.take(1)
 								.ofType(ParameterGene)
 								.any(g2 => g2.id==f.id))
 							.firstOrDefault();
 
 						if(divOperator!=null)
 						{
-							let oneToKill = divOperator.asEnumerable().first();
+							let oneToKill = divOperator.linq.first();
 							_._replaceInternal(f, new ConstantGene(f.multiple));
 							divOperator.replace(oneToKill, new ConstantGene(oneToKill.multiple));
 
@@ -451,7 +454,7 @@ class OperatorGene extends AlgebraGene
 
 			}
 
-
+				// Still in case statement...
 				for(let g of values
 					.skip(1).ofType(OperatorGene)
 					.where(p => p.operator==Operator.DIVIDE && p.count>1)
@@ -470,7 +473,7 @@ class OperatorGene extends AlgebraGene
 					}
 
 					// Here we have a classical inversion case that can help in reduction.
-					for(let n of g.asEnumerable().skip(1).toArray())
+					for(let n of g.linq.skip(1).toArray())
 					{
 
 						g.remove(n);
@@ -566,8 +569,7 @@ class OperatorGene extends AlgebraGene
 
 			if(o.count==1)
 			{
-
-				var opg = o.asEnumerable().firstOrDefault();
+				var opg = o.linq.firstOrDefault();
 
 				if(opg instanceof ParameterGene || opg instanceof ConstantGene)
 				{
@@ -609,11 +611,11 @@ class OperatorGene extends AlgebraGene
 
 						// Square root of square?
 						if(og.operator==Operator.MULTIPLY && childCount==2
-							&& og.asEnumerable().select(p=>p.asReduced().toString())
+							&& og.linq.select(p=>p.asReduced().toString())
 								.distinct()
 								.count()==1)
 						{
-							let firstChild = og.asEnumerable().ofType(ParameterGene).first();
+							let firstChild = og.linq.ofType(ParameterGene).first();
 							og.remove(firstChild);
 							o.operator = Operator.MULTIPLY;
 							o.clear();
@@ -640,6 +642,43 @@ class OperatorGene extends AlgebraGene
 			}
 		}
 
+		// Pull out multiple to allow for reduction.
+		if(_.count==1) {
+			var p = values.first();
+			if(!(p instanceof ConstantGene) && p.multiple!==1) {
+				somethingDone = true;
+				_.multiple *= p.multiple;
+				p.multiple = 1;
+			}
+		}
+
+		if(_._operator==Operator.ADD && _._source.length>1) {
+			let constants = Enumerable
+				.from<AlgebraGene>(_._source.slice()) // use a copy...
+				.ofType(ConstantGene);
+			let len = constants.count();
+			if(len) {
+
+				let sum = constants.sum(s => s.multiple);
+				let hero = constants.first();
+
+				if(len>1) {
+					hero.multiple = sum;
+					constants.skip(1).forEach(c=>_._removeInternal(c));
+					len = 1;
+					somethingDone = true;
+				}
+
+				// remove 0 if makes sense.
+				if(sum==0 && _._source.length>len) {
+					_._removeInternal(hero);
+					somethingDone = true;
+				}
+
+			}
+
+		}
+
 
 		if(_._operator!=Operator.DIVIDE)
 		{
@@ -653,10 +692,12 @@ class OperatorGene extends AlgebraGene
 	}
 
 	private _reduced:OperatorGene;
+
 	asReduced():OperatorGene
 	{
 		var r = this._reduced;
-		if(!r) {
+		if(!r)
+		{
 			var gene = this.clone();
 			gene.reduce();
 			this._reduced = r = gene.toString()===this.toString() ? this : gene;
@@ -683,7 +724,19 @@ class OperatorGene extends AlgebraGene
 				return _.operator
 					+ parenGroup(_.arranged.map(s=>s.toString()).join(","));
 		}
-		return parenGroup(_.arranged.map(s=>s.toString()).join(_.operator));
+		if(_._operator==Operator.ADD)
+		{
+			// Cleanup "+-"...
+			return parenGroup(trim(_.arranged.map(s=>
+			{
+				var r = s.toString();
+				if(!startsWith(r, '-'))
+					r = "+" + r;
+				return r;
+			}).join(""), "+"));
+		}
+		else
+			return parenGroup(_.arranged.map(s=>s.toString()).join(_.operator));
 	}
 
 

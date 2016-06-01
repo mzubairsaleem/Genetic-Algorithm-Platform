@@ -23,6 +23,10 @@
   },
   "homepage": "https://github.com/electricessence/Genetic-Algorithm-Platform#readme",
   "dependencies": {
+    "assert": "^1.4.1",
+    "mocha": "^2.5.3",
+    "prompt": "^1.0.0",
+    "ts-node": "^0.7.3",
     "typescript-dotnet": "^2.18.10"
   },
   "engines": {

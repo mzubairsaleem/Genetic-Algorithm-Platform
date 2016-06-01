@@ -85,9 +85,6 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 		dispose(populations);
 
-		this.start();
-
-
 	}
 
 

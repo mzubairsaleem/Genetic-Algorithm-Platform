@@ -61,7 +61,6 @@ var Environment = (function (_super) {
         p.keepOnly(Linq_1.Enumerable.weave(problems.select(function (r) { return r.rank(p); }))
             .take(this.populationSize / 2));
         dispose_1.dispose(populations);
-        this.start();
     };
     Environment.prototype.spawn = function (populationSize, source) {
         var _ = this;

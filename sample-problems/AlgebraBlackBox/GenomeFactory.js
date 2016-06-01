@@ -171,10 +171,10 @@ var AlgebraGenomeFactory = (function (_super) {
                             }
                         default:
                             if (parentOp.count < 3) {
-                                if (parentOp.asEnumerable().all(function (o) { return o instanceof ParameterGene_1.default || o instanceof ConstantGene_1.default; }))
+                                if (parentOp.linq.all(function (o) { return o instanceof ParameterGene_1.default || o instanceof ConstantGene_1.default; }))
                                     doNotRemove = true;
                                 else {
-                                    replacement = parentOp.asEnumerable().where(function (o) { return o instanceof Operator_1.default; }).single();
+                                    replacement = parentOp.linq.where(function (o) { return o instanceof Operator_1.default; }).single();
                                     if (parentOp == newGenome.root)
                                         newGenome.root = replacement;
                                     else
@@ -292,7 +292,7 @@ var AlgebraGenomeFactory = (function (_super) {
                             if (Operator.Available.Functions.indexOf(og_1.operator) != -1) {
                                 if (isRoot) {
                                     if (og_1.count)
-                                        newGenome.root = og_1.asEnumerable().first();
+                                        newGenome.root = og_1.linq.first();
                                     else {
                                         doNotRemove = true;
                                         break;
@@ -319,9 +319,9 @@ var AlgebraGenomeFactory = (function (_super) {
                                 og_1.removeAt(Integer_1.default.random.next(og_1.count));
                             }
                             else if (og_1.count == 2
-                                && og_1.asEnumerable().any(function (o) { return o instanceof Operator_1.default; })
-                                && og_1.asEnumerable().any(function (o) { return o instanceof ParameterGene_1.default; })) {
-                                var childOpGene = og_1.asEnumerable().ofType(Operator_1.default).single();
+                                && og_1.linq.any(function (o) { return o instanceof Operator_1.default; })
+                                && og_1.linq.any(function (o) { return o instanceof ParameterGene_1.default; })) {
+                                var childOpGene = og_1.linq.ofType(Operator_1.default).single();
                                 og_1.remove(childOpGene);
                                 if (isRoot)
                                     newGenome.root = childOpGene;

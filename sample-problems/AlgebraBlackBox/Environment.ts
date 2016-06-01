@@ -5,6 +5,7 @@ import AlgebraBlackBoxProblem from "./Problem";
 import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
 import {supplant} from "typescript-dotnet/source/System/Text/Utility";
 
+declare const process:any;
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
@@ -12,6 +13,11 @@ function actualFormula(a:number, b:number):number // Solve for 'c'.
 }
 
 const VARIABLE_NAMES = Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();
+
+export function convertParameterToAlphabet(source:string):string
+{
+	return supplant(source, VARIABLE_NAMES);
+}
 
 export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 {
@@ -40,9 +46,10 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 								g=>
 								{
 									let red = g.root.asReduced(), suffix = "";
-									if(red!=g.root) suffix = " => " + supplant(red.toString(), VARIABLE_NAMES);
+									if(red!=g.root)
+										suffix = " => " + convertParameterToAlphabet(red.toString());
 									return {
-										label: r.getFitnessFor(g).score + ": " + supplant(g.hash, VARIABLE_NAMES) + suffix,
+										label: r.getFitnessFor(g).score + ": " + convertParameterToAlphabet(g.hash) + suffix,
 										gene: g
 									};
 								}
@@ -68,6 +75,14 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 		var c = problems.selectMany(p=>p.convergent).count();
 		if(c) console.log("Convergent:", c);
 		console.log("Top:", top.select(s=>s.label).toArray(), "\n");
+
+		// process.stdin.resume();
+		// process.stdout.write("Hit enter to continue.");
+		// process.stdin.once("data", ()=>
+		// {
+			this.start();
+		// });
+
 	}
 
 

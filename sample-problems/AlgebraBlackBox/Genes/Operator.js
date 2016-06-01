@@ -16,6 +16,7 @@ var Gene_1 = require("../Gene");
 var ConstantGene_1 = require("./ConstantGene");
 var ParameterGene_1 = require("./ParameterGene");
 var Operator = require("../Operators");
+var Utility_1 = require("typescript-dotnet/source/System/Text/Utility");
 function arrange(a, b) {
     if (a.multiple < b.multiple)
         return 1;
@@ -104,7 +105,7 @@ var OperatorGene = (function (_super) {
     };
     OperatorGene.prototype._reduceLoop = function (reduceGroupings) {
         if (reduceGroupings === void 0) { reduceGroupings = false; }
-        var _ = this, values = _.asEnumerable(), somethingDone = false;
+        var _ = this, values = _.linq, somethingDone = false;
         Linq_1.default
             .from(_._source.slice())
             .groupBy(function (g) { return g.toStringContents(); })
@@ -122,8 +123,8 @@ var OperatorGene = (function (_super) {
                             hero.multiple = sum;
                         pa.skip(1).forEach(function (g) { return _._removeInternal(g); });
                         somethingDone = true;
+                        break;
                     }
-                    break;
                 case Operator.DIVIDE:
                     {
                         var first = _._source[0];
@@ -175,7 +176,7 @@ var OperatorGene = (function (_super) {
                             .ofType(OperatorGene)
                             .where(function (g) {
                             return g.operator == Operator.DIVIDE &&
-                                g.asEnumerable()
+                                g.linq
                                     .skip(1)
                                     .ofType(ParameterGene_1.default)
                                     .any(function (g2) {
@@ -184,7 +185,7 @@ var OperatorGene = (function (_super) {
                         })
                             .firstOrDefault();
                         if (divOperator != null) {
-                            var oneToKill_1 = divOperator.asEnumerable()
+                            var oneToKill_1 = divOperator.linq
                                 .skip(1)
                                 .ofType(ParameterGene_1.default)
                                 .where(function (p) { return mParams_1.any(function (pn) { return pn.id == p.id; }); })
@@ -251,10 +252,10 @@ var OperatorGene = (function (_super) {
                         var mSource = null;
                         switch (f_1.operator) {
                             case Operator.MULTIPLY:
-                                mSource = f_1.asEnumerable();
+                                mSource = f_1.linq;
                                 break;
                             case Operator.DIVIDE:
-                                mSource = f_1.asEnumerable().take(1);
+                                mSource = f_1.linq.take(1);
                                 break;
                             default:
                                 mSource = Linq_1.default.empty();
@@ -280,12 +281,12 @@ var OperatorGene = (function (_super) {
                         var multiplyOperator = values
                             .ofType(OperatorGene)
                             .where(function (g) { return g.operator == Operator.MULTIPLY
-                            && g.asEnumerable()
+                            && g.linq
                                 .ofType(ParameterGene_1.default)
                                 .any(function (g2) { return g2.id == f_1.id; }); })
                             .firstOrDefault();
                         if (multiplyOperator != null) {
-                            var oneToKill = multiplyOperator.asEnumerable()
+                            var oneToKill = multiplyOperator.linq
                                 .ofType(ParameterGene_1.default)
                                 .where(function (p) { return p.id == f_1.id; })
                                 .first();
@@ -298,13 +299,13 @@ var OperatorGene = (function (_super) {
                                 .ofType(OperatorGene)
                                 .where(function (g) {
                                 return g.operator == Operator.DIVIDE &&
-                                    g.asEnumerable().take(1)
+                                    g.linq.take(1)
                                         .ofType(ParameterGene_1.default)
                                         .any(function (g2) { return g2.id == f_1.id; });
                             })
                                 .firstOrDefault();
                             if (divOperator != null) {
-                                var oneToKill = divOperator.asEnumerable().first();
+                                var oneToKill = divOperator.linq.first();
                                 _._replaceInternal(f_1, new ConstantGene_1.default(f_1.multiple));
                                 divOperator.replace(oneToKill, new ConstantGene_1.default(oneToKill.multiple));
                                 somethingDone = true;
@@ -344,7 +345,7 @@ var OperatorGene = (function (_super) {
                         fo.add(f);
                         somethingDone = true;
                     }
-                    for (var _c = 0, _d = g.asEnumerable().skip(1).toArray(); _c < _d.length; _c++) {
+                    for (var _c = 0, _d = g.linq.skip(1).toArray(); _c < _d.length; _c++) {
                         var n = _d[_c];
                         g.remove(n);
                         fo.add(n);
@@ -409,7 +410,7 @@ var OperatorGene = (function (_super) {
                 }
             }
             if (o.count == 1) {
-                var opg = o.asEnumerable().firstOrDefault();
+                var opg = o.linq.firstOrDefault();
                 if (opg instanceof ParameterGene_1.default || opg instanceof ConstantGene_1.default) {
                     if (Operator.Available.Functions.indexOf(o.operator) == -1) {
                         o.remove(opg);
@@ -434,10 +435,10 @@ var OperatorGene = (function (_super) {
                     if (o.operator == Operator.SQUARE_ROOT) {
                         var childCount = og.count;
                         if (og.operator == Operator.MULTIPLY && childCount == 2
-                            && og.asEnumerable().select(function (p) { return p.asReduced().toString(); })
+                            && og.linq.select(function (p) { return p.asReduced().toString(); })
                                 .distinct()
                                 .count() == 1) {
-                            var firstChild = og.asEnumerable().ofType(ParameterGene_1.default).first();
+                            var firstChild = og.linq.ofType(ParameterGene_1.default).first();
                             og.remove(firstChild);
                             o.operator = Operator.MULTIPLY;
                             o.clear();
@@ -454,6 +455,34 @@ var OperatorGene = (function (_super) {
                         o.importEntries(children);
                         somethingDone = true;
                     }
+                }
+            }
+        }
+        if (_.count == 1) {
+            var p = values.first();
+            if (!(p instanceof ConstantGene_1.default) && p.multiple !== 1) {
+                somethingDone = true;
+                _.multiple *= p.multiple;
+                p.multiple = 1;
+            }
+        }
+        if (_._operator == Operator.ADD && _._source.length > 1) {
+            var constants = Linq_1.default
+                .from(_._source.slice())
+                .ofType(ConstantGene_1.default);
+            var len = constants.count();
+            if (len) {
+                var sum = constants.sum(function (s) { return s.multiple; });
+                var hero = constants.first();
+                if (len > 1) {
+                    hero.multiple = sum;
+                    constants.skip(1).forEach(function (c) { return _._removeInternal(c); });
+                    len = 1;
+                    somethingDone = true;
+                }
+                if (sum == 0 && _._source.length > len) {
+                    _._removeInternal(hero);
+                    somethingDone = true;
                 }
             }
         }
@@ -487,7 +516,16 @@ var OperatorGene = (function (_super) {
                 return _.operator
                     + parenGroup(_.arranged.map(function (s) { return s.toString(); }).join(","));
         }
-        return parenGroup(_.arranged.map(function (s) { return s.toString(); }).join(_.operator));
+        if (_._operator == Operator.ADD) {
+            return parenGroup(Utility_1.trim(_.arranged.map(function (s) {
+                var r = s.toString();
+                if (!Utility_1.startsWith(r, '-'))
+                    r = "+" + r;
+                return r;
+            }).join(""), "+"));
+        }
+        else
+            return parenGroup(_.arranged.map(function (s) { return s.toString(); }).join(_.operator));
     };
     OperatorGene.prototype.clone = function () {
         var clone = new OperatorGene(this._operator, this._multiple);

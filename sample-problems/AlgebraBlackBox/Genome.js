@@ -12,7 +12,7 @@ var AlgebraGenome = (function (_super) {
         _super.call(this, root);
     }
     AlgebraGenome.prototype.clone = function () {
-        return new AlgebraGenome(this.root);
+        return new AlgebraGenome(this.root.clone());
     };
     AlgebraGenome.prototype.serialize = function () {
         var root = this.root;

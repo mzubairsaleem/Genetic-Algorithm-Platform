@@ -114,7 +114,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		 * 4) Removing a parameter from an operation.
 		 * 5) Removing an operation.
 		 * 6) Removing a function. */
-
+		
 		var newGenome = source.clone();
 
 		for(var i = 0; i<mutations; i++)
@@ -252,12 +252,12 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						default:
 							if(parentOp.count<3)
 							{
-								if(parentOp.asEnumerable().all(
+								if(parentOp.linq.all(
 										o => o instanceof ParameterGene || o instanceof ConstantGene))
 									doNotRemove = true;
 								else
 								{
-									var replacement = parentOp.asEnumerable().where(
+									var replacement = parentOp.linq.where(
 										o => o instanceof OperatorGene).single();
 									if(parentOp==newGenome.root)
 										newGenome.root = replacement;
@@ -437,7 +437,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								if(isRoot)
 								{
 									if(og.count)
-										newGenome.root = og.asEnumerable().first();
+										newGenome.root = og.linq.first();
 									else
 									{
 										doNotRemove = true;
@@ -473,10 +473,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								og.removeAt(Integer.random.next(og.count));
 							}
 							else if(og.count==2
-								&& og.asEnumerable().any(o => o instanceof OperatorGene)
-								&& og.asEnumerable().any(o => o instanceof ParameterGene))
+								&& og.linq.any(o => o instanceof OperatorGene)
+								&& og.linq.any(o => o instanceof ParameterGene))
 							{
-								let childOpGene = og.asEnumerable().ofType(OperatorGene).single();
+								let childOpGene = og.linq.ofType(OperatorGene).single();
 								og.remove(childOpGene);
 								if(isRoot)
 									newGenome.root = childOpGene;
