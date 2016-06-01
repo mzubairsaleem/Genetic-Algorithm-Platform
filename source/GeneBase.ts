@@ -5,7 +5,7 @@
 
 
 import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
-import {ResettableLazy as Lazy} from "typescript-dotnet/source/System/Lazy";
+import {Lazy} from "typescript-dotnet/source/System/Lazy";
 import {List} from "typescript-dotnet/source/System/Collections/List";
 import {ArgumentException} from "typescript-dotnet/source/System/Exceptions/ArgumentException";
 import {IEquatable} from "typescript-dotnet/source/System/IEquatable";
@@ -74,8 +74,8 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 	resetToString():void
 	{
 		var ts = this._toString;
-		if(ts) ts.reset();
-		else this._toString = new Lazy<string>(()=>this.toStringInternal());
+		if(ts) ts.tryReset();
+		else this._toString = new Lazy<string>(()=>this.toStringInternal(),false,true);
 		this.forEach(c=>c.resetToString());
 	}
 

@@ -11,7 +11,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 var Triangular = require("./Triangular");
 var dispose_1 = require("typescript-dotnet/source/System/Disposable/dispose");
 var LinkedList_1 = require("typescript-dotnet/source/System/Collections/LinkedList");
-var TaskHandlerBase_1 = require("typescript-dotnet/source/System/Tasks/TaskHandlerBase");
+var TaskHandlerBase_1 = require("typescript-dotnet/source/System/Threading/Tasks/TaskHandlerBase");
 var Population_1 = require("./Population");
 var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
 var Environment = (function (_super) {
@@ -61,7 +61,7 @@ var Environment = (function (_super) {
         p.keepOnly(Linq_1.Enumerable.weave(problems.select(function (r) { return r.rank(p); }))
             .take(this.populationSize / 2));
         dispose_1.dispose(populations);
-        this.execute(0);
+        this.start();
     };
     Environment.prototype.spawn = function (populationSize, source) {
         var _ = this;

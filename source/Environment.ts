@@ -7,7 +7,7 @@
 import * as Triangular from "./Triangular";
 import {dispose} from "typescript-dotnet/source/System/Disposable/dispose";
 import {LinkedList} from "typescript-dotnet/source/System/Collections/LinkedList";
-import {TaskHandlerBase} from "typescript-dotnet/source/System/Tasks/TaskHandlerBase";
+import {TaskHandlerBase} from "typescript-dotnet/source/System/Threading/Tasks/TaskHandlerBase";
 import {Population} from "./Population";
 import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
 import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
@@ -85,7 +85,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 		dispose(populations);
 
-		this.execute(0);
+		this.start();
 
 
 	}

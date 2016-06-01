@@ -16,6 +16,7 @@ import Population from "../../source/Population";
 import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
 import {IMap} from "typescript-dotnet/source/System/Collections/Dictionaries/IDictionary";
 import {IProblem} from "../../source/IProblem";
+import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
@@ -28,7 +29,8 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 	private _actualFormula:(...params:number[])=>number;
 
 	protected _convergent:StringKeyDictionary<AlgebraGenome>;
-	get convergent():AlgebraGenome[] {
+	get convergent():AlgebraGenome[]
+	{
 		return this._convergent.values;
 	}
 
@@ -56,7 +58,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 		return s;
 	}
 
-	rank(population:IEnumerableOrArray<AlgebraGenome>):Enumerable<AlgebraGenome>
+	rank(population:IEnumerableOrArray<AlgebraGenome>):IOrderedEnumerable<AlgebraGenome>
 	{
 		return Enumerable
 			.from(population)
@@ -65,7 +67,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 
 	rankAndReduce(
 		population:IEnumerableOrArray<AlgebraGenome>,
-		targetMaxPopulation:number):Enumerable<AlgebraGenome>
+		targetMaxPopulation:number):ILinqEnumerable<AlgebraGenome>
 	{
 		var lastValue:number;
 		return this.rank(population)
@@ -146,8 +148,8 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 
 				let c = correlation(correct, result);
 				this.getFitnessFor(g)
-					.add((isNaN(c) || !isFinite(c))?-2:c);
-				this._convergent.setValue(g.hash,c==1?g:(void 0));
+					.add((isNaN(c) || !isFinite(c)) ? -2 : c);
+				this._convergent.setValue(g.hash, c==1 ? g : (void 0));
 			});
 
 		}
