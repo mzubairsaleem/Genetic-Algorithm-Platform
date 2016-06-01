@@ -18,6 +18,10 @@ var ParameterGene_1 = require("./ParameterGene");
 var Operator = require("../Operators");
 var Utility_1 = require("typescript-dotnet/source/System/Text/Utility");
 function arrange(a, b) {
+    if (a instanceof ConstantGene_1.default && !(b instanceof ConstantGene_1.default))
+        return 1;
+    if (b instanceof ConstantGene_1.default && !(a instanceof ConstantGene_1.default))
+        return -1;
     if (a.multiple < b.multiple)
         return 1;
     if (a.multiple > b.multiple)

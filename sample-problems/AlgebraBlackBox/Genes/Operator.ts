@@ -21,6 +21,12 @@ import {startsWith,trim} from "typescript-dotnet/source/System/Text/Utility";
 
 function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 {
+	if(a instanceof ConstantGene && !(b instanceof ConstantGene))
+		return 1;
+
+	if(b instanceof ConstantGene && !(a instanceof ConstantGene))
+		return -1;
+	
 	if(a.multiple<b.multiple)
 		return 1;
 
