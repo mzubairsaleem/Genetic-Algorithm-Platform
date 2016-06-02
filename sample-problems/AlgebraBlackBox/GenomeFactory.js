@@ -38,41 +38,49 @@ var AlgebraGenomeFactory = (function (_super) {
         var genome;
         var hash;
         if (source && source.length) {
-            var tries = 1000;
-            do {
-                genome = this.mutate(Integer_1.default.random.select(source));
-                hash = genome.hash;
-            } while (p.containsKey(hash) && --tries);
-            if (!tries)
-                genome = null;
+            for (var m = 1; m < 4; m++) {
+                var tries = 200;
+                do {
+                    genome = _.mutate(Integer_1.default.random.select(source), m);
+                    hash = genome.hash;
+                } while (p.containsKey(hash) && --tries);
+                if (tries)
+                    break;
+                else
+                    genome = null;
+            }
         }
         if (!genome) {
-            var tries = 10, paramCount = 0;
-            var genome, hash;
-            do {
-                {
-                    genome = this.generateParamOnly(paramCount);
-                    hash = genome.hash;
-                    if (!p.containsKey(hash))
-                        break;
-                }
-                paramCount += 2;
-                {
-                    genome = this.generateOperated(paramCount);
-                    hash = genome.hash;
-                    if (!p.containsKey(hash))
-                        break;
-                }
-                var t = Math.min(p.count * 2, 100);
+            for (var m = 1; m < 4; m++) {
+                var tries = 10, paramCount = 0;
+                var genome, hash;
                 do {
-                    genome = _.mutate(p.getValueByIndex(Integer_1.default.random(p.count)));
-                    hash = genome.hash;
-                } while (p.containsKey(hash) && --t);
-                if (t)
+                    {
+                        genome = this.generateParamOnly(paramCount);
+                        hash = genome.hash;
+                        if (!p.containsKey(hash))
+                            break;
+                    }
+                    paramCount += 2;
+                    {
+                        genome = this.generateOperated(paramCount);
+                        hash = genome.hash;
+                        if (!p.containsKey(hash))
+                            break;
+                    }
+                    var t = Math.min(p.count * 2, 100);
+                    do {
+                        genome = _.mutate(p.getValueByIndex(Integer_1.default.random(p.count)), m);
+                        hash = genome.hash;
+                    } while (p.containsKey(hash) && --t);
+                    if (t)
+                        break;
+                } while (--tries);
+                if (tries)
                     break;
-            } while (--tries);
-            if (!tries)
-                genome = null;
+                else
+                    genome = null;
+            }
         }
         if (genome && hash)
             p.addByKeyValue(hash, genome);
@@ -122,7 +130,7 @@ var AlgebraGenomeFactory = (function (_super) {
                     pg = gene;
                     switch (lastOption = nextRandomIntegerExcluding_1.default(doNotRemove
                         ? 4
-                        : 8, invalidOptions)) {
+                        : 6, invalidOptions)) {
                         case 0:
                             {
                                 var abs_1 = Math.abs(pg.multiple);
@@ -265,19 +273,10 @@ var AlgebraGenomeFactory = (function (_super) {
                             break;
                         case 4:
                             {
-                                if (Integer_1.default.random.next(4) != 1) {
-                                    break;
-                                }
                                 if (Operator.Available.Functions.indexOf(og_1.operator) != -1 && Integer_1.default.random.next(4) != 1) {
                                     break;
                                 }
                                 newFn = new Operator_1.default(Operator_1.default.getRandomFunctionOperator());
-                                if (newFn.operator == og_1.operator) {
-                                    if (Integer_1.default.random.next(7) != 1) {
-                                        invalidOptions.push(5);
-                                        break;
-                                    }
-                                }
                                 if (isRoot)
                                     newGenome.root = newFn;
                                 else
@@ -330,7 +329,7 @@ var AlgebraGenomeFactory = (function (_super) {
                                 else
                                     parentOp.replace(og_1, childOpGene);
                             }
-                            else if (shouldNotRemove() || og_1.count < 3) {
+                            else if (shouldNotRemove() || og_1.count > 2) {
                                 doNotRemove = true;
                                 break;
                             }

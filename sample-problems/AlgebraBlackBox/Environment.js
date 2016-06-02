@@ -25,46 +25,53 @@ var AlgebraEnvironmentSample = (function (_super) {
             .push(new Problem_1.default(actualFormula));
     }
     AlgebraEnvironmentSample.prototype._onExecute = function () {
-        _super.prototype._onExecute.call(this);
-        console.log("Generation:", this._generations);
-        var problems = Linq_1.Enumerable.from(this._problems).memoize();
-        var p = this._populations.linq
-            .selectMany(function (s) { return s; })
-            .orderBy(function (g) { return g.hash.length; })
-            .groupBy(function (g) { return g.hashReduced; })
-            .select(function (g) { return g.first(); });
-        var top = Linq_1.Enumerable
-            .weave(problems
-            .select(function (r) {
-            return Linq_1.Enumerable.from(r.rank(p))
-                .select(function (g) {
-                var red = g.root.asReduced(), suffix = "";
-                if (red != g.root)
-                    suffix = " => " + convertParameterToAlphabet(red.toString());
-                return {
-                    label: r.getFitnessFor(g).scores + ": " + convertParameterToAlphabet(g.hash) + suffix,
-                    gene: g
-                };
-            });
-        }))
-            .take(this._problems.length)
-            .memoize();
-        var n = this._populations.last.value;
-        n.importEntries(top
-            .select(function (g) { return g.gene; })
-            .where(function (g) { return g.root.isReducible() && g.root.asReduced() != g.root; })
-            .select(function (g) {
-            var n = g.clone();
-            n.root = g.root.asReduced();
-            return n;
-        }));
-        console.log("Population Size:", n.count);
-        var c = problems.selectMany(function (p) { return p.convergent; }).count();
-        if (c)
-            console.log("Convergent:", c);
-        console.log("Top:", top.select(function (s) { return s.label; }).toArray(), "\n");
-        if (c < this._problems.length)
-            this.start();
+        try {
+            _super.prototype._onExecute.call(this);
+            console.log("Generation:", this._generations);
+            var problems = Linq_1.Enumerable.from(this._problems).memoize();
+            var p = this._populations.linq
+                .selectMany(function (s) { return s; })
+                .orderBy(function (g) { return g.hash.length; })
+                .groupBy(function (g) { return g.hashReduced; })
+                .select(function (g) { return g.first(); });
+            var top = Linq_1.Enumerable
+                .weave(problems
+                .select(function (r) {
+                return Linq_1.Enumerable.from(r.rank(p))
+                    .select(function (g) {
+                    var red = g.root.asReduced(), suffix = "";
+                    if (red != g.root)
+                        suffix = " => " + convertParameterToAlphabet(red.toString());
+                    var f = r.getFitnessFor(g);
+                    return {
+                        label: "(" + f.count + ") " + f.scores + ": " + convertParameterToAlphabet(g.hash) + suffix,
+                        gene: g
+                    };
+                });
+            }))
+                .take(this._problems.length)
+                .memoize();
+            var c = problems.selectMany(function (p) { return p.convergent; }).toArray();
+            console.log("Top:", top.select(function (s) { return s.label; }).toArray(), "\n");
+            if (c.length)
+                console.log("\nConvergent:", c.map(function (g) { return convertParameterToAlphabet(g.hashReduced); }));
+            if (problems.count(function (p) { return p.convergent.length != 0; }) < this._problems.length) {
+                var n = this._populations.last.value;
+                n.importEntries(top
+                    .select(function (g) { return g.gene; })
+                    .where(function (g) { return g.root.isReducible() && g.root.asReduced() != g.root; })
+                    .select(function (g) {
+                    var n = g.clone();
+                    n.root = g.root.asReduced();
+                    return n;
+                }));
+                console.log("Population Size:", n.count);
+                this.start();
+            }
+        }
+        catch (ex) {
+            console.error(ex, ex.stack);
+        }
     };
     return AlgebraEnvironmentSample;
 }(Environment_1.default));

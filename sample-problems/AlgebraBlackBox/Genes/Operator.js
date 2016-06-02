@@ -122,7 +122,7 @@ var OperatorGene = (function (_super) {
                         var sum = pa.sum(function (s) { return s.multiple; });
                         var hero = pa.first();
                         if (sum == 0)
-                            _.replace(hero, new ConstantGene_1.default(0));
+                            _._replaceInternal(hero, new ConstantGene_1.default(0));
                         else
                             hero.multiple = sum;
                         pa.skip(1).forEach(function (g) { return _._removeInternal(g); });
@@ -131,12 +131,11 @@ var OperatorGene = (function (_super) {
                     }
                 case Operator.DIVIDE:
                     {
-                        var first = _._source[0];
-                        var hero = pa.first();
-                        if (!(first instanceof ConstantGene_1.default)
-                            && first.toStringContents() == hero.toStringContents()) {
-                            _.replace(first, new ConstantGene_1.default(first.multiple));
-                            _.replace(hero, new ConstantGene_1.default(hero.multiple));
+                        var first = pa.first();
+                        var next = pa.elementAt(1);
+                        if (!(first instanceof ConstantGene_1.default)) {
+                            _._replaceInternal(first, new ConstantGene_1.default(first.multiple));
+                            _._replaceInternal(next, new ConstantGene_1.default(next.multiple));
                             somethingDone = true;
                         }
                     }
@@ -197,7 +196,7 @@ var OperatorGene = (function (_super) {
                             var mPToKill = mParams_1
                                 .where(function (p) { return p.id == oneToKill_1.id; }).first();
                             divOperator.replace(oneToKill_1, new ConstantGene_1.default(oneToKill_1.multiple));
-                            _.replace(mPToKill, new ConstantGene_1.default(mPToKill.multiple));
+                            _._replaceInternal(mPToKill, new ConstantGene_1.default(mPToKill.multiple));
                             somethingDone = true;
                         }
                     }
@@ -442,7 +441,7 @@ var OperatorGene = (function (_super) {
                             && og.linq.select(function (p) { return p.asReduced().toString(); })
                                 .distinct()
                                 .count() == 1) {
-                            var firstChild = og.linq.ofType(ParameterGene_1.default).first();
+                            var firstChild = og.linq.first();
                             og.remove(firstChild);
                             o.operator = Operator.MULTIPLY;
                             o.clear();
@@ -464,10 +463,21 @@ var OperatorGene = (function (_super) {
         }
         if (_.count == 1) {
             var p = values.first();
-            if (!(p instanceof ConstantGene_1.default) && p.multiple !== 1) {
-                somethingDone = true;
-                _.multiple *= p.multiple;
-                p.multiple = 1;
+            if (_._operator == Operator.SQUARE_ROOT) {
+                if (p instanceof ConstantGene_1.default) {
+                    if (p.multiple == 0) {
+                        somethingDone = true;
+                        _.multiple *= p.multiple;
+                        p.multiple = 1;
+                    }
+                }
+            }
+            else {
+                if (!(p instanceof ConstantGene_1.default) && p.multiple !== 1) {
+                    somethingDone = true;
+                    _.multiple *= p.multiple;
+                    p.multiple = 1;
+                }
             }
         }
         if (_._operator == Operator.ADD && _._source.length > 1) {
@@ -501,7 +511,7 @@ var OperatorGene = (function (_super) {
         var r = this._reduced;
         if (!r) {
             var gene = this.clone();
-            gene.reduce();
+            gene.reduce(true);
             this._reduced = r = gene.toString() === this.toString() ? this : gene;
         }
         return r;

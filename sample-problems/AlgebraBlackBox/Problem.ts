@@ -9,7 +9,7 @@ import StringKeyDictionary from "typescript-dotnet/source/System/Collections/Dic
 import * as ArrayUtility from "typescript-dotnet/source/System/Collections/Array/Utility";
 import {correlation} from "./arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
-import AlgebraFitness from "./Fitness";
+import Fitness from "../../source/Fitness";
 import Enumerable from "typescript-dotnet/source/System.Linq/Linq";
 import Population from "../../source/Population";
 import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
@@ -18,9 +18,9 @@ import {IProblem} from "../../source/IProblem";
 import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
 import {average} from "typescript-dotnet/source/System/Collections/Array/Procedure";
 
-export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, AlgebraFitness>
+export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, Fitness>
 {
-	private _fitness:IMap<AlgebraFitness>;
+	private _fitness:IMap<Fitness>;
 	private _actualFormula:(...params:number[])=>number;
 
 	protected _convergent:StringKeyDictionary<AlgebraGenome>;
@@ -46,11 +46,11 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 	// 	return s && s.score || 0;
 	// }
 
-	getFitnessFor(genome:AlgebraGenome, createIfMissing:boolean = true):AlgebraFitness
+	getFitnessFor(genome:AlgebraGenome, createIfMissing:boolean = true):Fitness
 	{
 		// Avoid repeating processes by using the reduced hash as a key.
 		var h = genome.hashReduced, f = this._fitness, s = f[h];
-		if(!s && createIfMissing) f[h] = s = new AlgebraFitness();
+		if(!s && createIfMissing) f[h] = s = new Fitness();
 		return s;
 	}
 
@@ -66,7 +66,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 		population:IEnumerableOrArray<AlgebraGenome>,
 		targetMaxPopulation:number):ILinqEnumerable<AlgebraGenome>
 	{
-		var lastFitness:AlgebraFitness;
+		var lastFitness:Fitness;
 		return this.rank(population)
 			.takeWhile((g, i)=>
 			{
@@ -154,7 +154,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 				}
 
 				let c = correlation(correct, result);
-				let d = average(divergence);
+				let d = average(divergence) + 1;
 
 				let f = this.getFitnessFor(g);
 				f.add([
@@ -162,7 +162,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, A
 					(isNaN(d) || !isFinite(d)) ? -Infinity : d
 				]);
 
-				this._convergent.setValue(g.hash, f.hasConverged ? g : (void 0));
+				this._convergent.setValue(g.hashReduced, f.hasConverged() ? g : (void 0));
 			});
 
 		}

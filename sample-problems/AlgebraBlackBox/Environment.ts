@@ -9,7 +9,7 @@ declare const process:any;
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
-	return  Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
 const VARIABLE_NAMES = Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();
@@ -32,63 +32,73 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 
 	protected _onExecute():void
 	{
-		super._onExecute();
-		console.log("Generation:", this._generations);
+		try {
+			super._onExecute();
 
-		var problems = Enumerable.from(this._problems).memoize();
-		var p = this._populations.linq
-			.selectMany(s=>s)
-			.orderBy(g=>g.hash.length)
-			.groupBy(g=>g.hashReduced)
-			.select(g=>g.first());
+			console.log("Generation:", this._generations);
 
-		var top = Enumerable
-			.weave<{label:string,gene:AlgebraGenome}>(
-				problems
-					.select(r=>
-						Enumerable.from(r.rank(p))
-							.select(
-								g=>
-								{
-									let red = g.root.asReduced(), suffix = "";
-									if(red!=g.root)
-										suffix = " => " + convertParameterToAlphabet(red.toString());
-									return {
-										label: r.getFitnessFor(g).scores + ": " + convertParameterToAlphabet(g.hash) + suffix,
-										gene: g
-									};
-								}
-							)
-					)
-			)
-			.take(this._problems.length)
-			.memoize();
+			var problems = Enumerable.from(this._problems).memoize();
+			var p = this._populations.linq
+				.selectMany(s=>s)
+				.orderBy(g=>g.hash.length)
+				.groupBy(g=>g.hashReduced)
+				.select(g=>g.first());
 
-		var n = this._populations.last.value;
-		n.importEntries(top
-			.select(g=>g.gene)
-			.where(g=>g.root.isReducible() && g.root.asReduced()!=g.root)
-			.select(g=>
-			{
-				let n = g.clone();
-				n.root = g.root.asReduced();
-				return n;
-			}));
+			var top = Enumerable
+				.weave<{label:string,gene:AlgebraGenome}>(
+					problems
+						.select(r=>
+							Enumerable.from(r.rank(p))
+								.select(
+									g=>
+									{
+										let red = g.root.asReduced(), suffix = "";
+										if(red!=g.root)
+											suffix = " => " + convertParameterToAlphabet(red.toString());
+										let f = r.getFitnessFor(g);
+										return {
+											label: `(${f.count}) ${f.scores}: ${convertParameterToAlphabet(g.hash)}${suffix}`,
+											gene: g
+										};
+									}
+								)
+						)
+				)
+				.take(this._problems.length)
+				.memoize();
 
-		console.log("Population Size:", n.count);
+			var c = problems.selectMany(p=>p.convergent).toArray();
+			console.log("Top:", top.select(s=>s.label).toArray(), "\n");
+			if(c.length) console.log("\nConvergent:", c.map(g=>convertParameterToAlphabet(g.hashReduced)));
 
-		var c = problems.selectMany(p=>p.convergent).count();
-		if(c) console.log("Convergent:", c);
-		console.log("Top:", top.select(s=>s.label).toArray(), "\n");
+			// process.stdin.resume();
+			// process.stdout.write("Hit enter to continue.");
+			// process.stdin.once("data", ()=>
+			// {
+			if(problems.count(p=>p.convergent.length!=0)<this._problems.length) {
+				var n = this._populations.last.value;
+				n.importEntries(top
+					.select(g=>g.gene)
+					.where(g=>g.root.isReducible() && g.root.asReduced()!=g.root)
+					.select(g=>
+					{
+						let n = g.clone();
+						n.root = g.root.asReduced();
+						return n;
+					}));
 
-		// process.stdin.resume();
-		// process.stdout.write("Hit enter to continue.");
-		// process.stdin.once("data", ()=>
-		// {
-		if(c<this._problems.length)
-			this.start();
-		// });
+				console.log("Population Size:", n.count);
 
+				this.start();
+			}
+			// });
+
+
+
+		}
+		catch(ex) {
+			console.error(ex,ex.stack);
+		}
 	}
 
 

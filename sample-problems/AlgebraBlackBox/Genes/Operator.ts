@@ -130,7 +130,7 @@ class OperatorGene extends AlgebraGene
 		return children;
 	}
 
-	reduce(reduceGroupings:boolean = false):boolean
+	reduce(reduceGroupings:boolean = false):boolean|AlgebraGene
 	{
 		var somethingDone = false;
 		while(this._reduceLoop(reduceGroupings))
@@ -159,7 +159,7 @@ class OperatorGene extends AlgebraGene
 						let hero = pa.first();
 
 						if(sum==0)
-							_.replace(hero, new ConstantGene(0));
+							_._replaceInternal(hero, new ConstantGene(0));
 						else
 							hero.multiple = sum;
 
@@ -171,13 +171,12 @@ class OperatorGene extends AlgebraGene
 
 					case Operator.DIVIDE:
 					{
-						let first = _._source[0];
-						let hero = pa.first();
-						if(!(first instanceof ConstantGene)
-							&& first.toStringContents()==hero.toStringContents())
+						let first = pa.first();
+						let next = pa.elementAt(1);
+						if(!(first instanceof ConstantGene))
 						{
-							_.replace(first, new ConstantGene(first.multiple));
-							_.replace(hero, new ConstantGene(hero.multiple));
+							_._replaceInternal(first, new ConstantGene(first.multiple));
+							_._replaceInternal(next, new ConstantGene(next.multiple));
 							somethingDone = true;
 						}
 					}
@@ -259,7 +258,7 @@ class OperatorGene extends AlgebraGene
 							.where(p => p.id==oneToKill.id).first();
 
 						divOperator.replace(oneToKill, new ConstantGene(oneToKill.multiple));
-						_.replace(mPToKill, new ConstantGene(mPToKill.multiple));
+						_._replaceInternal(mPToKill, new ConstantGene(mPToKill.multiple));
 
 						somethingDone = true;
 					}
@@ -621,7 +620,7 @@ class OperatorGene extends AlgebraGene
 								.distinct()
 								.count()==1)
 						{
-							let firstChild = og.linq.ofType(ParameterGene).first();
+							let firstChild = og.linq.first();
 							og.remove(firstChild);
 							o.operator = Operator.MULTIPLY;
 							o.clear();
@@ -648,14 +647,48 @@ class OperatorGene extends AlgebraGene
 			}
 		}
 
+
 		// Pull out multiple to allow for reduction.
 		if(_.count==1) {
 			var p = values.first();
-			if(!(p instanceof ConstantGene) && p.multiple!==1) {
-				somethingDone = true;
-				_.multiple *= p.multiple;
-				p.multiple = 1;
+			if(_._operator==Operator.SQUARE_ROOT){
+
+				// if(p instanceof OperatorGene) {
+				// 	let childCount = p.count;
+				//
+				// 	// Square root of square?
+				// 	if(p.operator==Operator.MULTIPLY && childCount==2
+				// 		&& p.linq.select(pp=>pp.asReduced().toString())
+				// 			.distinct()
+				// 			.count()==1)
+				// 	{
+				// 		return p.linq.first();
+				//
+				// 		// _._r
+				// 		// p.remove(firstChild);
+				// 		// p.operator = Operator.MULTIPLY;
+				// 		// p.clear();
+				// 		// p.add(firstChild);
+				// 		//
+				// 		// somethingDone = true;
+				// 	}
+				// }
+
+				if(p instanceof ConstantGene){
+					if(p.multiple==0) {
+						somethingDone = true;
+						_.multiple *= p.multiple;
+						p.multiple = 1;
+					}
+				}
+			} else {
+				if(!(p instanceof ConstantGene) && p.multiple!==1) {
+					somethingDone = true;
+					_.multiple *= p.multiple;
+					p.multiple = 1;
+				}
 			}
+
 		}
 
 		if(_._operator==Operator.ADD && _._source.length>1) {
@@ -705,7 +738,7 @@ class OperatorGene extends AlgebraGene
 		if(!r)
 		{
 			var gene = this.clone();
-			gene.reduce();
+			gene.reduce(true);
 			this._reduced = r = gene.toString()===this.toString() ? this : gene;
 		}
 		return r;

@@ -20,9 +20,9 @@ var Environment = (function (_super) {
         _super.call(this);
         this._genomeFactory = _genomeFactory;
         this._generations = 0;
-        this.populationSize = 50;
+        this.populationSize = 100;
         this.maxPopulations = 20;
-        this.testCount = 10;
+        this.testCount = 5;
         this._problemsEnumerable
             = Linq_1.Enumerable.from(this._problems = []);
         this._populations = new LinkedList_1.LinkedList();
@@ -55,7 +55,12 @@ var Environment = (function (_super) {
     Environment.prototype._onExecute = function () {
         var populations = this._populations.linq.reverse(), problems = this._problemsEnumerable.memoize();
         var p = this.spawn(this.populationSize, Triangular.disperse.decreasing(Linq_1.Enumerable.weave(populations
-            .selectMany(function (o) { return problems.select(function (r) { return r.rank(o); }); }))));
+            .selectMany(function (o) {
+            var x = problems.select(function (r) { return r.rank(o); });
+            if (!x.any())
+                return x;
+            return Linq_1.Enumerable.make(x.first()).concat(x);
+        }))));
         this.test();
         this._generations++;
         p.keepOnly(Linq_1.Enumerable.weave(problems.select(function (r) { return r.rank(p); }))

@@ -1,13 +1,13 @@
 import * as Procedure from "typescript-dotnet/source/System/Collections/Array/Procedure";
-import {IComparable} from "typescript-dotnet/dist/commonjs/System/IComparable";
+import {IComparable} from "typescript-dotnet/source/System/IComparable";
 
-export default class AlgebraFitness implements IComparable<AlgebraFitness>
+export default class Fitness implements IComparable<Fitness>
 {
-	private _samples:number[][];
+	private _scoreCard:number[][];
 
 	constructor()
 	{
-		this._samples = [];
+		this._scoreCard = [];
 		this._scores = [];
 		this._count = 0;
 	}
@@ -29,8 +29,8 @@ export default class AlgebraFitness implements IComparable<AlgebraFitness>
 		if(!score || !score.length) return;
 
 		for(let i=0,len=score.length;i<len;i++) {
-			let s = this._samples[i];
-			if(!s) this._samples[i] = s = [];
+			let s = this._scoreCard[i];
+			if(!s) this._scoreCard[i] = s = [];
 			s.push(score[i]);
 			this._scores[i] = null; // reset for lazy calculation.
 		}
@@ -41,13 +41,13 @@ export default class AlgebraFitness implements IComparable<AlgebraFitness>
 	getScore(index:number):number
 	{
 		var s = this._scores[index];
-		if(!s && s!==0) this._scores[index] = s = Procedure.average(this._samples[index]);
+		if(!s && s!==0) this._scores[index] = s = Procedure.average(this._scoreCard[index]);
 		return s;
 	}
 
-	get hasConverged():boolean
+	hasConverged(minSamples:number=100):boolean
 	{
-		if(this._count<10) return false;
+		if(this._count<minSamples) return false;
 		let len = this._scores.length;
 		if(!len) return false;
 
@@ -57,23 +57,22 @@ export default class AlgebraFitness implements IComparable<AlgebraFitness>
 		return true;
 	}
 
-	compareTo(other:AlgebraFitness):number
+	compareTo(other:Fitness):number
 	{
 		for(let i = 0, len = this._scores.length; i<len; i++)
 		{
 
-			var a = this._scores[i], b = other.getScore(i);
+			let a = this._scores[i], b = other.getScore(i);
 			if(a<b || isNaN(a) && !isNaN(b)) return -1;
 
 			if(a>b || !isNaN(a) && isNaN(b)) return +1;
 
-			a = this._samples.length;
-			b = other.count;
-			if(a<b) return -1;
-
-			if(a>b) return +1;
-
 		}
+
+		let a = this._count, b = other.count;
+		if(a<b) return -1;
+		if(a>b) return +1;
+
 
 		return 0;
 	}

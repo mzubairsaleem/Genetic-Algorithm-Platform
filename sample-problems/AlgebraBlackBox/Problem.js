@@ -7,7 +7,7 @@ var Set_1 = require("typescript-dotnet/source/System/Collections/Set");
 var StringKeyDictionary_1 = require("typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary");
 var ArrayUtility = require("typescript-dotnet/source/System/Collections/Array/Utility");
 var Correlation_1 = require("./arithmetic/Correlation");
-var Fitness_1 = require("./Fitness");
+var Fitness_1 = require("../../source/Fitness");
 var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
 var Procedure_1 = require("typescript-dotnet/source/System/Collections/Array/Procedure");
 var AlgebraBlackBoxProblem = (function () {
@@ -103,13 +103,13 @@ var AlgebraBlackBoxProblem = (function () {
                     divergence[i_1] = -Math.abs(result[i_1] - correct[i_1]);
                 }
                 var c = Correlation_1.correlation(correct, result);
-                var d = Procedure_1.average(divergence);
+                var d = Procedure_1.average(divergence) + 1;
                 var f = _this.getFitnessFor(g);
                 f.add([
                     (isNaN(c) || !isFinite(c)) ? -2 : c,
                     (isNaN(d) || !isFinite(d)) ? -Infinity : d
                 ]);
-                _this._convergent.setValue(g.hash, f.hasConverged ? g : (void 0));
+                _this._convergent.setValue(g.hashReduced, f.hasConverged() ? g : (void 0));
             });
         };
         var this_1 = this;

@@ -9,7 +9,7 @@ import {List} from "typescript-dotnet/source/System/Collections/List";
 import {ArgumentException} from "typescript-dotnet/source/System/Exceptions/ArgumentException";
 import {IEquatable} from "typescript-dotnet/source/System/IEquatable";
 import {IGene} from "./IGene";
-import {ILinqEnumerable} from "typescript-dotnet/dist/es6/System.Linq/Enumerable";
+import {ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
 
 abstract class GeneBase<T extends IGene>
 extends List<T> implements IGene, IEquatable<GeneBase<T>>

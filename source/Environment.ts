@@ -26,9 +26,9 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	protected _problems:IProblem<TGenome,any>[];
 	protected _problemsEnumerable:Enumerable<IProblem<TGenome,any>>;
 
-	populationSize:number = 50;
+	populationSize:number = 100;
 	maxPopulations:number = 20;
-	testCount:number = 10;
+	testCount:number = 5;
 
 
 	constructor(private _genomeFactory:IGenomeFactory<TGenome>)
@@ -69,7 +69,11 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 			Triangular.disperse.decreasing<TGenome>(
 				Enumerable.weave<TGenome>(populations
 					.selectMany<IEnumerable<TGenome>>(
-						o => problems.select(r=>r.rank(o))
+						o => {
+							let x = problems.select(r=>r.rank(o));
+							if(!x.any()) return x;
+							return Enumerable.make(x.first()).concat(x); // Take the first one an bias it as the winner.
+						}
 					)
 				)
 			)

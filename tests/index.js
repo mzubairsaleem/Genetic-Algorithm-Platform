@@ -15,6 +15,14 @@ var ConstantGene_1 = require("../sample-problems/AlgebraBlackBox/Genes/ConstantG
             var r = o.asReduced();
             assert_1.equal(Environment_1.convertParameterToAlphabet(r.toString()), "(0)");
         });
+        it("should reduce to 1", function () {
+            var o = new Operator_1.default(Operators.DIVIDE);
+            o.add(new ParameterGene_1.default(0));
+            o.add(new ParameterGene_1.default(0));
+            assert_1.equal(Environment_1.convertParameterToAlphabet(o.toString()), "(a/a)");
+            var r = o.asReduced();
+            assert_1.equal(Environment_1.convertParameterToAlphabet(r.toString()), "(1)");
+        });
         it("should reduce simple summed parameters to minimum", function () {
             var o = new Operator_1.default(Operators.ADD);
             o.add(new ParameterGene_1.default(0));

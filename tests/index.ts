@@ -22,6 +22,17 @@ import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene"
 			assert.equal(formatGene(r.toString()),"(0)")
 		});
 
+		it("should reduce to 1", ()=>
+		{
+			var o = new OperatorGene(Operators.DIVIDE);
+			o.add(new ParameterGene(0));
+			o.add(new ParameterGene(0));
+
+			assert.equal(formatGene(o.toString()),"(a/a)");
+			var r = o.asReduced();
+			assert.equal(formatGene(r.toString()),"(1)")
+		});
+
 		it("should reduce simple summed parameters to minimum", ()=>
 		{
 			var o = new OperatorGene(Operators.ADD);
