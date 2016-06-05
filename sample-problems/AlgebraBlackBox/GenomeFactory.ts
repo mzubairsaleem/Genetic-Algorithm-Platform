@@ -36,7 +36,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 	generate(source?:AlgebraGenome[]):AlgebraGenome
 	{
-		var _ = this, p = _._previousGenomes;
+		var _ = this, p = _._previousGenomes, attempts:number = 0;
 		var genome:AlgebraGenome;
 		var hash:string;
 
@@ -52,6 +52,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 				{
 					genome = _.mutate(Integer.random.select(source),m);
 					hash = genome.hash;
+					attempts++;
 				}
 				while(p.containsKey(hash) && --tries);
 
@@ -77,14 +78,16 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 					{ // Try a param only version first.
 						genome = this.generateParamOnly(paramCount);
 						hash = genome.hash;
+						attempts++;
 						if(!p.containsKey(hash)) break;
 					}
 
-					paramCount += 2; // Operators need at least 2 params to start.
+					paramCount += 1; // Operators need at least 2 params to start.
 
 					{ // Then try an operator based version.
-						genome = this.generateOperated(paramCount);
+						genome = this.generateOperated(paramCount+1);
 						hash = genome.hash;
+						attempts++;
 						if(!p.containsKey(hash)) break;
 					}
 
@@ -92,6 +95,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 					do {
 						genome = _.mutate(p.getValueByIndex(Integer.random(p.count)),m);
 						hash = genome.hash;
+						attempts++;
 					}
 					while(p.containsKey(hash) && --t);
 
@@ -108,6 +112,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 		}
 
+		//console.log("Generate attempts:",attempts);
 
 		if(genome && hash)
 			p.addByKeyValue(hash, genome);

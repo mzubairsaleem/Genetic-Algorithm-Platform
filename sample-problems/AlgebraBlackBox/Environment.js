@@ -27,7 +27,6 @@ var AlgebraEnvironmentSample = (function (_super) {
     AlgebraEnvironmentSample.prototype._onExecute = function () {
         try {
             _super.prototype._onExecute.call(this);
-            console.log("Generation:", this._generations);
             var problems = Linq_1.Enumerable.from(this._problems).memoize();
             var p = this._populations.linq
                 .selectMany(function (s) { return s; })
@@ -41,7 +40,8 @@ var AlgebraEnvironmentSample = (function (_super) {
                     .select(function (g) {
                     var red = g.root.asReduced(), suffix = "";
                     if (red != g.root)
-                        suffix = " => " + convertParameterToAlphabet(red.toString());
+                        suffix
+                            = " => " + convertParameterToAlphabet(red.toString());
                     var f = r.getFitnessFor(g);
                     return {
                         label: "(" + f.count + ") " + f.scores + ": " + convertParameterToAlphabet(g.hash) + suffix,

@@ -16,6 +16,7 @@ import {IGenome} from "./IGenome";
 import {IEnvironment} from "./IEnvironment";
 import {IProblem} from "./IProblem";
 import {IGenomeFactory} from "./IGenomeFactory";
+import Stopwatch from "typescript-dotnet/source/System/Diagnostics/Stopwatch";
 
 export class Environment<TGenome extends IGenome>
 extends TaskHandlerBase implements IEnvironment<TGenome>
@@ -26,8 +27,8 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	protected _problems:IProblem<TGenome,any>[];
 	protected _problemsEnumerable:Enumerable<IProblem<TGenome,any>>;
 
-	populationSize:number = 100;
-	maxPopulations:number = 20;
+	populationSize:number = 50;
+	maxPopulations:number = 10;
 	testCount:number = 5;
 
 
@@ -64,6 +65,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		    problems    = this._problemsEnumerable.memoize();
 
 		// Get ranked population for each problem and merge it into a weaved enumeration.
+		var sw = Stopwatch.startNew();
 		var p = this.spawn(
 			this.populationSize,
 			Triangular.disperse.decreasing<TGenome>(
@@ -78,6 +80,9 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 				)
 			)
 		);
+		console.log("Populations:",this._populations.count);
+		console.log("Selection/Ranking (ms):",sw.currentLapMilliseconds);
+		sw.lap();
 
 		this.test();
 		this._generations++;
@@ -88,6 +93,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 				.take(this.populationSize/2));
 
 		dispose(populations);
+		console.log("Testing/Cleanup (ms):",sw.currentLapMilliseconds);
 
 	}
 
@@ -111,20 +117,18 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	trimEarlyPopulations(maxPopulations:number):void
 	{
-		var problems = this._problemsEnumerable.memoize();
-		this._populations.linq
+		var problems = this._problemsEnumerable.memoize(), pops = this._populations;
+		pops.linq
 			.takeExceptLast(maxPopulations)
 			.forEach(p=>
 			{
-				p.forEach(g=>
-				{
-					if(problems.select(r=>r.getFitnessFor(g).score).max()<0.5)
-						p.remove(g);
-				}, true);
-				if(!p.count)
-				{
-					this._populations.remove(p);
-				}
+				// Move top items to latest population.
+				problems.forEach(r=>{
+					var keep = Enumerable.from(r.rank(p)).firstOrDefault();
+					if(keep) pops.last.value.add(keep);
+				});
+
+				pops.remove(p);
 			});
 	}
 

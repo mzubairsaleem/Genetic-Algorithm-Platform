@@ -14,14 +14,15 @@ var LinkedList_1 = require("typescript-dotnet/source/System/Collections/LinkedLi
 var TaskHandlerBase_1 = require("typescript-dotnet/source/System/Threading/Tasks/TaskHandlerBase");
 var Population_1 = require("./Population");
 var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
+var Stopwatch_1 = require("typescript-dotnet/source/System/Diagnostics/Stopwatch");
 var Environment = (function (_super) {
     __extends(Environment, _super);
     function Environment(_genomeFactory) {
         _super.call(this);
         this._genomeFactory = _genomeFactory;
         this._generations = 0;
-        this.populationSize = 100;
-        this.maxPopulations = 20;
+        this.populationSize = 50;
+        this.maxPopulations = 10;
         this.testCount = 5;
         this._problemsEnumerable
             = Linq_1.Enumerable.from(this._problems = []);
@@ -54,6 +55,7 @@ var Environment = (function (_super) {
     });
     Environment.prototype._onExecute = function () {
         var populations = this._populations.linq.reverse(), problems = this._problemsEnumerable.memoize();
+        var sw = Stopwatch_1.default.startNew();
         var p = this.spawn(this.populationSize, Triangular.disperse.decreasing(Linq_1.Enumerable.weave(populations
             .selectMany(function (o) {
             var x = problems.select(function (r) { return r.rank(o); });
@@ -61,11 +63,15 @@ var Environment = (function (_super) {
                 return x;
             return Linq_1.Enumerable.make(x.first()).concat(x);
         }))));
+        console.log("Populations:", this._populations.count);
+        console.log("Selection/Ranking (ms):", sw.currentLapMilliseconds);
+        sw.lap();
         this.test();
         this._generations++;
         p.keepOnly(Linq_1.Enumerable.weave(problems.select(function (r) { return r.rank(p); }))
             .take(this.populationSize / 2));
         dispose_1.dispose(populations);
+        console.log("Testing/Cleanup (ms):", sw.currentLapMilliseconds);
     };
     Environment.prototype.spawn = function (populationSize, source) {
         var _ = this;
@@ -77,18 +83,16 @@ var Environment = (function (_super) {
         return p;
     };
     Environment.prototype.trimEarlyPopulations = function (maxPopulations) {
-        var _this = this;
-        var problems = this._problemsEnumerable.memoize();
-        this._populations.linq
+        var problems = this._problemsEnumerable.memoize(), pops = this._populations;
+        pops.linq
             .takeExceptLast(maxPopulations)
             .forEach(function (p) {
-            p.forEach(function (g) {
-                if (problems.select(function (r) { return r.getFitnessFor(g).score; }).max() < 0.5)
-                    p.remove(g);
-            }, true);
-            if (!p.count) {
-                _this._populations.remove(p);
-            }
+            problems.forEach(function (r) {
+                var keep = Linq_1.Enumerable.from(r.rank(p)).firstOrDefault();
+                if (keep)
+                    pops.last.value.add(keep);
+            });
+            pops.remove(p);
         });
     };
     return Environment;

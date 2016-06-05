@@ -8,7 +8,7 @@ import {supplant} from "typescript-dotnet/source/System/Text/Utility";
 declare const process:any;
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
-{ 
+{
 	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
@@ -32,10 +32,9 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 
 	protected _onExecute():void
 	{
-		try {
+		try
+		{
 			super._onExecute();
-
-			console.log("Generation:", this._generations);
 
 			var problems = Enumerable.from(this._problems).memoize();
 			var p = this._populations.linq
@@ -54,7 +53,8 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 									{
 										let red = g.root.asReduced(), suffix = "";
 										if(red!=g.root)
-											suffix = " => " + convertParameterToAlphabet(red.toString());
+											suffix
+												= " => " + convertParameterToAlphabet(red.toString());
 										let f = r.getFitnessFor(g);
 										return {
 											label: `(${f.count}) ${f.scores}: ${convertParameterToAlphabet(g.hash)}${suffix}`,
@@ -69,13 +69,15 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 
 			var c = problems.selectMany(p=>p.convergent).toArray();
 			console.log("Top:", top.select(s=>s.label).toArray(), "\n");
-			if(c.length) console.log("\nConvergent:", c.map(g=>convertParameterToAlphabet(g.hashReduced)));
+			if(c.length) console.log("\nConvergent:", c.map(
+				g=>convertParameterToAlphabet(g.hashReduced)));
 
 			// process.stdin.resume();
 			// process.stdout.write("Hit enter to continue.");
 			// process.stdin.once("data", ()=>
 			// {
-			if(problems.count(p=>p.convergent.length!=0)<this._problems.length) {
+			if(problems.count(p=>p.convergent.length!=0)<this._problems.length)
+			{
 				var n = this._populations.last.value;
 				n.importEntries(top
 					.select(g=>g.gene)
@@ -94,10 +96,10 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 			// });
 
 
-
 		}
-		catch(ex) {
-			console.error(ex,ex.stack);
+		catch(ex)
+		{
+			console.error(ex, ex.stack);
 		}
 	}
 

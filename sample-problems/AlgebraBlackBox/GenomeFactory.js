@@ -34,7 +34,7 @@ var AlgebraGenomeFactory = (function (_super) {
         return result;
     };
     AlgebraGenomeFactory.prototype.generate = function (source) {
-        var _ = this, p = _._previousGenomes;
+        var _ = this, p = _._previousGenomes, attempts = 0;
         var genome;
         var hash;
         if (source && source.length) {
@@ -43,6 +43,7 @@ var AlgebraGenomeFactory = (function (_super) {
                 do {
                     genome = _.mutate(Integer_1.default.random.select(source), m);
                     hash = genome.hash;
+                    attempts++;
                 } while (p.containsKey(hash) && --tries);
                 if (tries)
                     break;
@@ -58,13 +59,15 @@ var AlgebraGenomeFactory = (function (_super) {
                     {
                         genome = this.generateParamOnly(paramCount);
                         hash = genome.hash;
+                        attempts++;
                         if (!p.containsKey(hash))
                             break;
                     }
-                    paramCount += 2;
+                    paramCount += 1;
                     {
-                        genome = this.generateOperated(paramCount);
+                        genome = this.generateOperated(paramCount + 1);
                         hash = genome.hash;
+                        attempts++;
                         if (!p.containsKey(hash))
                             break;
                     }
@@ -72,6 +75,7 @@ var AlgebraGenomeFactory = (function (_super) {
                     do {
                         genome = _.mutate(p.getValueByIndex(Integer_1.default.random(p.count)), m);
                         hash = genome.hash;
+                        attempts++;
                     } while (p.containsKey(hash) && --t);
                     if (t)
                         break;
