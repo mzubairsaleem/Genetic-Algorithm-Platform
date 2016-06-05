@@ -9,7 +9,7 @@ declare const process:any;
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
-	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+	return Math.pow(a, 3) + Math.pow(b, 3);// Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
 const VARIABLE_NAMES = Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();

@@ -118,6 +118,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 
 	test(p:Population<AlgebraGenome>, count:number = 1):void
 	{
+		// TODO: Need to find a way to dynamically implement more than 2 params... (discover significant params)
 		let f = this._actualFormula;
 		for(let i = 0; i<count; i++)
 		{

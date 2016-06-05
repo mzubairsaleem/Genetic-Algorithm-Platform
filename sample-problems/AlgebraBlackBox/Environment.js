@@ -10,7 +10,7 @@ var Problem_1 = require("./Problem");
 var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
 var Utility_1 = require("typescript-dotnet/source/System/Text/Utility");
 function actualFormula(a, b) {
-    return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+    return Math.pow(a, 3) + Math.pow(b, 3);
 }
 var VARIABLE_NAMES = Linq_1.Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();
 function convertParameterToAlphabet(source) {
