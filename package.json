@@ -27,7 +27,7 @@
     "mocha": "^2.5.3",
     "prompt": "^1.0.0",
     "ts-node": "^0.7.3",
-    "typescript-dotnet": "^2.18.10"
+    "typescript-dotnet": "^2.20.1"
   },
   "engines": {
     "node": "~0.6"
