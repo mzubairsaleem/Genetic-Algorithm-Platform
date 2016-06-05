@@ -8,7 +8,7 @@ import {supplant} from "typescript-dotnet/source/System/Text/Utility";
 declare const process:any;
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
-{
+{ 
 	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 

@@ -512,7 +512,7 @@ class OperatorGene extends AlgebraGene
 				continue;
 
 
-			if(o.reduce())
+			if(o.reduce(reduceGroupings))
 				somethingDone = true;
 
 			if(o.count==0)

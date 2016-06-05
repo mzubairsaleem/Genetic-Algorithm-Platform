@@ -370,7 +370,7 @@ var OperatorGene = (function (_super) {
             var o = _f[_e];
             if (!values.contains(o))
                 continue;
-            if (o.reduce())
+            if (o.reduce(reduceGroupings))
                 somethingDone = true;
             if (o.count == 0) {
                 somethingDone = true;
