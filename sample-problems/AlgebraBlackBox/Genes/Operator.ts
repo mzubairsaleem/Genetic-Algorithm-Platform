@@ -4,20 +4,20 @@
  */
 
 
-import {List} from "typescript-dotnet/source/System/Collections/List";
-import Enumerable from "typescript-dotnet/source/System.Linq/Linq";
-import * as Procedure from "typescript-dotnet/source/System/Collections/Array/Procedure";
-import Integer from "typescript-dotnet/source/System/Integer";
-import Type from "typescript-dotnet/source/System/Types";
+import {List} from "typescript-dotnet-umd/System/Collections/List";
+import Enumerable from "typescript-dotnet-umd/System.Linq/Linq";
+import * as Procedure from "typescript-dotnet-umd/System/Collections/Array/Procedure";
+import Integer from "typescript-dotnet-umd/System/Integer";
+import Type from "typescript-dotnet-umd/System/Types";
 import AlgebraGene from "../Gene";
 import ConstantGene from "./ConstantGene";
 import ParameterGene from "./ParameterGene";
 import * as Operator from "../Operators";
-import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
-import {Predicate} from "typescript-dotnet/source/System/FunctionTypes";
-import {CompareResult} from "typescript-dotnet/source/System/CompareResult";
-import {ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
-import {startsWith,trim} from "typescript-dotnet/source/System/Text/Utility";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
+import {Predicate} from "typescript-dotnet-umd/System/FunctionTypes";
+import {CompareResult} from "typescript-dotnet-umd/System/CompareResult";
+import {ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
+import {startsWith,trim} from "typescript-dotnet-umd/System/Text/Utility";
 
 function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 {

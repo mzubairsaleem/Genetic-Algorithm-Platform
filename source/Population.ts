@@ -3,15 +3,15 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-import {Set} from "typescript-dotnet/source/System/Collections/Set";
-import {StringKeyDictionary} from "typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
-import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
-import {ArgumentNullException} from "typescript-dotnet/source/System/Exceptions/ArgumentNullException";
-import {forEach} from "typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
-import {IEnumerateEach} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerateEach";
-import {Predicate, Action} from "typescript-dotnet/source/System/FunctionTypes";
-import {IEnumerator} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerator";
-import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {Set} from "typescript-dotnet-umd/System/Collections/Set";
+import {StringKeyDictionary} from "typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary";
+import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {ArgumentNullException} from "typescript-dotnet-umd/System/Exceptions/ArgumentNullException";
+import {forEach} from "typescript-dotnet-umd/System/Collections/Enumeration/Enumerator";
+import {IEnumerateEach} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerateEach";
+import {Predicate, Action} from "typescript-dotnet-umd/System/FunctionTypes";
+import {IEnumerator} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerator";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 import {IGenome} from "./IGenome";
 import {IPopulation} from "./IPopulation";
 import {IGenomeFactory} from "./IGenomeFactory";

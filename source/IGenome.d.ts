@@ -4,10 +4,10 @@
  */
 
 
-import {ISerializable} from "typescript-dotnet/source/System/Serialization/ISerializable";
-import {IEquatable} from "typescript-dotnet/source/System/IEquatable";
+import {ISerializable} from "typescript-dotnet-umd/System/Serialization/ISerializable";
+import {IEquatable} from "typescript-dotnet-umd/System/IEquatable";
 import {IGene} from "./IGene";
-import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
+import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerable";
 
 export interface IGenome extends ISerializable, IEquatable<IGenome>
 {

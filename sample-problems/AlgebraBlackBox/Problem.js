@@ -3,13 +3,13 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 "use strict";
-var Set_1 = require("typescript-dotnet/source/System/Collections/Set");
-var StringKeyDictionary_1 = require("typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary");
-var ArrayUtility = require("typescript-dotnet/source/System/Collections/Array/Utility");
+var Set_1 = require("typescript-dotnet-umd/System/Collections/Set");
+var StringKeyDictionary_1 = require("typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary");
+var ArrayUtility = require("typescript-dotnet-umd/System/Collections/Array/Utility");
 var Correlation_1 = require("./arithmetic/Correlation");
 var Fitness_1 = require("../../source/Fitness");
-var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
-var Procedure_1 = require("typescript-dotnet/source/System/Collections/Array/Procedure");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+var Procedure_1 = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
 var AlgebraBlackBoxProblem = (function () {
     function AlgebraBlackBoxProblem(actualFormula) {
         this._fitness = {};

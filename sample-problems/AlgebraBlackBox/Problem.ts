@@ -4,19 +4,19 @@
  */
 
 
-import Set from "typescript-dotnet/source/System/Collections/Set";
-import StringKeyDictionary from "typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary";
-import * as ArrayUtility from "typescript-dotnet/source/System/Collections/Array/Utility";
+import Set from "typescript-dotnet-umd/System/Collections/Set";
+import StringKeyDictionary from "typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary";
+import * as ArrayUtility from "typescript-dotnet-umd/System/Collections/Array/Utility";
 import {correlation} from "./arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
 import Fitness from "../../source/Fitness";
-import Enumerable from "typescript-dotnet/source/System.Linq/Linq";
+import Enumerable from "typescript-dotnet-umd/System.Linq/Linq";
 import Population from "../../source/Population";
-import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
-import {IMap} from "typescript-dotnet/source/System/Collections/Dictionaries/IDictionary";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
+import {IMap} from "typescript-dotnet-umd/System/Collections/Dictionaries/IDictionary";
 import {IProblem} from "../../source/IProblem";
-import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet/source/System.Linq/Enumerable";
-import {average} from "typescript-dotnet/source/System/Collections/Array/Procedure";
+import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
+import {average} from "typescript-dotnet-umd/System/Collections/Array/Procedure";
 
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, Fitness>
 {

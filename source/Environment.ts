@@ -5,18 +5,18 @@
 
 
 import * as Triangular from "./Triangular";
-import {dispose} from "typescript-dotnet/source/System/Disposable/dispose";
-import {LinkedList} from "typescript-dotnet/source/System/Collections/LinkedList";
-import {TaskHandlerBase} from "typescript-dotnet/source/System/Threading/Tasks/TaskHandlerBase";
+import {dispose} from "typescript-dotnet-umd/System/Disposable/dispose";
+import {LinkedList} from "typescript-dotnet-umd/System/Collections/LinkedList";
+import {TaskHandlerBase} from "typescript-dotnet-umd/System/Threading/Tasks/TaskHandlerBase";
 import {Population} from "./Population";
-import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
-import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
-import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerable";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 import {IGenome} from "./IGenome";
 import {IEnvironment} from "./IEnvironment";
 import {IProblem} from "./IProblem";
 import {IGenomeFactory} from "./IGenomeFactory";
-import Stopwatch from "typescript-dotnet/source/System/Diagnostics/Stopwatch";
+import Stopwatch from "typescript-dotnet-umd/System/Diagnostics/Stopwatch";
 
 export class Environment<TGenome extends IGenome>
 extends TaskHandlerBase implements IEnvironment<TGenome>

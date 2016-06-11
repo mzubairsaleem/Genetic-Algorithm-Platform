@@ -4,11 +4,11 @@
  */
 
 
-import {Type} from "typescript-dotnet/source/System/Types";
-import {Integer} from "typescript-dotnet/source/System/Integer";
-import {Set} from "typescript-dotnet/source/System/Collections/Set";
-import {ArgumentOutOfRangeException} from "typescript-dotnet/source/System/Exceptions/ArgumentOutOfRangeException";
-import {IEnumerableOrArray} from "../node_modules/typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {Type} from "typescript-dotnet-umd/System/Types";
+import {Integer} from "typescript-dotnet-umd/System/Integer";
+import {Set} from "typescript-dotnet-umd/System/Collections/Set";
+import {ArgumentOutOfRangeException} from "typescript-dotnet-umd/System/Exceptions/ArgumentOutOfRangeException";
+import {IEnumerableOrArray} from "../node_modules/typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 
 export function nextRandomIntegerExcluding(
 	range:number,

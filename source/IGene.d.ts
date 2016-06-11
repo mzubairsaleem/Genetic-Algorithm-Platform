@@ -4,10 +4,10 @@
  */
 
 
-import {ISerializable} from "typescript-dotnet/source/System/Serialization/ISerializable";
-import {ICollection} from "typescript-dotnet/source/System/Collections/ICollection";
-import {ICloneable} from "typescript-dotnet/source/System/ICloneable";
-import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
+import {ISerializable} from "typescript-dotnet-umd/System/Serialization/ISerializable";
+import {ICollection} from "typescript-dotnet-umd/System/Collections/ICollection";
+import {ICloneable} from "typescript-dotnet-umd/System/ICloneable";
+import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerable";
 
 interface IGene extends ISerializable, ICollection<IGene>, ICloneable<IGene>
 {

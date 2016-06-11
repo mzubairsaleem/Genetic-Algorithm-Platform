@@ -5,8 +5,8 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var GenomeFactoryBase_1 = require("../../source/GenomeFactoryBase");
-var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
-var Integer_1 = require("typescript-dotnet/source/System/Integer");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+var Integer_1 = require("typescript-dotnet-umd/System/Integer");
 var Genome_1 = require("./Genome");
 var Operator_1 = require("./Genes/Operator");
 var ParameterGene_1 = require("./Genes/ParameterGene");

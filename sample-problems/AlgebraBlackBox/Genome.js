@@ -5,7 +5,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var Genome_1 = require("../../source/Genome");
-var InvalidOperationException_1 = require("typescript-dotnet/source/System/Exceptions/InvalidOperationException");
+var InvalidOperationException_1 = require("typescript-dotnet-umd/System/Exceptions/InvalidOperationException");
 var AlgebraGenome = (function (_super) {
     __extends(AlgebraGenome, _super);
     function AlgebraGenome(root) {

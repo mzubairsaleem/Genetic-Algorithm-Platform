@@ -8,15 +8,15 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
-var Procedure = require("typescript-dotnet/source/System/Collections/Array/Procedure");
-var Integer_1 = require("typescript-dotnet/source/System/Integer");
-var Types_1 = require("typescript-dotnet/source/System/Types");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+var Procedure = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
+var Integer_1 = require("typescript-dotnet-umd/System/Integer");
+var Types_1 = require("typescript-dotnet-umd/System/Types");
 var Gene_1 = require("../Gene");
 var ConstantGene_1 = require("./ConstantGene");
 var ParameterGene_1 = require("./ParameterGene");
 var Operator = require("../Operators");
-var Utility_1 = require("typescript-dotnet/source/System/Text/Utility");
+var Utility_1 = require("typescript-dotnet-umd/System/Text/Utility");
 function arrange(a, b) {
     if (a instanceof ConstantGene_1.default && !(b instanceof ConstantGene_1.default))
         return 1;

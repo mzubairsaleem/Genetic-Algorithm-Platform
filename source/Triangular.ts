@@ -4,8 +4,8 @@
  */
 
 
-import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
-import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 
 export function forward(n:number):number
 {

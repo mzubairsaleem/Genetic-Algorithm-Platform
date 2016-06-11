@@ -4,8 +4,8 @@
  */
 
 
-import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
-import {ICloneable} from "typescript-dotnet/source/System/ICloneable";
+import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {ICloneable} from "typescript-dotnet-umd/System/ICloneable";
 import {IGene} from "./IGene";
 import {IGenome} from "./IGenome";
 

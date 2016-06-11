@@ -1,5 +1,5 @@
-import * as Procedure from "typescript-dotnet/source/System/Collections/Array/Procedure";
-import {IComparable} from "typescript-dotnet/source/System/IComparable";
+import * as Procedure from "typescript-dotnet-umd/System/Collections/Array/Procedure";
+import {IComparable} from "typescript-dotnet-umd/System/IComparable";
 
 export default class Fitness implements IComparable<Fitness>
 {

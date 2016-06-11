@@ -9,12 +9,12 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var Triangular = require("./Triangular");
-var dispose_1 = require("typescript-dotnet/source/System/Disposable/dispose");
-var LinkedList_1 = require("typescript-dotnet/source/System/Collections/LinkedList");
-var TaskHandlerBase_1 = require("typescript-dotnet/source/System/Threading/Tasks/TaskHandlerBase");
+var dispose_1 = require("typescript-dotnet-umd/System/Disposable/dispose");
+var LinkedList_1 = require("typescript-dotnet-umd/System/Collections/LinkedList");
+var TaskHandlerBase_1 = require("typescript-dotnet-umd/System/Threading/Tasks/TaskHandlerBase");
 var Population_1 = require("./Population");
-var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
-var Stopwatch_1 = require("typescript-dotnet/source/System/Diagnostics/Stopwatch");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+var Stopwatch_1 = require("typescript-dotnet-umd/System/Diagnostics/Stopwatch");
 var Environment = (function (_super) {
     __extends(Environment, _super);
     function Environment(_genomeFactory) {

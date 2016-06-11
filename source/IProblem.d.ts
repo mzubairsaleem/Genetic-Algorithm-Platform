@@ -4,8 +4,8 @@
  */
 
 
-import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
-import {IEnumerable} from "typescript-dotnet/source/System/Collections/Enumeration/IEnumerable";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
+import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerable";
 import {IPopulation} from "./IPopulation";
 import {IGenome} from "./IGenome";
 

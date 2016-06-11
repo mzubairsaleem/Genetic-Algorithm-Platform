@@ -4,10 +4,10 @@
  */
 
 
-import {average} from "typescript-dotnet/source/System/Collections/Array/Procedure";
-import {from as enumeratorFrom} from "typescript-dotnet/source/System/Collections/Enumeration/Enumerator";
-import Exception from "typescript-dotnet/source/System/Exception";
-import {IEnumerableOrArray} from "typescript-dotnet/source/System/Collections/IEnumerableOrArray";
+import {average} from "typescript-dotnet-umd/System/Collections/Array/Procedure";
+import {from as enumeratorFrom} from "typescript-dotnet-umd/System/Collections/Enumeration/Enumerator";
+import Exception from "typescript-dotnet-umd/System/Exception";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 
 
 export function abs(source:number[]):number[]

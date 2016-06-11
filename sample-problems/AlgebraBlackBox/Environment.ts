@@ -2,8 +2,8 @@ import Environment from "../../source/Environment";
 import AlgebraGenome from "./Genome";
 import AlgebraGenomeFactory from "./GenomeFactory";
 import AlgebraBlackBoxProblem from "./Problem";
-import {Enumerable} from "typescript-dotnet/source/System.Linq/Linq";
-import {supplant} from "typescript-dotnet/source/System/Text/Utility";
+import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
 
 declare const process:any;
 

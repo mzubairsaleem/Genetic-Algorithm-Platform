@@ -3,9 +3,9 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 "use strict";
-var Procedure_1 = require("typescript-dotnet/source/System/Collections/Array/Procedure");
-var Enumerator_1 = require("typescript-dotnet/source/System/Collections/Enumeration/Enumerator");
-var Exception_1 = require("typescript-dotnet/source/System/Exception");
+var Procedure_1 = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
+var Enumerator_1 = require("typescript-dotnet-umd/System/Collections/Enumeration/Enumerator");
+var Exception_1 = require("typescript-dotnet-umd/System/Exception");
 function abs(source) {
     return source.map(function (v) { return isNaN(v) ? v : Math.abs(v); });
 }

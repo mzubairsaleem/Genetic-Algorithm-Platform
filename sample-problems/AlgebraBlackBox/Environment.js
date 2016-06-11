@@ -7,8 +7,8 @@ var __extends = (this && this.__extends) || function (d, b) {
 var Environment_1 = require("../../source/Environment");
 var GenomeFactory_1 = require("./GenomeFactory");
 var Problem_1 = require("./Problem");
-var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
-var Utility_1 = require("typescript-dotnet/source/System/Text/Utility");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+var Utility_1 = require("typescript-dotnet-umd/System/Text/Utility");
 function actualFormula(a, b) {
     return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }

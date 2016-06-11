@@ -1,5 +1,5 @@
 import Genome from "../../source/Genome";
-import InvalidOperationException from "typescript-dotnet/source/System/Exceptions/InvalidOperationException";
+import InvalidOperationException from "typescript-dotnet-umd/System/Exceptions/InvalidOperationException";
 import AlgebraGene from "./Gene";
 
 export default class AlgebraGenome extends Genome<AlgebraGene>

@@ -4,7 +4,7 @@
  */
 
 
-import {ICollection} from "typescript-dotnet/source/System/Collections/ICollection";
+import {ICollection} from "typescript-dotnet-umd/System/Collections/ICollection";
 import {IGenome} from "./IGenome";
 
 export interface IPopulation<TGenome extends IGenome>

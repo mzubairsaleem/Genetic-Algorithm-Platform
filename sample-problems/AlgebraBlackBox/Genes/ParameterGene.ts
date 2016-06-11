@@ -4,7 +4,7 @@
  */
 
 
-import Integer from "typescript-dotnet/source/System/Integer";
+import Integer from "typescript-dotnet-umd/System/Integer";
 import AlgebraGene from "../Gene";
 import UnreducibleGene from "./UnreducibleGene";
 

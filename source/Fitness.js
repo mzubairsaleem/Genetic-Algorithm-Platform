@@ -1,5 +1,5 @@
 "use strict";
-var Procedure = require("typescript-dotnet/source/System/Collections/Array/Procedure");
+var Procedure = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
 var Fitness = (function () {
     function Fitness() {
         this._scoreCard = [];

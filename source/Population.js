@@ -3,11 +3,11 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 "use strict";
-var Set_1 = require("typescript-dotnet/source/System/Collections/Set");
-var StringKeyDictionary_1 = require("typescript-dotnet/source/System/Collections/Dictionaries/StringKeyDictionary");
-var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
-var ArgumentNullException_1 = require("typescript-dotnet/source/System/Exceptions/ArgumentNullException");
-var Enumerator_1 = require("typescript-dotnet/source/System/Collections/Enumeration/Enumerator");
+var Set_1 = require("typescript-dotnet-umd/System/Collections/Set");
+var StringKeyDictionary_1 = require("typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+var ArgumentNullException_1 = require("typescript-dotnet-umd/System/Exceptions/ArgumentNullException");
+var Enumerator_1 = require("typescript-dotnet-umd/System/Collections/Enumeration/Enumerator");
 var Population = (function () {
     function Population(_genomeFactory) {
         this._genomeFactory = _genomeFactory;

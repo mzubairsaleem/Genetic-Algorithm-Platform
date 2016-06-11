@@ -4,7 +4,7 @@
  */
 
 
-import {OrderedStringKeyDictionary} from "typescript-dotnet/source/System/Collections/Dictionaries/OrderedStringKeyDictionary";
+import {OrderedStringKeyDictionary} from "typescript-dotnet-umd/System/Collections/Dictionaries/OrderedStringKeyDictionary";
 import {IGenome} from "./IGenome";
 import {IGenomeFactory} from "./IGenomeFactory";
 

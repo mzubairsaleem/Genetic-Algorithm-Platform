@@ -3,7 +3,7 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 "use strict";
-var Linq_1 = require("typescript-dotnet/source/System.Linq/Linq");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var Genome = (function () {
     function Genome(_root) {
         this._root = _root;

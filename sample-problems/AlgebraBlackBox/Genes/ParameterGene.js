@@ -8,7 +8,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var Integer_1 = require("typescript-dotnet/source/System/Integer");
+var Integer_1 = require("typescript-dotnet-umd/System/Integer");
 var UnreducibleGene_1 = require("./UnreducibleGene");
 var ParameterGene = (function (_super) {
     __extends(ParameterGene, _super);
