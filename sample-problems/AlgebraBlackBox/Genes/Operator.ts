@@ -384,19 +384,20 @@ class OperatorGene extends AlgebraGene
 
 				if(f instanceof ParameterGene)
 				{
+					let fP = <ParameterGene>f;
 					let multiplyOperator = values
 						.ofType(OperatorGene)
 						.where(g => g.operator==Operator.MULTIPLY
 						&& g.linq
 							.ofType(ParameterGene)
-							.any(g2 => g2.id==f.id))
+							.any(g2 => g2.id==fP.id))
 						.firstOrDefault();
 
 					if(multiplyOperator!=null)
 					{
 						let oneToKill = multiplyOperator.linq
 							.ofType(ParameterGene)
-							.where(p => p.id==f.id)
+							.where(p => p.id==fP.id)
 							.first();
 
 						_._replaceInternal(f, new ConstantGene(f.multiple));
@@ -412,7 +413,7 @@ class OperatorGene extends AlgebraGene
 							g.operator==Operator.DIVIDE &&
 							g.linq.take(1)
 								.ofType(ParameterGene)
-								.any(g2 => g2.id==f.id))
+								.any(g2 => g2.id==fP.id))
 							.firstOrDefault();
 
 						if(divOperator!=null)

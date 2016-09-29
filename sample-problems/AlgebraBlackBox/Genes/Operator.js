@@ -204,10 +204,10 @@ var OperatorGene = (function (_super) {
                 break;
             case Operator.DIVIDE:
                 {
-                    var f_1 = values.firstOrDefault();
-                    if (f_1 != null && f_1.multiple != 1) {
-                        _._multiple *= f_1.multiple;
-                        f_1.multiple = 1;
+                    var f = values.firstOrDefault();
+                    if (f != null && f.multiple != 1) {
+                        _._multiple *= f.multiple;
+                        f.multiple = 1;
                         somethingDone = true;
                         break;
                     }
@@ -251,14 +251,14 @@ var OperatorGene = (function (_super) {
                             somethingDone = true;
                         }
                     }
-                    if (f_1 instanceof OperatorGene) {
+                    if (f instanceof OperatorGene) {
                         var mSource = null;
-                        switch (f_1.operator) {
+                        switch (f.operator) {
                             case Operator.MULTIPLY:
-                                mSource = f_1.linq;
+                                mSource = f.linq;
                                 break;
                             case Operator.DIVIDE:
-                                mSource = f_1.linq.take(1);
+                                mSource = f.linq.take(1);
                                 break;
                             default:
                                 mSource = Linq_1.default.empty();
@@ -275,25 +275,26 @@ var OperatorGene = (function (_super) {
                             if (oneToKill_2 != null) {
                                 var mPToKill = mParams_2.where(function (p) { return p.id == oneToKill_2.id; }).first();
                                 _._replaceInternal(oneToKill_2, new ConstantGene_1.default(oneToKill_2.multiple));
-                                f_1.replace(mPToKill, new ConstantGene_1.default(mPToKill.multiple));
+                                f.replace(mPToKill, new ConstantGene_1.default(mPToKill.multiple));
                                 somethingDone = true;
                             }
                         }
                     }
-                    if (f_1 instanceof ParameterGene_1.default) {
+                    if (f instanceof ParameterGene_1.default) {
+                        var fP_1 = f;
                         var multiplyOperator = values
                             .ofType(OperatorGene)
                             .where(function (g) { return g.operator == Operator.MULTIPLY
                             && g.linq
                                 .ofType(ParameterGene_1.default)
-                                .any(function (g2) { return g2.id == f_1.id; }); })
+                                .any(function (g2) { return g2.id == fP_1.id; }); })
                             .firstOrDefault();
                         if (multiplyOperator != null) {
                             var oneToKill = multiplyOperator.linq
                                 .ofType(ParameterGene_1.default)
-                                .where(function (p) { return p.id == f_1.id; })
+                                .where(function (p) { return p.id == fP_1.id; })
                                 .first();
-                            _._replaceInternal(f_1, new ConstantGene_1.default(f_1.multiple));
+                            _._replaceInternal(f, new ConstantGene_1.default(f.multiple));
                             multiplyOperator.replace(oneToKill, new ConstantGene_1.default(oneToKill.multiple));
                             somethingDone = true;
                         }
@@ -304,12 +305,12 @@ var OperatorGene = (function (_super) {
                                 return g.operator == Operator.DIVIDE &&
                                     g.linq.take(1)
                                         .ofType(ParameterGene_1.default)
-                                        .any(function (g2) { return g2.id == f_1.id; });
+                                        .any(function (g2) { return g2.id == fP_1.id; });
                             })
                                 .firstOrDefault();
                             if (divOperator != null) {
                                 var oneToKill = divOperator.linq.first();
-                                _._replaceInternal(f_1, new ConstantGene_1.default(f_1.multiple));
+                                _._replaceInternal(f, new ConstantGene_1.default(f.multiple));
                                 divOperator.replace(oneToKill, new ConstantGene_1.default(oneToKill.multiple));
                                 somethingDone = true;
                             }

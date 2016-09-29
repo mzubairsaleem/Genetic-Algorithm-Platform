@@ -7,7 +7,6 @@ import ParameterGene from "./Genes/ParameterGene";
 import * as Operator from "./Operators";
 import ConstantGene from "./Genes/ConstantGene";
 import nextRandomIntegerExcluding from "../../source/nextRandomIntegerExcluding";
-import {convertParameterToAlphabet} from "./Environment";
 
 
 export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenome>
@@ -307,7 +306,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 				}
 				else if(gene instanceof OperatorGene)
 				{
-					let og = gene;
+					let og = <OperatorGene>gene;
 					if(Operator.Available.Functions.indexOf(og.operator)!= -1)
 					{
 						invalidOptions.push(3);
@@ -475,14 +474,14 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								{
 									parentOp.modifyChildren(v =>
 									{
-										var index = v.indexOf(gene);
+										var index = v.indexOf(og);
 										if(index!= -1)
 										{
 											for(let o of og.toArray().reverse())
 											{
 												v.insert(index, o);
 											}
-											v.remove(gene);
+											v.remove(og);
 											invalidOptions = null;
 											return true;
 										}

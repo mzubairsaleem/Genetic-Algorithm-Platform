@@ -305,13 +305,13 @@ var AlgebraGenomeFactory = (function (_super) {
                                 }
                                 else {
                                     parentOp.modifyChildren(function (v) {
-                                        var index = v.indexOf(gene);
+                                        var index = v.indexOf(og_1);
                                         if (index != -1) {
                                             for (var _i = 0, _a = og_1.toArray().reverse(); _i < _a.length; _i++) {
                                                 var o = _a[_i];
                                                 v.insert(index, o);
                                             }
-                                            v.remove(gene);
+                                            v.remove(og_1);
                                             invalidOptions = null;
                                             return true;
                                         }
