@@ -9,7 +9,10 @@ import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
 import {ArgumentNullException} from "typescript-dotnet-umd/System/Exceptions/ArgumentNullException";
 import {forEach} from "typescript-dotnet-umd/System/Collections/Enumeration/Enumerator";
 import {IEnumerateEach} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerateEach";
-import {Predicate, Action} from "typescript-dotnet-umd/System/FunctionTypes";
+import {
+	Predicate, Action, PredicateWithIndex,
+	ActionWithIndex
+} from "typescript-dotnet-umd/System/FunctionTypes";
 import {IEnumerator} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerator";
 import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 import {IGenome} from "./IGenome";
@@ -73,8 +76,12 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		return this.copyTo([]);
 	}
 
+	forEach(action:Action<TGenome>, useCopy?:boolean):number;
+	forEach(action:Predicate<TGenome>, useCopy?:boolean):number;
+	forEach(action:ActionWithIndex<TGenome>, useCopy?:boolean):number;
+	forEach(action:PredicateWithIndex<TGenome>, useCopy?:boolean):number;
 	forEach(
-		action:Predicate<TGenome>|Action<TGenome>,
+		action:ActionWithIndex<TGenome>|PredicateWithIndex<TGenome>,
 		useCopy?:boolean):number
 	{
 		return forEach(useCopy ? this.toArray() : this, action);

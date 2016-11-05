@@ -1,4 +1,7 @@
-///<reference path="import.d.ts"/>
+///<reference types="mocha"/>
+///<reference types="assert"/>
+///<reference types="node"/>
+const assert = require("assert");
 
 import * as Operators from "../sample-problems/AlgebraBlackBox/Operators";
 import OperatorGene from "../sample-problems/AlgebraBlackBox/Genes/Operator";
@@ -6,7 +9,6 @@ import ParameterGene from "../sample-problems/AlgebraBlackBox/Genes/ParameterGen
 import {convertParameterToAlphabet as formatGene} from "../sample-problems/AlgebraBlackBox/Environment";
 import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene";
 {
-	const assert = require('assert');
 
 	describe("reduction", ()=>
 	{
