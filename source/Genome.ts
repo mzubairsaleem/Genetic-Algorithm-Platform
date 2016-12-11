@@ -4,7 +4,7 @@
  */
 
 
-import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {Enumerable, LinqEnumerable} from "typescript-dotnet-umd/System.Linq/Linq";
 import {ICloneable} from "typescript-dotnet-umd/System/ICloneable";
 import {IGene} from "./IGene";
 import {IGenome} from "./IGenome";
@@ -13,7 +13,10 @@ export abstract class Genome<T extends IGene>
 implements IGenome, ICloneable<Genome<T>>
 {
 
-	constructor(private _root?:T) {}
+	constructor(private _root:T)
+	{
+		this._hash = null;
+	}
 
 	get root():T
 	{
@@ -22,23 +25,22 @@ implements IGenome, ICloneable<Genome<T>>
 
 	set root(value:T)
 	{
-		if(value!=this._root){
+		if(value!=this._root)
+		{
 			this.resetHash();
 			this._root = value;
 		}
 	}
 
-	findParent(child:IGene):IGene
+	findParent(child:IGene):IGene|null
 	{
-		var root = this.root;
-		return (root && child!=root)
-			? root.findParent(child)
-			: null;
+		return this.root.findParent(child);
 	}
 
-	get genes():Enumerable<IGene>
+	get genes():LinqEnumerable<IGene>
 	{
-		var root = this.root;
+		const root = this.root;
+
 		return Enumerable
 			.make<IGene>(root)
 			.concat(root.descendants);
@@ -46,13 +48,14 @@ implements IGenome, ICloneable<Genome<T>>
 
 	abstract serialize():string;
 
-	private _hash:string;
+	private _hash:string|null;
 	get hash():string
 	{
 		return this._hash || (this._hash = this.serialize());
 	}
 
-	resetHash():void {
+	resetHash():void
+	{
 		this._hash = null;
 		if(this._root)
 			this._root.resetToString();

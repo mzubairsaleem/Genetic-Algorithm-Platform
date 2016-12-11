@@ -1,7 +1,3 @@
-/*!
- * @author electricessence / https://github.com/electricessence/
- * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
- */
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -10,13 +6,13 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var Procedure = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
-var Integer_1 = require("typescript-dotnet-umd/System/Integer");
 var Types_1 = require("typescript-dotnet-umd/System/Types");
 var Gene_1 = require("../Gene");
 var ConstantGene_1 = require("./ConstantGene");
 var ParameterGene_1 = require("./ParameterGene");
 var Operator = require("../Operators");
 var Utility_1 = require("typescript-dotnet-umd/System/Text/Utility");
+var Random_1 = require("typescript-dotnet-umd/System/Random");
 function arrange(a, b) {
     if (a instanceof ConstantGene_1.default && !(b instanceof ConstantGene_1.default))
         return 1;
@@ -38,13 +34,13 @@ function parenGroup(contents) {
     return "(" + contents + ")";
 }
 function getRandomFrom(source, excluding) {
-    return Integer_1.default.random.select(excluding === void (0) ? source : source.filter(function (v) { return v !== excluding; }));
+    return Random_1.Random.select.one(excluding === void (0) ? source : source.filter(function (v) { return v !== excluding; }), true);
 }
 function getRandomFromExcluding(source, excluding) {
     var options;
     if (excluding) {
-        var ex = Linq_1.default.from(excluding).memoize();
-        options = source.filter(function (v) { return !ex.contains(v); });
+        var ex_1 = Linq_1.default(excluding).memoize();
+        options = source.filter(function (v) { return !ex_1.contains(v); });
     }
     else {
         options = source;
@@ -63,8 +59,9 @@ var OperatorGene = (function (_super) {
     __extends(OperatorGene, _super);
     function OperatorGene(_operator, multiple) {
         if (multiple === void 0) { multiple = 1; }
-        _super.call(this, multiple);
-        this._operator = _operator;
+        var _this = _super.call(this, multiple) || this;
+        _this._operator = _operator;
+        return _this;
     }
     Object.defineProperty(OperatorGene.prototype, "operator", {
         get: function () {
@@ -109,7 +106,8 @@ var OperatorGene = (function (_super) {
     };
     OperatorGene.prototype._reduceLoop = function (reduceGroupings) {
         if (reduceGroupings === void 0) { reduceGroupings = false; }
-        var _ = this, values = _.linq, somethingDone = false;
+        var _ = this, values = _.linq;
+        var somethingDone = false;
         Linq_1.default
             .from(_._source.slice())
             .groupBy(function (g) { return g.toStringContents(); })
@@ -252,7 +250,7 @@ var OperatorGene = (function (_super) {
                         }
                     }
                     if (f instanceof OperatorGene) {
-                        var mSource = null;
+                        var mSource = void 0;
                         switch (f.operator) {
                             case Operator.MULTIPLY:
                                 mSource = f.linq;
@@ -319,10 +317,9 @@ var OperatorGene = (function (_super) {
                 }
                 {
                     var divisors = values.skip(1), g = void 0;
-                    while (g
-                        = divisors.ofType(ConstantGene_1.default)
-                            .where(function (p) { return _._multiple % p.multiple == 0; })
-                            .firstOrDefault()) {
+                    while (g = divisors.ofType(ConstantGene_1.default)
+                        .where(function (p) { return _._multiple % p.multiple == 0; })
+                        .firstOrDefault()) {
                         _._multiple /= g.multiple;
                         _._removeInternal(g);
                         somethingDone = true;
@@ -518,7 +515,7 @@ var OperatorGene = (function (_super) {
         return r;
     };
     OperatorGene.prototype.resetToString = function () {
-        this._reduced = null;
+        this._reduced = void 0;
         _super.prototype.resetToString.call(this);
     };
     OperatorGene.prototype.toStringContents = function () {

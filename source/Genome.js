@@ -7,6 +7,7 @@ var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var Genome = (function () {
     function Genome(_root) {
         this._root = _root;
+        this._hash = null;
     }
     Object.defineProperty(Genome.prototype, "root", {
         get: function () {
@@ -22,10 +23,7 @@ var Genome = (function () {
         configurable: true
     });
     Genome.prototype.findParent = function (child) {
-        var root = this.root;
-        return (root && child != root)
-            ? root.findParent(child)
-            : null;
+        return this.root.findParent(child);
     };
     Object.defineProperty(Genome.prototype, "genes", {
         get: function () {

@@ -14,9 +14,10 @@ var ParameterGene = (function (_super) {
     __extends(ParameterGene, _super);
     function ParameterGene(_id, multiple) {
         if (multiple === void 0) { multiple = 1; }
-        _super.call(this, multiple);
-        this._id = _id;
+        var _this = _super.call(this, multiple) || this;
+        _this._id = _id;
         Integer_1.default.assert(_id, 'id');
+        return _this;
     }
     Object.defineProperty(ParameterGene.prototype, "id", {
         get: function () {

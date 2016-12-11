@@ -18,20 +18,21 @@ var Stopwatch_1 = require("typescript-dotnet-umd/System/Diagnostics/Stopwatch");
 var Environment = (function (_super) {
     __extends(Environment, _super);
     function Environment(_genomeFactory) {
-        _super.call(this);
-        this._genomeFactory = _genomeFactory;
-        this._generations = 0;
-        this.populationSize = 50;
-        this.maxPopulations = 10;
-        this.testCount = 5;
-        this._problemsEnumerable
-            = Linq_1.Enumerable.from(this._problems = []);
-        this._populations = new LinkedList_1.LinkedList();
+        var _this = _super.call(this) || this;
+        _this._genomeFactory = _genomeFactory;
+        _this._generations = 0;
+        _this.populationSize = 50;
+        _this.maxPopulations = 10;
+        _this.testCount = 5;
+        _this._problemsEnumerable
+            = Linq_1.Enumerable(_this._problems = []);
+        _this._populations = new LinkedList_1.LinkedList();
+        return _this;
     }
     Environment.prototype.test = function (count) {
         if (count === void 0) { count = this.testCount; }
         var p = this._populations;
-        var _loop_1 = function(pr) {
+        var _loop_1 = function (pr) {
             p.forEach(function (po) { return pr.test(po, count); });
         };
         for (var _i = 0, _a = this._problems; _i < _a.length; _i++) {
@@ -56,13 +57,19 @@ var Environment = (function (_super) {
     Environment.prototype._onExecute = function () {
         var populations = this._populations.linq.reverse(), problems = this._problemsEnumerable.memoize();
         var sw = Stopwatch_1.default.startNew();
-        var p = this.spawn(this.populationSize, Triangular.disperse.decreasing(Linq_1.Enumerable.weave(populations
+        var any = false;
+        var previousP = populations
             .selectMany(function (o) {
+            any = true;
             var x = problems.select(function (r) { return r.rank(o); });
             if (!x.any())
                 return x;
             return Linq_1.Enumerable.make(x.first()).concat(x);
-        }))));
+        });
+        var p = this.spawn(this.populationSize, any ?
+            Triangular.disperse.decreasing(Linq_1.Enumerable.weave(previousP)) : void 0);
+        if (!p.count)
+            throw "Nothing spawned!!!";
         console.log("Populations:", this._populations.count);
         console.log("Selection/Ranking (ms):", sw.currentLapMilliseconds);
         sw.lap();
@@ -76,7 +83,7 @@ var Environment = (function (_super) {
     Environment.prototype.spawn = function (populationSize, source) {
         var _ = this;
         var p = new Population_1.Population(_._genomeFactory);
-        p.populate(populationSize, Linq_1.Enumerable.from(source).toArray());
+        p.populate(populationSize, source && Linq_1.Enumerable(source).toArray());
         _._populations.add(p);
         _._genomeFactory.trimPreviousGenomes();
         _.trimEarlyPopulations(_.maxPopulations);
@@ -88,7 +95,7 @@ var Environment = (function (_super) {
             .takeExceptLast(maxPopulations)
             .forEach(function (p) {
             problems.forEach(function (r) {
-                var keep = Linq_1.Enumerable.from(r.rank(p)).firstOrDefault();
+                var keep = Linq_1.Enumerable(r.rank(p)).firstOrDefault();
                 if (keep)
                     pops.last.value.add(keep);
             });

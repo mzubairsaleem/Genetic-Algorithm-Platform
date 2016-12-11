@@ -25,7 +25,8 @@ var AlgebraBlackBoxProblem = (function () {
     });
     AlgebraBlackBoxProblem.prototype.getFitnessFor = function (genome, createIfMissing) {
         if (createIfMissing === void 0) { createIfMissing = true; }
-        var h = genome.hashReduced, f = this._fitness, s = f[h];
+        var h = genome.hashReduced, f = this._fitness;
+        var s = f[h];
         if (!s && createIfMissing)
             f[h] = s = new Fitness_1.default();
         return s;
@@ -76,7 +77,7 @@ var AlgebraBlackBoxProblem = (function () {
         var _this = this;
         if (count === void 0) { count = 1; }
         var f = this._actualFormula;
-        var _loop_1 = function(i) {
+        var _loop_1 = function (i) {
             var aSample = this_1.sample();
             var bSample = this_1.sample();
             var correct = [];

@@ -10,26 +10,29 @@ import Exception from "typescript-dotnet-umd/System/Exception";
 import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 
 
+//noinspection JSUnusedGlobalSymbols
 export function abs(source:number[]):number[]
 {
 	return source.map(v=>isNaN(v) ? v : Math.abs(v));
 }
 
+//noinspection JSUnusedGlobalSymbols
 export function deltas(source:number[]):number[]
 {
 
-	var previous:number = NaN;
+	let previous:number = NaN;
 	return source.map(v=>
 	{
 		if(!isNaN(v))
 		{
-			var p = previous;
+			const p = previous;
 			previous = v;
 			if(!isNaN(p))
 			{
 				return v - p;
 			}
 		}
+		return NaN;
 	});
 
 }
@@ -45,14 +48,14 @@ export function products(
 {
 
 
-	var sourceEnumerator = enumeratorFrom(source);
-	var targetEnumerator = enumeratorFrom(target);
-	var result:number[] = [];
+	const sourceEnumerator = enumeratorFrom(source);
+	const targetEnumerator = enumeratorFrom(target);
+	const result:number[] = [];
 
 	while(true)
 	{
-		var sv:boolean = sourceEnumerator.moveNext();
-		var tv:boolean = targetEnumerator.moveNext();
+		let sv:boolean = sourceEnumerator.moveNext();
+		let tv:boolean = targetEnumerator.moveNext();
 
 		if(sv!=tv)
 			throw new Exception("Products: source and target enumerations have different counts.");

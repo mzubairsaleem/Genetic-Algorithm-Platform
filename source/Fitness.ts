@@ -18,7 +18,7 @@ export default class Fitness implements IComparable<Fitness>
 		return this._count;
 	}
 
-	private _scores:number[];
+	private _scores:Array<number|null>;
 
 	get scores():number[] {
 		return this._scores.map((v,i)=>this.getScore(i));
@@ -40,7 +40,7 @@ export default class Fitness implements IComparable<Fitness>
 
 	getScore(index:number):number
 	{
-		var s = this._scores[index];
+		let s = this._scores[index];
 		if(!s && s!==0) this._scores[index] = s = Procedure.average(this._scoreCard[index]);
 		return s;
 	}
@@ -63,9 +63,9 @@ export default class Fitness implements IComparable<Fitness>
 		{
 
 			let a = this._scores[i], b = other.getScore(i);
-			if(a<b || isNaN(a) && !isNaN(b)) return -1;
+			if(a<b || isNaN(<any>a) && !isNaN(b)) return -1;
 
-			if(a>b || !isNaN(a) && isNaN(b)) return +1;
+			if(a>b || !isNaN(<any>a) && isNaN(b)) return +1;
 
 		}
 

@@ -5,14 +5,13 @@ import AlgebraBlackBoxProblem from "./Problem";
 import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
 import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
 
-declare const process:any;
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
 	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
-const VARIABLE_NAMES = Enumerable.from("abcdefghijklmnopqrstuvwxyz").toArray();
+const VARIABLE_NAMES = Object.freeze(Enumerable("abcdefghijklmnopqrstuvwxyz").toArray());
 
 export function convertParameterToAlphabet(source:string):string
 {
@@ -36,20 +35,20 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 		{
 			super._onExecute();
 
-			var problems = Enumerable.from(this._problems).memoize();
-			var p = this._populations.linq
-				.selectMany(s=>s)
-				.orderBy(g=>g.hash.length)
-				.groupBy(g=>g.hashReduced)
-				.select(g=>g.first());
+			const problems = Enumerable(this._problems).memoize();
+			const p = this._populations.linq
+				.selectMany(s => s)
+				.orderBy(g => g.hash.length)
+				.groupBy(g => g.hashReduced)
+				.select(g => g.first());
 
-			var top = Enumerable
+			const top = Enumerable
 				.weave<{label:string,gene:AlgebraGenome}>(
 					problems
-						.select(r=>
-							Enumerable.from(r.rank(p))
+						.select(r =>
+							Enumerable(r.rank(p))
 								.select(
-									g=>
+									g =>
 									{
 										let red = g.root.asReduced(), suffix = "";
 										if(red!=g.root)
@@ -67,18 +66,15 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 				.take(this._problems.length)
 				.memoize();
 
-			var c = problems.selectMany(p=>p.convergent).toArray();
+			const c = problems.selectMany(p => p.convergent).toArray();
 			console.log("Top:", top.select(s=>s.label).toArray(), "\n");
 			if(c.length) console.log("\nConvergent:", c.map(
 				g=>convertParameterToAlphabet(g.hashReduced)));
 
-			// process.stdin.resume();
-			// process.stdout.write("Hit enter to continue.");
-			// process.stdin.once("data", ()=>
-			// {
+
 			if(problems.count(p=>p.convergent.length!=0)<this._problems.length)
 			{
-				var n = this._populations.last.value;
+				const n = this._populations.last!.value;
 				n.importEntries(top
 					.select(g=>g.gene)
 					.where(g=>g.root.isReducible() && g.root.asReduced()!=g.root)
@@ -93,7 +89,6 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 
 				this.start();
 			}
-			// });
 
 
 		}

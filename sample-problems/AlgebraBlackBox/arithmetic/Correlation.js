@@ -20,6 +20,7 @@ function deltas(source) {
                 return v - p;
             }
         }
+        return NaN;
     });
 }
 exports.deltas = deltas;

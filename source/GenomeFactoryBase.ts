@@ -23,7 +23,7 @@ implements IGenomeFactory<TGenome>
 		return this._previousGenomes.keys;
 	}
 
-	getPrevious(hash:string):TGenome
+	getPrevious(hash:string):TGenome|undefined
 	{
 		return this._previousGenomes.getValue(hash);
 	}
@@ -37,7 +37,7 @@ implements IGenomeFactory<TGenome>
 	}
 
 
-	abstract generate(source?:TGenome[]):TGenome;
+	abstract generate(source?:TGenome[]):TGenome|null;
 
 	abstract mutate(source:TGenome, mutations?:number):TGenome;
 }

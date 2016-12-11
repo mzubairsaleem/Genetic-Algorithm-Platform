@@ -11,7 +11,7 @@ import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/
 
 export interface IGenome extends ISerializable, IEquatable<IGenome>
 {
-	root:IGene;
+	root:IGene|undefined;
 	hash:string;
 	genes:IEnumerable<IGene>
 }

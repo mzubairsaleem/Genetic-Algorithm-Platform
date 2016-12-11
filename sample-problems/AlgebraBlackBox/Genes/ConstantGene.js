@@ -13,7 +13,7 @@ var EMPTY = "";
 var ConstantGene = (function (_super) {
     __extends(ConstantGene, _super);
     function ConstantGene() {
-        _super.apply(this, arguments);
+        return _super.apply(this, arguments) || this;
     }
     ConstantGene.prototype.toStringInternal = function () {
         return this._multiple + EMPTY;

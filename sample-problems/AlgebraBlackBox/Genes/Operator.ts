@@ -2,12 +2,9 @@
  * @author electricessence / https://github.com/electricessence/
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
-
-
 import {List} from "typescript-dotnet-umd/System/Collections/List";
 import Enumerable from "typescript-dotnet-umd/System.Linq/Linq";
 import * as Procedure from "typescript-dotnet-umd/System/Collections/Array/Procedure";
-import Integer from "typescript-dotnet-umd/System/Integer";
 import Type from "typescript-dotnet-umd/System/Types";
 import AlgebraGene from "../Gene";
 import ConstantGene from "./ConstantGene";
@@ -17,7 +14,8 @@ import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnum
 import {Predicate} from "typescript-dotnet-umd/System/FunctionTypes";
 import {CompareResult} from "typescript-dotnet-umd/System/CompareResult";
 import {ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
-import {startsWith,trim} from "typescript-dotnet-umd/System/Text/Utility";
+import {startsWith, trim} from "typescript-dotnet-umd/System/Text/Utility";
+import {Random} from "typescript-dotnet-umd/System/Random";
 
 function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 {
@@ -50,17 +48,17 @@ function parenGroup(contents:string):string
 	return "(" + contents + ")";
 }
 
-function getRandomFrom<T>(source:T[], excluding?:T):T
+function getRandomFrom<T>(source:ReadonlyArray<T>, excluding?:T):T
 {
-	return Integer.random.select(excluding=== void(0) ? source : source.filter(v=>v!==excluding));
+	return Random.select.one(excluding === void(0) ? source : source.filter(v=>v!==excluding), true);
 }
 
-function getRandomFromExcluding<T>(source:T[], excluding:IEnumerableOrArray<T>):T
+function getRandomFromExcluding<T>(source:ReadonlyArray<T>, excluding:IEnumerableOrArray<T>):T
 {
-	var options:T[];
+	let options:ReadonlyArray<T>;
 	if(excluding)
 	{
-		var ex = Enumerable.from(excluding).memoize();
+		const ex = Enumerable(excluding).memoize();
 		options = source.filter(v=>!ex.contains(v));
 	}
 	else
@@ -72,7 +70,7 @@ function getRandomFromExcluding<T>(source:T[], excluding:IEnumerableOrArray<T>):
 }
 
 function getRandomOperator(
-	source:OperatorSymbol[],
+	source:ReadonlyArray<OperatorSymbol>,
 	excluded?:OperatorSymbol|IEnumerableOrArray<OperatorSymbol>):OperatorSymbol
 {
 	if(!excluded)
@@ -122,7 +120,7 @@ class OperatorGene extends AlgebraGene
 
 	get arranged():AlgebraGene[]
 	{
-		var s = this._source, children = s.slice();
+		const s = this._source, children = s.slice();
 		if(s.length>1 && this._operator!=Operator.DIVIDE)
 		{
 			children.sort(arrange);
@@ -132,7 +130,7 @@ class OperatorGene extends AlgebraGene
 
 	reduce(reduceGroupings:boolean = false):boolean|AlgebraGene
 	{
-		var somethingDone = false;
+		let somethingDone = false;
 		while(this._reduceLoop(reduceGroupings))
 		{ somethingDone = true; }
 		if(somethingDone) this._onModified();
@@ -141,7 +139,8 @@ class OperatorGene extends AlgebraGene
 
 	protected _reduceLoop(reduceGroupings:boolean = false):boolean
 	{
-		var _ = this, values:ILinqEnumerable<AlgebraGene> = _.linq, somethingDone = false;
+		const _ = this, values:ILinqEnumerable<AlgebraGene> = _.linq;
+		let somethingDone = false;
 
 		Enumerable
 			.from<AlgebraGene>(_._source.slice()) // use a copy...
@@ -344,7 +343,7 @@ class OperatorGene extends AlgebraGene
 
 				if(f instanceof OperatorGene)
 				{
-					let mSource:ILinqEnumerable<AlgebraGene> = null;
+					let mSource:ILinqEnumerable<AlgebraGene>;
 
 					switch(f.operator)
 					{
@@ -372,7 +371,7 @@ class OperatorGene extends AlgebraGene
 
 						if(oneToKill!=null)
 						{
-							let mPToKill = mParams.where(p => p.id==oneToKill.id).first();
+							let mPToKill = mParams.where(p => p.id==oneToKill!.id).first();
 							_._replaceInternal(oneToKill, new ConstantGene(oneToKill.multiple));
 							f.replace(mPToKill, new ConstantGene(mPToKill.multiple));
 
@@ -434,11 +433,10 @@ class OperatorGene extends AlgebraGene
 
 				// Clear out divisors that divide cleanly with the the current multiple.
 			{
-				let divisors = values.skip(1), g:AlgebraGene;
+				let divisors = values.skip(1), g:AlgebraGene|undefined;
 
 				// Start with any constant gene children.
-				while(g
-					= divisors.ofType(ConstantGene)
+				while(g = divisors.ofType(ConstantGene)
 					.where(p => _._multiple%p.multiple==0)
 					.firstOrDefault())
 				{
@@ -468,7 +466,7 @@ class OperatorGene extends AlgebraGene
 				{
 
 					let f = values.first();
-					let fo:OperatorGene = f instanceof OperatorGene ? f : null;
+					let fo:OperatorGene|null = f instanceof OperatorGene ? f : null;
 					if(!fo || fo.operator!=Operator.MULTIPLY)
 					{
 						fo = new OperatorGene(Operator.MULTIPLY);
@@ -494,7 +492,7 @@ class OperatorGene extends AlgebraGene
 
 		/* */
 
-		var multiple = _._multiple;
+		const multiple = _._multiple;
 		if(multiple==0 || !isFinite(multiple) || isNaN(multiple))
 		{
 			if(values.any())
@@ -575,7 +573,7 @@ class OperatorGene extends AlgebraGene
 
 			if(o.count==1)
 			{
-				var opg = o.linq.firstOrDefault();
+				const opg = o.linq.firstOrDefault();
 
 				if(opg instanceof ParameterGene || opg instanceof ConstantGene)
 				{
@@ -651,7 +649,7 @@ class OperatorGene extends AlgebraGene
 
 		// Pull out multiple to allow for reduction.
 		if(_.count==1) {
-			var p = values.first();
+			const p = values.first();
 			if(_._operator==Operator.SQUARE_ROOT){
 
 				// if(p instanceof OperatorGene) {
@@ -731,14 +729,14 @@ class OperatorGene extends AlgebraGene
 		return somethingDone;
 	}
 
-	private _reduced:OperatorGene;
+	private _reduced:OperatorGene|undefined;
 
 	asReduced():OperatorGene
 	{
-		var r = this._reduced;
+		let r = this._reduced;
 		if(!r)
 		{
-			var gene = this.clone();
+			const gene = this.clone();
 			gene.reduce(true);
 			this._reduced = r = gene.toString()===this.toString() ? this : gene;
 		}
@@ -748,13 +746,13 @@ class OperatorGene extends AlgebraGene
 
 	resetToString():void
 	{
-		this._reduced = null;
+		this._reduced = void 0;
 		super.resetToString();
 	}
 
 	toStringContents():string
 	{
-		var _ = this;
+		const _ = this;
 		if(Operator.Available.Functions.indexOf(_._operator)!= -1)
 		{
 			if(_._source.length==1)
@@ -769,7 +767,7 @@ class OperatorGene extends AlgebraGene
 			// Cleanup "+-"...
 			return parenGroup(trim(_.arranged.map(s=>
 			{
-				var r = s.toString();
+				let r = s.toString();
 				if(!startsWith(r, '-'))
 					r = "+" + r;
 				return r;
@@ -782,7 +780,7 @@ class OperatorGene extends AlgebraGene
 
 	clone():OperatorGene
 	{
-		var clone = new OperatorGene(this._operator, this._multiple);
+		const clone = new OperatorGene(this._operator, this._multiple);
 		this.forEach(g=>
 		{
 			clone._addInternal(g.clone());
@@ -807,7 +805,7 @@ class OperatorGene extends AlgebraGene
 
 	protected calculateWithoutMultiple(values:number[]):number
 	{
-		var results = this._source.map(s => s.calculate(values));
+		const results = this._source.map(s => s.calculate(values));
 		switch(this._operator)
 		{
 

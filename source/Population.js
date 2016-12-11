@@ -66,7 +66,8 @@ var Population = (function () {
                 this.add(n);
         }
         else {
-            var ts, p = this._population;
+            var ts = void 0;
+            var p = this._population;
             if (potential && !p.containsKey(ts = potential.hash)) {
                 p.addByKeyValue(ts, potential);
             }

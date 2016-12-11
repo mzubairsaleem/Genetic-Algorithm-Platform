@@ -42,7 +42,7 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 
 	remove(item:TGenome):number
 	{
-		var p = this._population;
+		const p = this._population;
 		return item && p.removeByKey(item.hash) ? 1 : 0;
 	}
 
@@ -53,7 +53,7 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 
 	contains(item:TGenome):boolean
 	{
-		var p = this._population;
+		const p = this._population;
 		return !!item && p.containsKey(item.hash);
 	}
 
@@ -63,10 +63,10 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 
 		// This is a generic implementation that will work for all derived classes.
 		// It can be overridden and optimized.
-		var e = this._population.getEnumerator();
+		const e = this._population.getEnumerator();
 		while(e.moveNext()) // Disposes when finished.
 		{
-			array[index++] = e.current.value;
+			array[index++] = e.current!.value;
 		}
 		return array;
 	}
@@ -100,12 +100,13 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		if(!potential)
 		{
 			// Be sure to add randomness in...
-			var n = this._genomeFactory.generate();
+			const n = this._genomeFactory.generate();
 			if(n) this.add(n);
 		}
 		else
 		{
-			var ts:string, p = this._population;
+			let ts:string;
+			const p = this._population;
 			if(potential && !p.containsKey(ts = potential.hash))
 			{
 				p.addByKeyValue(ts, potential);
@@ -115,7 +116,7 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 
 	importEntries(genomes:IEnumerableOrArray<TGenome>):number
 	{
-		var imported = 0;
+		let imported = 0;
 		forEach(genomes, o=>
 		{
 			this.add(o);
@@ -131,7 +132,7 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		// Then add mutations from best in source.
 		for(let i = 0; i<count; i++)
 		{
-			var n = f.generate(rankedGenomes);
+			const n = f.generate(rankedGenomes);
 			if(n) this.add(n);
 		}
 	}
@@ -139,15 +140,15 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 	// Provide a mechanism for culling the herd without requiring IProblem to be imported.
 	keepOnly(selected:IEnumerableOrArray<TGenome>):void
 	{
-		var hashed = new Set(
+		const hashed = new Set(
 			Enumerable
 				.from(selected)
-				.select(o=>o.hash));
+				.select(o => o.hash));
 
-		var p = this._population;
+		const p = this._population;
 		p.forEach(o=>
 		{
-			var key = o.key;
+			const key = o.key;
 			if(!hashed.contains(key))
 				p.removeByKey(key);
 			

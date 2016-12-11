@@ -27,6 +27,7 @@ export default class ConstantGene extends UnreducibleGene
 		return new ConstantGene(this._multiple);
 	}
 
+	//noinspection JSUnusedLocalSymbols
 	calculateWithoutMultiple(values:number[]):number
 	{
 		return 1;

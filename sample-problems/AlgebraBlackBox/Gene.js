@@ -10,8 +10,9 @@ var AlgebraGene = (function (_super) {
     __extends(AlgebraGene, _super);
     function AlgebraGene(_multiple) {
         if (_multiple === void 0) { _multiple = 1; }
-        _super.call(this);
-        this._multiple = _multiple;
+        var _this = _super.call(this) || this;
+        _this._multiple = _multiple;
+        return _this;
     }
     AlgebraGene.prototype.serialize = function () {
         return this.toString();

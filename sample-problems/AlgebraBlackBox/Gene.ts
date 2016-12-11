@@ -31,7 +31,7 @@ extends GeneBase<AlgebraGene> {
 
 	protected get multiplePrefix():string
 	{
-		var m = this._multiple;
+		const m = this._multiple;
 		if (m != 1)
 			return m == -1 ? "-" : (m+EMPTY);
 

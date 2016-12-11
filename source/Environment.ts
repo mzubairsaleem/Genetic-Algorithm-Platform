@@ -9,7 +9,7 @@ import {dispose} from "typescript-dotnet-umd/System/Disposable/dispose";
 import {LinkedList} from "typescript-dotnet-umd/System/Collections/LinkedList";
 import {TaskHandlerBase} from "typescript-dotnet-umd/System/Threading/Tasks/TaskHandlerBase";
 import {Population} from "./Population";
-import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {Enumerable, LinqEnumerable} from "typescript-dotnet-umd/System.Linq/Linq";
 import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerable";
 import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 import {IGenome} from "./IGenome";
@@ -25,7 +25,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	protected _generations:number = 0;
 	protected _populations:LinkedList<Population<TGenome>>;
 	protected _problems:IProblem<TGenome,any>[];
-	protected _problemsEnumerable:Enumerable<IProblem<TGenome,any>>;
+	protected _problemsEnumerable:LinqEnumerable<IProblem<TGenome,any>>;
 
 	populationSize:number = 50;
 	maxPopulations:number = 10;
@@ -36,7 +36,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	{
 		super();
 		this._problemsEnumerable
-			= Enumerable.from(this._problems = []);
+			= Enumerable(this._problems = []);
 		this._populations = new LinkedList<Population<TGenome>>();
 	}
 
@@ -49,11 +49,13 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		}
 	}
 
+	//noinspection JSUnusedGlobalSymbols
 	get generations():number
 	{
 		return this._generations;
 	}
 
+	//noinspection JSUnusedGlobalSymbols
 	get populations():number
 	{
 		return this._populations.count;
@@ -61,25 +63,33 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	protected _onExecute():void
 	{
-		var populations = this._populations.linq.reverse(),
-		    problems    = this._problemsEnumerable.memoize();
+		const populations = this._populations.linq.reverse(),
+		      problems    = this._problemsEnumerable.memoize();
 
 		// Get ranked population for each problem and merge it into a weaved enumeration.
-		var sw = Stopwatch.startNew();
-		var p = this.spawn(
-			this.populationSize,
+		const sw = Stopwatch.startNew();
+		let any = false;
+		const previousP = populations
+			.selectMany<IEnumerable<TGenome>>(
+				o =>
+				{
+					any = true;
+					let x = problems.select(r => r.rank(o));
+					if(!x.any()) return x;
+					return Enumerable.make(x.first()).concat(x); // Take the first one an bias it as the winner.
+				}
+			);
+
+		const p = this.spawn(
+			this.populationSize, any ?
 			Triangular.disperse.decreasing<TGenome>(
-				Enumerable.weave<TGenome>(populations
-					.selectMany<IEnumerable<TGenome>>(
-						o => {
-							let x = problems.select(r=>r.rank(o));
-							if(!x.any()) return x;
-							return Enumerable.make(x.first()).concat(x); // Take the first one an bias it as the winner.
-						}
-					)
-				)
-			)
+				Enumerable.weave<TGenome>(previousP)
+			) : void 0
 		);
+
+		if(!p.count)
+			throw "Nothing spawned!!!";
+
 		console.log("Populations:",this._populations.count);
 		console.log("Selection/Ranking (ms):",sw.currentLapMilliseconds);
 		sw.lap();
@@ -103,10 +113,10 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	 */
 	spawn(populationSize:number, source?:IEnumerableOrArray<TGenome>):Population<TGenome>
 	{
-		var _ = this;
-		var p = new Population(_._genomeFactory);
+		const _ = this;
+		const p = new Population(_._genomeFactory);
 
-		p.populate(populationSize, Enumerable.from(source).toArray());
+		p.populate(populationSize, source && Enumerable(source).toArray());
 
 		_._populations.add(p);
 		_._genomeFactory.trimPreviousGenomes();
@@ -117,15 +127,15 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 	trimEarlyPopulations(maxPopulations:number):void
 	{
-		var problems = this._problemsEnumerable.memoize(), pops = this._populations;
+		const problems = this._problemsEnumerable.memoize(), pops = this._populations;
 		pops.linq
 			.takeExceptLast(maxPopulations)
 			.forEach(p=>
 			{
 				// Move top items to latest population.
 				problems.forEach(r=>{
-					var keep = Enumerable.from(r.rank(p)).firstOrDefault();
-					if(keep) pops.last.value.add(keep);
+					const keep = Enumerable(r.rank(p)).firstOrDefault();
+					if(keep) pops.last!.value.add(keep);
 				});
 
 				pops.remove(p);

@@ -10,13 +10,13 @@ export const
 
 export module Available
 {
-	export const Operators:OperatorSymbol[] = Object.freeze([
+	export const Operators:ReadonlyArray<OperatorSymbol> = Object.freeze([
 		ADD,
 		MULTIPLY,
 		DIVIDE
 	]);
 
-	export const Functions:OperatorSymbol[] = Object.freeze([
+	export const Functions:ReadonlyArray<OperatorSymbol> = Object.freeze([
 		SQUARE_ROOT
 	]);
 }

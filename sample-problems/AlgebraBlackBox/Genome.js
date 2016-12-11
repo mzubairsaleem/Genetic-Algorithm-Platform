@@ -9,7 +9,7 @@ var InvalidOperationException_1 = require("typescript-dotnet-umd/System/Exceptio
 var AlgebraGenome = (function (_super) {
     __extends(AlgebraGenome, _super);
     function AlgebraGenome(root) {
-        _super.call(this, root);
+        return _super.call(this, root) || this;
     }
     AlgebraGenome.prototype.clone = function () {
         return new AlgebraGenome(this.root.clone());
@@ -35,7 +35,7 @@ var AlgebraGenome = (function (_super) {
     });
     AlgebraGenome.prototype.resetHash = function () {
         _super.prototype.resetHash.call(this);
-        this._hashReduced = null;
+        this._hashReduced = void 0;
     };
     AlgebraGenome.prototype.calculate = function (values) {
         var root = this.root;

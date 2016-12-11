@@ -26,13 +26,13 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 
 	get descendants():ILinqEnumerable<IGene>
 	{
-		var e:ILinqEnumerable<IGene> = this.linq;
+		const e:ILinqEnumerable<IGene> = this.linq;
 		return e.concat(e.selectMany(s=>s.descendants));
 	}
 
-	findParent(child:T):IGene
+	findParent(child:T):IGene|null
 	{
-		var children = this._source;
+		let children = this._source;
 		if(!children || !children.length) return null;
 		if(children.indexOf(child)!= -1) return this;
 
@@ -47,8 +47,8 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 
 	protected _replaceInternal(target:T, replacement:T, throwIfNotFound?:boolean):boolean
 	{
-		var s = this._source;
-		var index = this._source.indexOf(target);
+		const s = this._source;
+		const index = this._source.indexOf(target);
 		if(index== -1)
 		{
 			if(throwIfNotFound)
@@ -62,7 +62,7 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 
 	replace(target:T, replacement:T, throwIfNotFound?:boolean):boolean
 	{
-		var m = this._replaceInternal(target, replacement, throwIfNotFound);
+		const m = this._replaceInternal(target, replacement, throwIfNotFound);
 		if(m) this._onModified();
 		return m;
 	}
@@ -71,7 +71,7 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 
 	resetToString():void
 	{
-		var ts = this._toString;
+		const ts = this._toString;
 		if(ts) ts.tryReset();
 		else this._toString = new Lazy<string>(()=>this.toStringInternal(), false, true);
 		

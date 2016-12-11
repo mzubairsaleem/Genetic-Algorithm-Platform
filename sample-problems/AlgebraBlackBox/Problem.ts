@@ -49,7 +49,8 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	getFitnessFor(genome:AlgebraGenome, createIfMissing:boolean = true):Fitness
 	{
 		// Avoid repeating processes by using the reduced hash as a key.
-		var h = genome.hashReduced, f = this._fitness, s = f[h];
+		const h = genome.hashReduced, f = this._fitness;
+		let s = f[h];
 		if(!s && createIfMissing) f[h] = s = new Fitness();
 		return s;
 	}
@@ -66,7 +67,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 		population:IEnumerableOrArray<AlgebraGenome>,
 		targetMaxPopulation:number):ILinqEnumerable<AlgebraGenome>
 	{
-		var lastFitness:Fitness;
+		let lastFitness:Fitness;
 		return this.rank(population)
 			.takeWhile((g, i)=>
 			{
@@ -76,15 +77,16 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 			});
 	}
 
+	//noinspection JSMethodCanBeStatic,JSUnusedGlobalSymbols
 	correlation(aSample:number[], bSample:number[], gA:AlgebraGenome, gB:AlgebraGenome):number
 	{
-		var len = aSample.length*bSample.length;
+		const len = aSample.length*bSample.length;
 
-		var gA_result = ArrayUtility.initialize<number>(len);
-		var gB_result = ArrayUtility.initialize<number>(len);
-		for(var a of aSample)
+		const gA_result = ArrayUtility.initialize<number>(len);
+		const gB_result = ArrayUtility.initialize<number>(len);
+		for(let a of aSample)
 		{
-			for(var b of bSample)
+			for(let b of bSample)
 			{
 				gA_result.push(gA.calculate([a, b]));
 				gB_result.push(gB.calculate([a, b]));
@@ -102,15 +104,16 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	// }
 
 
+	//noinspection JSMethodCanBeStatic
 	sample(count:number = 5, range:number = 100):number[]
 	{
-		var result = new Set<number>();
+		const result = new Set<number>();
 
 		while(result.count<count)
 		{
 			result.add(Math.random()*range);
 		}
-		var a = result.toArray();
+		const a = result.toArray();
 		a.sort();
 		return a;
 	}

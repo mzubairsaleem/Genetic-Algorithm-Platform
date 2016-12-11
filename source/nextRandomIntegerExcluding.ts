@@ -8,7 +8,8 @@ import {Type} from "typescript-dotnet-umd/System/Types";
 import {Integer} from "typescript-dotnet-umd/System/Integer";
 import {Set} from "typescript-dotnet-umd/System/Collections/Set";
 import {ArgumentOutOfRangeException} from "typescript-dotnet-umd/System/Exceptions/ArgumentOutOfRangeException";
-import {IEnumerableOrArray} from "../node_modules/typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
+import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
+import {Random} from "typescript-dotnet-umd/System/Random";
 
 export function nextRandomIntegerExcluding(
 	range:number,
@@ -17,21 +18,15 @@ export function nextRandomIntegerExcluding(
 	Integer.assert(range);
 	if(range<0) throw new ArgumentOutOfRangeException("range", range, "Must be a number greater than zero.");
 
-	var r:number[] = [],
-	    excludeSet = new Set<number>(Type.isNumber(excluding, true) ? [excluding] : excluding);
+	const r:number[] = [],
+	      excludeSet = new Set<number>(Type.isNumber(excluding, true) ? [excluding] : excluding);
 
 	for(let i = 0; i<range; ++i)
 	{
 		if(!excludeSet.contains(i)) r.push(i);
 	}
 
-	if(!r.length)
-	{
-		console.log(range, excluding, r);
-		throw new Error("Invalid select.");
-	}
-
-	return Integer.random.select(r);
+	return Random.select.one(r, true);
 }
 
 export default nextRandomIntegerExcluding;

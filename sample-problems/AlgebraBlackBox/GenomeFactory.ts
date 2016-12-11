@@ -1,29 +1,29 @@
 import GenomeFactoryBase from "../../source/GenomeFactoryBase";
 import Enumerable from "typescript-dotnet-umd/System.Linq/Linq";
-import Integer from "typescript-dotnet-umd/System/Integer";
 import AlgebraGenome from "./Genome";
 import OperatorGene from "./Genes/Operator";
 import ParameterGene from "./Genes/ParameterGene";
 import * as Operator from "./Operators";
 import ConstantGene from "./Genes/ConstantGene";
 import nextRandomIntegerExcluding from "../../source/nextRandomIntegerExcluding";
+import {Random} from "typescript-dotnet-umd/System/Random";
+import {Type} from "typescript-dotnet-umd/System/Types";
 
 
 export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenome>
 {
 
+	//noinspection JSMethodCanBeStatic
 	protected generateParamOnly(id:number):AlgebraGenome
 	{
-		var result = new AlgebraGenome();
-		result.root = new ParameterGene(id);
-		return result;
+		return new AlgebraGenome(new ParameterGene(id));
 	}
 
+	//noinspection JSMethodCanBeStatic
 	protected generateOperated(paramCount:number = 1):AlgebraGenome
 	{
-		var result = new AlgebraGenome();
-		var op = OperatorGene.getRandomOperation();
-		result.root = op;
+		const op = OperatorGene.getRandomOperation();
+		const result = new AlgebraGenome(op);
 
 		for(let i = 0; i<paramCount; i++)
 		{
@@ -33,11 +33,13 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		return result;
 	}
 
-	generate(source?:AlgebraGenome[]):AlgebraGenome
+	generate(source?:AlgebraGenome[]):AlgebraGenome|null
 	{
-		var _ = this, p = _._previousGenomes, attempts:number = 0;
-		var genome:AlgebraGenome;
-		var hash:string;
+
+		const _ = this, p = _._previousGenomes;
+		let attempts:number = 0;
+		let genome:AlgebraGenome|null = null;
+		let hash:string|null = null;
 
 		// Note: for now, we will only mutate by 1.
 
@@ -45,11 +47,12 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		if(source && source.length)
 		{
 			// Find one that will mutate well and use it.
-			for(let m=1;m<4;m++) {
+			for(let m = 1; m<4; m++)
+			{
 				let tries = 200;
 				do
 				{
-					genome = _.mutate(Integer.random.select(source),m);
+					genome = _.mutate(Random.select.one(source, true), m);
 					hash = genome.hash;
 					attempts++;
 				}
@@ -66,12 +69,11 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		if(!genome)
 		{
 
-			for(let m=1;m<4;m++)
+			for(let m = 1; m<4; m++)
 			{
 
 				// Establish a maximum.
 				let tries = 10, paramCount = 0;
-				var genome:AlgebraGenome, hash:string;
 
 				do {
 					{ // Try a param only version first.
@@ -84,7 +86,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 					paramCount += 1; // Operators need at least 2 params to start.
 
 					{ // Then try an operator based version.
-						genome = this.generateOperated(paramCount+1);
+						genome = this.generateOperated(paramCount + 1);
 						hash = genome.hash;
 						attempts++;
 						if(!p.containsKey(hash)) break;
@@ -92,7 +94,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 					let t = Math.min(p.count*2, 100); // A local maximum.
 					do {
-						genome = _.mutate(p.getValueByIndex(Integer.random(p.count)),m);
+						genome = _.mutate(p.getValueByIndex(Random.integer(p.count)), m);
 						hash = genome.hash;
 						attempts++;
 					}
@@ -116,12 +118,16 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		if(genome && hash)
 			p.addByKeyValue(hash, genome);
 
+		// if(!genome)
+		// 	throw "Failed... Converged? No solutions? Saturated?";
+
 		return genome;
+
 	}
 
 	mutate(source:AlgebraGenome, mutations:number = 1):AlgebraGenome
 	{
-		var inputParamCount = source.genes.ofType(ParameterGene).count();
+		const inputParamCount = source.genes.ofType(ParameterGene).count();
 
 		/* Possible mutations:
 		 * 1) Adding a parameter node to an operation.
@@ -131,19 +137,19 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		 * 5) Removing an operation.
 		 * 6) Removing a function. */
 
-		var newGenome = source.clone();
+		const newGenome = source.clone();
 
-		for(var i = 0; i<mutations; i++)
+		for(let i = 0; i<mutations; i++)
 		{
 			// First randomly select the gene to mutate.
 			let genes = newGenome.genes.toArray();
-			let gene = Integer.random.select(genes);
+			let gene = Random.select.one(genes, true);
 			let isRoot = gene==newGenome.root;
-			let parent = newGenome.findParent(gene);
-			let parentOp:OperatorGene = parent instanceof OperatorGene ? parent : null;
+			let parent = newGenome.findParent(gene)!;
+			let parentOp = Type.as(parent, OperatorGene);
 
-			let invalidOptions:number[] = [];
-			let shouldNotRemove = ()=>isRoot || parent==null || parentOp==null;
+			let invalidOptions:number[]|null = [];
+			let shouldNotRemove = () => isRoot || parent==null || parentOp==null;
 			let doNotRemove = gene instanceof ParameterGene && shouldNotRemove();
 
 			let lastOption = -1;
@@ -156,16 +162,16 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 				if(gene instanceof ConstantGene)
 				{
-					var cg = gene;
+					const cg = gene;
 					switch(lastOption = nextRandomIntegerExcluding(2, invalidOptions))
 					{
 						// Simply alter the sign
 						case 0:
-							var abs = Math.abs(cg.multiple);
+							const abs = Math.abs(cg.multiple);
 
-							if(abs>1 && Integer.random.next(2)==0)
+							if(abs>1 && Random.next(2)==0)
 							{
-								if(abs!=Math.floor(abs) || Integer.random.next(2)==0)
+								if(abs!=Math.floor(abs) || Random.next(2)==0)
 									cg.multiple /= abs;
 								else
 									cg.multiple -= (cg.multiple/abs);
@@ -193,7 +199,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 				else if(gene instanceof ParameterGene)
 				{
-					var pg = gene;
+					const pg = gene;
 					switch(lastOption = nextRandomIntegerExcluding(doNotRemove
 						? 4
 						: 6, invalidOptions))
@@ -203,7 +209,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						{
 							let abs = Math.abs(pg.multiple);
 
-							if(abs>1 && Integer.random.next(2)==0)
+							if(abs>1 && Random.next(2)==0)
 								pg.multiple /= abs;
 							else
 								pg.multiple *= -1;
@@ -246,7 +252,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						case 3:
 						{
 							// Reduce the pollution of functions...
-							if(Integer.random.nextInRange(0, 3)!=0)
+							if(Random.next.inRange(0, 3)!=0)
 							{
 								invalidOptions.push(4);
 								break;
@@ -266,6 +272,9 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 						// Remove it!
 						default:
+							if(!parentOp)
+								throw "Missing parent operator";
+
 							if(parentOp.count<3)
 							{
 								if(parentOp.linq.all(
@@ -273,7 +282,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 									doNotRemove = true;
 								else
 								{
-									var replacement = parentOp.linq
+									const replacement = parentOp.linq
 										.where(o => o instanceof OperatorGene)
 										.single();
 
@@ -281,7 +290,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 										newGenome.root = replacement;
 									else
 										newGenome
-											.findParent(parentOp)
+											.findParent(parentOp)!
 											.replace(parentOp, replacement);
 
 								}
@@ -325,7 +334,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 						// Simply change operations
 						case 1:
-							var currentOperatorIndex
+							let currentOperatorIndex
 								    = Operator.Available.Operators.indexOf(og.operator);
 							if(currentOperatorIndex== -1)
 							{
@@ -347,29 +356,29 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								break;
 							}
 
-							var newOperatorIndex = nextRandomIntegerExcluding(Operator.Available.Operators.length, currentOperatorIndex);
+							const newOperatorIndex = nextRandomIntegerExcluding(Operator.Available.Operators.length, currentOperatorIndex);
 
 							// Decide if we will also change the grouping.
-							if(og.count>2 && Integer.random.next(og.count)!=0)
+							if(og.count>2 && Random.next(og.count)!=0)
 							{
-								let startIndex = Integer.random.next(og.count - 1);
+								let startIndex = Random.next(og.count - 1);
 								let endIndex = startIndex==0
-									? Integer.random.nextInRange(1, og.count - 1)
-									: Integer.random.nextInRange(startIndex + 1, og.count);
+									? Random.next.inRange(1, og.count - 1)
+									: Random.next.inRange(startIndex + 1, og.count);
 
 								og.modifyChildren(v =>
 								{
-									var contents = Enumerable.from(v)
+									const contents = Enumerable(v)
 										.skip(startIndex)
 										.take(endIndex - startIndex)
 										.toArray();
 
-									for(var o of contents)
+									for(let o of contents)
 									{
 										v.remove(o);
 									}
 
-									var O = OperatorGene.getRandomOperation();
+									const O = OperatorGene.getRandomOperation();
 									O.importEntries(contents);
 									v.insert(startIndex, O);
 
@@ -389,7 +398,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							if(og.operator==Operator.DIVIDE && og.count>1)
 								break;
 
-							og.add(new ParameterGene(Integer.random.next(inputParamCount)));
+							og.add(new ParameterGene(Random.next(inputParamCount)));
 							invalidOptions = null;
 							break;
 
@@ -397,9 +406,9 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						case 3:
 
 
-							var first = new ParameterGene(Integer.random.next(inputParamCount));
+							const first = new ParameterGene(Random.next(inputParamCount));
 
-							var newOp = inputParamCount<=1
+							const newOp = inputParamCount<=1
 								? OperatorGene.getRandomOperation('/')
 								: OperatorGene.getRandomOperation();
 
@@ -409,7 +418,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							if(newOp.operator==Operator.DIVIDE)
 								newOp.add(new ParameterGene(nextRandomIntegerExcluding(inputParamCount, first.id)));
 							else
-								newOp.add(new ParameterGene(Integer.random.next(inputParamCount)));
+								newOp.add(new ParameterGene(Random.next(inputParamCount)));
 
 							og.add(newOp);
 							invalidOptions = null;
@@ -418,24 +427,24 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						case 4:
 						{
 							// // Reduce the pollution of functions...
-							// if(Integer.random.next(4)!=1)
+							// if(Random.next(4)!=1)
 							// {
 							// 	break;
 							// }
 							//
 							// Reduce the pollution of functions...
-							if(Operator.Available.Functions.indexOf(og.operator)!= -1 && Integer.random.next(4)!=1)
+							if(Operator.Available.Functions.indexOf(og.operator)!= -1 && Random.next(4)!=1)
 							{
 								break;
 							}
 
-							var newFn = new OperatorGene(OperatorGene.getRandomFunctionOperator());
+							const newFn = new OperatorGene(OperatorGene.getRandomFunctionOperator());
 
 							//
 							// // Reduce the pollution of functions...
 							// if(newFn.operator==og.operator)
 							// {
-							// 	if(Integer.random.next(7)!=1)
+							// 	if(Random.next(7)!=1)
 							// 	{
 							// 		invalidOptions.push(5);
 							// 		break;
@@ -472,9 +481,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								}
 								else
 								{
-									parentOp.modifyChildren(v =>
+
+									parentOp!.modifyChildren(v =>
 									{
-										var index = v.indexOf(og);
+										const index = v.indexOf(og);
 										if(index!= -1)
 										{
 											for(let o of og.toArray().reverse())
@@ -495,7 +505,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							// Just like above, consider reduction instead of trimming...
 							if(isRoot && og.count>2)
 							{
-								og.removeAt(Integer.random.next(og.count));
+								og.removeAt(Random.next(og.count));
 							}
 							else if(og.count==2
 								&& og.linq.any(o => o instanceof OperatorGene)
@@ -506,7 +516,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								if(isRoot)
 									newGenome.root = childOpGene;
 								else
-									parentOp.replace(og, childOpGene);
+									parentOp!.replace(og, childOpGene);
 							}
 							else if(shouldNotRemove() || og.count>2)
 							{
@@ -514,7 +524,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								break;
 							}
 							else
-								parentOp.remove(gene);
+								parentOp!.remove(gene);
 
 							invalidOptions = null;
 							break;
@@ -528,6 +538,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 		newGenome.resetHash();
 		return newGenome;
+
 
 	}
 
