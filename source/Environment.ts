@@ -68,20 +68,18 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 		// Get ranked population for each problem and merge it into a weaved enumeration.
 		const sw = Stopwatch.startNew();
-		let any = false;
 		const previousP = populations
 			.selectMany<IEnumerable<TGenome>>(
 				o =>
 				{
-					any = true;
 					let x = problems.select(r => r.rank(o));
 					if(!x.any()) return x;
 					return Enumerable.make(x.first()).concat(x); // Take the first one an bias it as the winner.
 				}
-			);
+			).memoize();
 
 		const p = this.spawn(
-			this.populationSize, any ?
+			this.populationSize, previousP.any() ?
 			Triangular.disperse.decreasing<TGenome>(
 				Enumerable.weave<TGenome>(previousP)
 			) : void 0

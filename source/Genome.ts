@@ -18,6 +18,8 @@ implements IGenome, ICloneable<Genome<T>>
 		this._hash = null;
 	}
 
+	disableVariations:boolean = false;
+
 	get root():T
 	{
 		return this._root;

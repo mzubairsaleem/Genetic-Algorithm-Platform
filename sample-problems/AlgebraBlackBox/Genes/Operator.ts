@@ -803,7 +803,7 @@ class OperatorGene extends AlgebraGene
 		return new OperatorGene(OperatorGene.getRandomOperator(excluded));
 	}
 
-	protected calculateWithoutMultiple(values:number[]):number
+	protected calculateWithoutMultiple(values:ArrayLike<number>):number
 	{
 		const results = this._source.map(s => s.calculate(values));
 		switch(this._operator)

@@ -8,6 +8,7 @@ import ConstantGene from "./Genes/ConstantGene";
 import nextRandomIntegerExcluding from "../../source/nextRandomIntegerExcluding";
 import {Random} from "typescript-dotnet-umd/System/Random";
 import {Type} from "typescript-dotnet-umd/System/Types";
+import AlgebraGene from "./Gene";
 
 
 export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenome>
@@ -32,6 +33,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 		return result;
 	}
+
 
 	generate(source?:AlgebraGenome[]):AlgebraGenome|null
 	{
@@ -125,6 +127,138 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 	}
 
+	generateVariations(source:AlgebraGenome):AlgebraGenome[]
+	{
+		const result:AlgebraGenome[] = [];
+		let count = source.genes.count();
+		for(let i = 0; i<count; i++)
+		{
+
+			const newGenome = source.clone();
+			let gene = <AlgebraGene>newGenome.genes.elementAt(i);
+
+			const isRoot = gene==newGenome.root;
+			let parent = newGenome.findParent(gene)!;
+			let parentOp = Type.as(parent, OperatorGene);
+
+			if(gene.multiple>1)
+			{
+				gene.multiple--;
+				result.push(newGenome);
+			}
+			else if(gene.multiple< -1)
+			{
+				gene.multiple++;
+				result.push(newGenome);
+			}
+			else if(gene instanceof ConstantGene)
+			{
+				if(parentOp)
+				{
+					parentOp.remove(gene);
+					result.push(newGenome);
+				}
+			}
+			else if(gene instanceof ParameterGene)
+			{
+				if(parentOp && parentOp.count<3)
+				{
+					if(!parentOp.linq.all(
+							o => o instanceof ParameterGene || o instanceof ConstantGene))
+					{
+						const replacement = parentOp.linq
+							.where(o => o instanceof OperatorGene)
+							.single();
+
+						if(parentOp==newGenome.root)
+							newGenome.root = replacement;
+						else
+							newGenome
+								.findParent(parentOp)!
+								.replace(parentOp, replacement);
+
+						result.push(newGenome);
+					}
+				}
+			}
+			else if(gene instanceof OperatorGene)
+			{
+				if(Operator.Available.Functions.indexOf(gene.operator)!= -1)
+				{
+					if(isRoot)
+					{
+						if(!gene.count)
+							continue;
+
+						newGenome.root = gene.linq.first();
+					}
+					else
+					{
+
+						parentOp!.modifyChildren(v =>
+						{
+							const index = v.indexOf(gene);
+							if(index!= -1)
+							{
+								for(let o of gene.toArray().reverse())
+								{
+									v.insert(index, o);
+								}
+								v.remove(gene);
+								return true;
+							}
+							return false;
+						});
+
+					}
+					break;
+				}
+
+				if(gene.count==2
+					&& gene.linq.any(o => o instanceof OperatorGene)
+					&& gene.linq.any(o => o instanceof ParameterGene))
+				{
+					let childOpGene = gene.linq.ofType(OperatorGene).single();
+					gene.remove(childOpGene);
+
+					if(isRoot)
+						newGenome.root = childOpGene;
+					else
+						parentOp!.replace(gene, childOpGene);
+
+					result.push(newGenome);
+				}
+				else if(!isRoot && parentOp && gene.count<3)
+				{
+					parentOp.remove(gene);
+					result.push(newGenome);
+				}
+
+			}
+		}
+
+		if(source.root instanceof OperatorGene && Operator.Available.Functions.indexOf(source.root.operator)!= -1)
+		{
+			// do nothing.
+		}
+		else
+		{
+			// Try it with a function!
+
+			for(let op of Operator.Available.Functions)
+			{
+				const newGenome = source.clone();
+				let newFn = new OperatorGene(op);
+				newFn.add(newGenome.root);
+				newGenome.root = newFn;
+				result.push(newGenome);
+			}
+		}
+
+		const p = this._previousGenomes;
+		return result.filter(genome => !p.containsKey(genome.hash));
+	}
+
 	mutate(source:AlgebraGenome, mutations:number = 1):AlgebraGenome
 	{
 		const inputParamCount = source.genes.ofType(ParameterGene).count();
@@ -142,14 +276,14 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		for(let i = 0; i<mutations; i++)
 		{
 			// First randomly select the gene to mutate.
-			let genes = newGenome.genes.toArray();
-			let gene = Random.select.one(genes, true);
-			let isRoot = gene==newGenome.root;
+			const genes = newGenome.genes.toArray();
+			const gene = Random.select.one(genes, true);
+			const isRoot = gene==newGenome.root;
 			let parent = newGenome.findParent(gene)!;
 			let parentOp = Type.as(parent, OperatorGene);
 
 			let invalidOptions:number[]|null = [];
-			let shouldNotRemove = () => isRoot || parent==null || parentOp==null;
+			const shouldNotRemove = () => isRoot || parent==null || parentOp==null;
 			let doNotRemove = gene instanceof ParameterGene && shouldNotRemove();
 
 			let lastOption = -1;
@@ -315,8 +449,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 				}
 				else if(gene instanceof OperatorGene)
 				{
-					let og = <OperatorGene>gene;
-					if(Operator.Available.Functions.indexOf(og.operator)!= -1)
+					if(Operator.Available.Functions.indexOf(gene.operator)!= -1)
 					{
 						invalidOptions.push(3);
 						invalidOptions.push(4);
@@ -328,18 +461,18 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 					{
 						// Simply invert the sign
 						case 0:
-							og.multiple *= -1;
+							gene.multiple *= -1;
 							invalidOptions = null;
 							break;
 
 						// Simply change operations
 						case 1:
 							let currentOperatorIndex
-								    = Operator.Available.Operators.indexOf(og.operator);
+								    = Operator.Available.Operators.indexOf(gene.operator);
 							if(currentOperatorIndex== -1)
 							{
 								currentOperatorIndex
-									= Operator.Available.Functions.indexOf(og.operator);
+									= Operator.Available.Functions.indexOf(gene.operator);
 								if(currentOperatorIndex!= -1)
 								{
 									if(Operator.Available.Functions.length==1)
@@ -348,7 +481,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 										break;
 									}
 
-									og.operator = Operator.Available.Functions[
+									gene.operator = Operator.Available.Functions[
 										nextRandomIntegerExcluding(Operator.Available.Functions.length, currentOperatorIndex)];
 								}
 
@@ -359,14 +492,14 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							const newOperatorIndex = nextRandomIntegerExcluding(Operator.Available.Operators.length, currentOperatorIndex);
 
 							// Decide if we will also change the grouping.
-							if(og.count>2 && Random.next(og.count)!=0)
+							if(gene.count>2 && Random.next(gene.count)!=0)
 							{
-								let startIndex = Random.next(og.count - 1);
+								let startIndex = Random.next(gene.count - 1);
 								let endIndex = startIndex==0
-									? Random.next.inRange(1, og.count - 1)
-									: Random.next.inRange(startIndex + 1, og.count);
+									? Random.next.inRange(1, gene.count - 1)
+									: Random.next.inRange(startIndex + 1, gene.count);
 
-								og.modifyChildren(v =>
+								gene.modifyChildren(v =>
 								{
 									const contents = Enumerable(v)
 										.skip(startIndex)
@@ -386,7 +519,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 								});
 							}
 							else // Grouping remains... Only operator changes.
-								og.operator = Operator.Available.Operators[newOperatorIndex];
+								gene.operator = Operator.Available.Operators[newOperatorIndex];
 
 							invalidOptions = null;
 							break;
@@ -395,10 +528,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						// Add random parameter.
 						case 2:
 							// In order to avoid unnecessary reduction, avoid adding subsequent divisors.
-							if(og.operator==Operator.DIVIDE && og.count>1)
+							if(gene.operator==Operator.DIVIDE && gene.count>1)
 								break;
 
-							og.add(new ParameterGene(Random.next(inputParamCount)));
+							gene.add(new ParameterGene(Random.next(inputParamCount)));
 							invalidOptions = null;
 							break;
 
@@ -420,7 +553,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							else
 								newOp.add(new ParameterGene(Random.next(inputParamCount)));
 
-							og.add(newOp);
+							gene.add(newOp);
 							invalidOptions = null;
 							break;
 						// Apply a function
@@ -433,7 +566,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							// }
 							//
 							// Reduce the pollution of functions...
-							if(Operator.Available.Functions.indexOf(og.operator)!= -1 && Random.next(4)!=1)
+							if(Operator.Available.Functions.indexOf(gene.operator)!= -1 && Random.next(4)!=1)
 							{
 								break;
 							}
@@ -461,17 +594,17 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							break;
 						}
 						case 5:
-							if(og.reduce())
+							if(gene.reduce())
 								invalidOptions = null;
 							break;
 						// Remove it!
 						default:
-							if(Operator.Available.Functions.indexOf(og.operator)!= -1)
+							if(Operator.Available.Functions.indexOf(gene.operator)!= -1)
 							{
 								if(isRoot)
 								{
-									if(og.count)
-										newGenome.root = og.linq.first();
+									if(gene.count)
+										newGenome.root = gene.linq.first();
 									else
 									{
 										doNotRemove = true;
@@ -484,14 +617,14 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 									parentOp!.modifyChildren(v =>
 									{
-										const index = v.indexOf(og);
+										const index = v.indexOf(gene);
 										if(index!= -1)
 										{
-											for(let o of og.toArray().reverse())
+											for(let o of gene.toArray().reverse())
 											{
 												v.insert(index, o);
 											}
-											v.remove(og);
+											v.remove(gene);
 											invalidOptions = null;
 											return true;
 										}
@@ -503,22 +636,22 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							}
 
 							// Just like above, consider reduction instead of trimming...
-							if(isRoot && og.count>2)
+							if(isRoot && gene.count>2)
 							{
-								og.removeAt(Random.next(og.count));
+								gene.removeAt(Random.next(gene.count));
 							}
-							else if(og.count==2
-								&& og.linq.any(o => o instanceof OperatorGene)
-								&& og.linq.any(o => o instanceof ParameterGene))
+							else if(gene.count==2
+								&& gene.linq.any(o => o instanceof OperatorGene)
+								&& gene.linq.any(o => o instanceof ParameterGene))
 							{
-								let childOpGene = og.linq.ofType(OperatorGene).single();
-								og.remove(childOpGene);
+								let childOpGene = gene.linq.ofType(OperatorGene).single();
+								gene.remove(childOpGene);
 								if(isRoot)
 									newGenome.root = childOpGene;
 								else
-									parentOp!.replace(og, childOpGene);
+									parentOp!.replace(gene, childOpGene);
 							}
-							else if(shouldNotRemove() || og.count>2)
+							else if(shouldNotRemove() || gene.count>2)
 							{
 								doNotRemove = true;
 								break;

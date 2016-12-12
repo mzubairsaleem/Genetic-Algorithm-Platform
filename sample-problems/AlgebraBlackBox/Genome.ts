@@ -15,6 +15,7 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 		return new AlgebraGenome(this.root.clone());
 	}
 
+
 	serialize():string
 	{
 		let root = this.root;
@@ -44,7 +45,7 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 	}
 
 
-	calculate(values:number[]):number
+	calculate(values:ArrayLike<number>):number
 	{
 		let root = this.root;
 		if(!root)

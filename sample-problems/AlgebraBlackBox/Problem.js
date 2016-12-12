@@ -1,11 +1,6 @@
-/*!
- * @author electricessence / https://github.com/electricessence/
- * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
- */
 "use strict";
 var Set_1 = require("typescript-dotnet-umd/System/Collections/Set");
 var StringKeyDictionary_1 = require("typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary");
-var ArrayUtility = require("typescript-dotnet-umd/System/Collections/Array/Utility");
 var Correlation_1 = require("./arithmetic/Correlation");
 var Fitness_1 = require("../../source/Fitness");
 var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
@@ -33,8 +28,7 @@ var AlgebraBlackBoxProblem = (function () {
     };
     AlgebraBlackBoxProblem.prototype.rank = function (population) {
         var _this = this;
-        return Linq_1.default
-            .from(population)
+        return Linq_1.default(population)
             .orderByDescending(function (g) { return _this.getFitnessFor(g); })
             .thenBy(function (g) { return g.hash.length; });
     };
@@ -50,14 +44,15 @@ var AlgebraBlackBoxProblem = (function () {
     };
     AlgebraBlackBoxProblem.prototype.correlation = function (aSample, bSample, gA, gB) {
         var len = aSample.length * bSample.length;
-        var gA_result = ArrayUtility.initialize(len);
-        var gB_result = ArrayUtility.initialize(len);
-        for (var _i = 0, aSample_1 = aSample; _i < aSample_1.length; _i++) {
-            var a = aSample_1[_i];
-            for (var _a = 0, bSample_1 = bSample; _a < bSample_1.length; _a++) {
-                var b = bSample_1[_a];
-                gA_result.push(gA.calculate([a, b]));
-                gB_result.push(gB.calculate([a, b]));
+        var gA_result = new Float64Array(len);
+        var gB_result = new Float64Array(len);
+        var i = 0;
+        for (var _i = 0, _a = aSample; _i < _a.length; _i++) {
+            var a = _a[_i];
+            for (var _b = 0, _c = bSample; _b < _c.length; _b++) {
+                var b = _c[_b];
+                gA_result[i] = gA.calculate([a, b]);
+                gB_result[i] = gB.calculate([a, b]);
             }
         }
         return Correlation_1.correlation(gA_result, gB_result);
@@ -81,19 +76,19 @@ var AlgebraBlackBoxProblem = (function () {
             var aSample = this_1.sample();
             var bSample = this_1.sample();
             var correct = [];
-            for (var _i = 0, aSample_2 = aSample; _i < aSample_2.length; _i++) {
-                var a = aSample_2[_i];
-                for (var _a = 0, bSample_2 = bSample; _a < bSample_2.length; _a++) {
-                    var b = bSample_2[_a];
+            for (var _i = 0, aSample_1 = aSample; _i < aSample_1.length; _i++) {
+                var a = aSample_1[_i];
+                for (var _a = 0, bSample_1 = bSample; _a < bSample_1.length; _a++) {
+                    var b = bSample_1[_a];
                     correct.push(f(a, b));
                 }
             }
             p.forEach(function (g) {
                 var result = [];
-                for (var _i = 0, aSample_3 = aSample; _i < aSample_3.length; _i++) {
-                    var a = aSample_3[_i];
-                    for (var _a = 0, bSample_3 = bSample; _a < bSample_3.length; _a++) {
-                        var b = bSample_3[_a];
+                for (var _i = 0, aSample_2 = aSample; _i < aSample_2.length; _i++) {
+                    var a = aSample_2[_i];
+                    for (var _a = 0, bSample_2 = bSample; _a < bSample_2.length; _a++) {
+                        var b = bSample_2[_a];
                         result.push(g.calculate([a, b]));
                     }
                 }

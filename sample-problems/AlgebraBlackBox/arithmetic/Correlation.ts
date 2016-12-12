@@ -8,20 +8,31 @@ import {average} from "typescript-dotnet-umd/System/Collections/Array/Procedure"
 import {from as enumeratorFrom} from "typescript-dotnet-umd/System/Collections/Enumeration/Enumerator";
 import Exception from "typescript-dotnet-umd/System/Exception";
 import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
+import {SelectorWithIndex} from "typescript-dotnet-umd/System/FunctionTypes";
 
-
-//noinspection JSUnusedGlobalSymbols
-export function abs(source:number[]):number[]
+function map(source:ArrayLike<number>, selector:SelectorWithIndex<number,number>):Float64Array
 {
-	return source.map(v=>isNaN(v) ? v : Math.abs(v));
+	const len = source.length;
+	const result = new Float64Array(len);
+	for(let i=0;i<len;i++)
+	{
+		result[i] = selector(source[i],i);
+	}
+	return result;
 }
 
 //noinspection JSUnusedGlobalSymbols
-export function deltas(source:number[]):number[]
+export function abs(source:ArrayLike<number>):Float64Array
+{
+	return map(source,v => isNaN(v) ? v : Math.abs(v));
+}
+
+//noinspection JSUnusedGlobalSymbols
+export function deltas(source:ArrayLike<number>):Float64Array
 {
 
 	let previous:number = NaN;
-	return source.map(v=>
+	return map(source, v =>
 	{
 		if(!isNaN(v))
 		{
@@ -37,9 +48,17 @@ export function deltas(source:number[]):number[]
 
 }
 
-export function variance(source:number[]):number
+export function variance(source:ArrayLike<number>):number
 {
-	return average(source.map(s=>s*s)) - Math.pow(average(source), 2);
+	const len = source.length;
+	const v = new Float64Array(source.length), v2 = new Float64Array(source.length);
+	for(let i = 0; i<len; i++)
+	{
+		let s = source[i];
+		v[i] = s;
+		v2[i] = s*s;
+	}
+	return average(v2) - Math.pow(average(v), 2);
 }
 
 export function products(
@@ -69,7 +88,7 @@ export function products(
 	return result;
 }
 
-export function covariance(source:number[], target:number[]):number
+export function covariance(source:ArrayLike<number>, target:ArrayLike<number>):number
 {
 	return average(products(source, target)) - average(source)*average(target);
 }
@@ -83,12 +102,14 @@ export function correlationUsing(
 	return covariance/Math.sqrt(sourceVariance*targetVariance);
 }
 
-export function correlationOf(covariance:number, source:number[], target:number[]):number
+export function correlationOf(
+	covariance:number, source:ArrayLike<number>,
+	target:ArrayLike<number>):number
 {
 	return correlationUsing(covariance, variance(source), variance(target));
 }
 
-export function correlation(source:number[], target:number[]):number
+export function correlation(source:ArrayLike<number>, target:ArrayLike<number>):number
 {
 	return correlationOf(covariance(source, target), source, target);
 }

@@ -20,15 +20,17 @@ export default class Fitness implements IComparable<Fitness>
 
 	private _scores:Array<number|null>;
 
-	get scores():number[] {
-		return this._scores.map((v,i)=>this.getScore(i));
+	get scores():number[]
+	{
+		return this._scores.map((v, i) => this.getScore(i));
 	}
 
-	add(score:number[]):void
+	add(score:ArrayLike<number>):void
 	{
 		if(!score || !score.length) return;
 
-		for(let i=0,len=score.length;i<len;i++) {
+		for(let i = 0, len = score.length; i<len; i++)
+		{
 			let s = this._scoreCard[i];
 			if(!s) this._scoreCard[i] = s = [];
 			s.push(score[i]);
@@ -45,13 +47,14 @@ export default class Fitness implements IComparable<Fitness>
 		return s;
 	}
 
-	hasConverged(minSamples:number=100):boolean
+	hasConverged(minSamples:number = 100):boolean
 	{
 		if(this._count<minSamples) return false;
 		let len = this._scores.length;
 		if(!len) return false;
 
-		for(let i=0;i<len;i++) {
+		for(let i = 0; i<len; i++)
+		{
 			if(this.getScore(i)!=1) return false;
 		}
 		return true;

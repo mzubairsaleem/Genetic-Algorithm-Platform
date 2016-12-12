@@ -7,6 +7,7 @@ var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var Genome = (function () {
     function Genome(_root) {
         this._root = _root;
+        this.disableVariations = false;
         this._hash = null;
     }
     Object.defineProperty(Genome.prototype, "root", {

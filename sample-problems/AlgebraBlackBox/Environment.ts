@@ -8,7 +8,7 @@ import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
-	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
 }
 
 const VARIABLE_NAMES = Object.freeze(Enumerable("abcdefghijklmnopqrstuvwxyz").toArray());

@@ -32,7 +32,7 @@ export default class ParameterGene extends UnreducibleGene
 		return new ParameterGene(this._id, this._multiple);
 	}
 
-	calculateWithoutMultiple(values:number[]):number
+	calculateWithoutMultiple(values:ArrayLike<number>):number
 	{
 		return values[this._id];
 	}

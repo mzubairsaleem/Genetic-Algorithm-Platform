@@ -84,6 +84,18 @@ var Population = (function () {
     };
     Population.prototype.populate = function (count, rankedGenomes) {
         var f = this._genomeFactory;
+        if (rankedGenomes && rankedGenomes.length) {
+            var top_1 = rankedGenomes[0];
+            if (!top_1.disableVariations) {
+                top_1.disableVariations = true;
+                var v = f.generateVariations(top_1);
+                for (var _i = 0, v_1 = v; _i < v_1.length; _i++) {
+                    var n = v_1[_i];
+                    this.add(n);
+                    count--;
+                }
+            }
+        }
         for (var i = 0; i < count; i++) {
             var n = f.generate(rankedGenomes);
             if (n)

@@ -8,6 +8,7 @@ import {IGenome} from "./IGenome";
 
 export interface IGenomeFactory<TGenome extends IGenome>
 {
+	generateVariations(source:TGenome):TGenome[];
 	generate(source?:TGenome[]):TGenome|null;
 	mutate(source:TGenome, mutations?:number):TGenome;
 

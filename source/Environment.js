@@ -57,16 +57,14 @@ var Environment = (function (_super) {
     Environment.prototype._onExecute = function () {
         var populations = this._populations.linq.reverse(), problems = this._problemsEnumerable.memoize();
         var sw = Stopwatch_1.default.startNew();
-        var any = false;
         var previousP = populations
             .selectMany(function (o) {
-            any = true;
             var x = problems.select(function (r) { return r.rank(o); });
             if (!x.any())
                 return x;
             return Linq_1.Enumerable.make(x.first()).concat(x);
-        });
-        var p = this.spawn(this.populationSize, any ?
+        }).memoize();
+        var p = this.spawn(this.populationSize, previousP.any() ?
             Triangular.disperse.decreasing(Linq_1.Enumerable.weave(previousP)) : void 0);
         if (!p.count)
             throw "Nothing spawned!!!";

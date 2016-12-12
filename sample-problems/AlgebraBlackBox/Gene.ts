@@ -46,13 +46,13 @@ extends GeneBase<AlgebraGene> {
 			+ this.toStringContents();
 	}
 	
-	calculate(values:number[]):number
+	calculate(values:ArrayLike<number>):number
 	{
 		return this._multiple
 			* this.calculateWithoutMultiple(values);
 	}
 
-	protected abstract calculateWithoutMultiple(values:number[]):number;
+	protected abstract calculateWithoutMultiple(values:ArrayLike<number>):number;
 }
 
 export default AlgebraGene;

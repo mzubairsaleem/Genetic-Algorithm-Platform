@@ -36,6 +36,7 @@ implements IGenomeFactory<TGenome>
 		}
 	}
 
+	abstract generateVariations(source:TGenome):TGenome[];
 
 	abstract generate(source?:TGenome[]):TGenome|null;
 

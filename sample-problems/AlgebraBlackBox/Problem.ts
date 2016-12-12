@@ -2,11 +2,8 @@
  * @author electricessence / https://github.com/electricessence/
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
-
-
 import Set from "typescript-dotnet-umd/System/Collections/Set";
 import StringKeyDictionary from "typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary";
-import * as ArrayUtility from "typescript-dotnet-umd/System/Collections/Array/Utility";
 import {correlation} from "./arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
 import Fitness from "../../source/Fitness";
@@ -57,8 +54,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 
 	rank(population:IEnumerableOrArray<AlgebraGenome>):IOrderedEnumerable<AlgebraGenome>
 	{
-		return Enumerable
-			.from(population)
+		return Enumerable(population)
 			.orderByDescending(g=>this.getFitnessFor(g))
 			.thenBy(g=>g.hash.length);
 	}
@@ -78,18 +74,19 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	}
 
 	//noinspection JSMethodCanBeStatic,JSUnusedGlobalSymbols
-	correlation(aSample:number[], bSample:number[], gA:AlgebraGenome, gB:AlgebraGenome):number
+	correlation(aSample:ArrayLike<number>, bSample:ArrayLike<number>, gA:AlgebraGenome, gB:AlgebraGenome):number
 	{
 		const len = aSample.length*bSample.length;
 
-		const gA_result = ArrayUtility.initialize<number>(len);
-		const gB_result = ArrayUtility.initialize<number>(len);
-		for(let a of aSample)
+		const gA_result = new Float64Array(len);
+		const gB_result = new Float64Array(len);
+		let i:number = 0;
+		for(let a of <number[]>aSample)
 		{
-			for(let b of bSample)
+			for(let b of <number[]>bSample)
 			{
-				gA_result.push(gA.calculate([a, b]));
-				gB_result.push(gB.calculate([a, b]));
+				gA_result[i] = gA.calculate([a, b]);
+				gB_result[i] = gB.calculate([a, b]);
 			}
 		}
 

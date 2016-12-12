@@ -127,8 +127,19 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 
 	populate(count:number, rankedGenomes?:TGenome[]):void
 	{
-		//noinspection UnnecessaryLocalVariableJS
 		let f = this._genomeFactory;
+		if(rankedGenomes && rankedGenomes.length) {
+			const top = rankedGenomes[0];
+			if(!top.disableVariations) {
+				top.disableVariations = true;
+				const v = f.generateVariations(top);
+				for(let n of v) {
+					this.add(n);
+					count--;
+				}
+			}
+		}
+
 		// Then add mutations from best in source.
 		for(let i = 0; i<count; i++)
 		{

@@ -6,13 +6,21 @@
 var Procedure_1 = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
 var Enumerator_1 = require("typescript-dotnet-umd/System/Collections/Enumeration/Enumerator");
 var Exception_1 = require("typescript-dotnet-umd/System/Exception");
+function map(source, selector) {
+    var len = source.length;
+    var result = new Float64Array(len);
+    for (var i = 0; i < len; i++) {
+        result[i] = selector(source[i], i);
+    }
+    return result;
+}
 function abs(source) {
-    return source.map(function (v) { return isNaN(v) ? v : Math.abs(v); });
+    return map(source, function (v) { return isNaN(v) ? v : Math.abs(v); });
 }
 exports.abs = abs;
 function deltas(source) {
     var previous = NaN;
-    return source.map(function (v) {
+    return map(source, function (v) {
         if (!isNaN(v)) {
             var p = previous;
             previous = v;
@@ -25,7 +33,14 @@ function deltas(source) {
 }
 exports.deltas = deltas;
 function variance(source) {
-    return Procedure_1.average(source.map(function (s) { return s * s; })) - Math.pow(Procedure_1.average(source), 2);
+    var len = source.length;
+    var v = new Float64Array(source.length), v2 = new Float64Array(source.length);
+    for (var i = 0; i < len; i++) {
+        var s = source[i];
+        v[i] = s;
+        v2[i] = s * s;
+    }
+    return Procedure_1.average(v2) - Math.pow(Procedure_1.average(v), 2);
 }
 exports.variance = variance;
 function products(source, target) {
