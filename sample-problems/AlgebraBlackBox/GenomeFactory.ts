@@ -130,109 +130,68 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 	generateVariations(source:AlgebraGenome):AlgebraGenome[]
 	{
 		const result:AlgebraGenome[] = [];
-		let count = source.genes.count();
+		let sourceGenes = <AlgebraGene[]>source.genes.toArray();
+		let count = sourceGenes.length;
 		for(let i = 0; i<count; i++)
 		{
+			const gene = sourceGenes[i];
+			const isRoot = gene==source.root;
 
-			const newGenome = source.clone();
-			let gene = <AlgebraGene>newGenome.genes.elementAt(i);
-
-			const isRoot = gene==newGenome.root;
-			let parent = newGenome.findParent(gene)!;
-			let parentOp = Type.as(parent, OperatorGene);
-
-			if(gene.multiple>1)
-			{
-				gene.multiple--;
-				result.push(newGenome);
-			}
-			else if(gene.multiple< -1)
-			{
-				gene.multiple++;
-				result.push(newGenome);
-			}
-			else if(gene instanceof ConstantGene)
-			{
-				if(parentOp)
-				{
-					parentOp.remove(gene);
+			const applyClone = (handler:(gene:AlgebraGene, newGenome:AlgebraGenome)=>boolean|void)=>{
+				const newGenome = source.clone();
+				if(handler(<AlgebraGene>newGenome.genes.elementAt(i), newGenome)!==false)
 					result.push(newGenome);
+			};
+
+			const absMultiple = Math.abs(gene.multiple);
+			if(absMultiple>1)
+			{
+				applyClone((gene)=>{
+					gene.multiple -= gene.multiple/absMultiple;
+				});
+			}
+
+			const parentOp = Type.as(source.findParent(gene)!, OperatorGene);
+			if(parentOp)
+			{
+				if(parentOp.count>1)
+				{
+					applyClone((gene, newGenome)=>{
+						(<OperatorGene>newGenome.findParent(gene)).remove(gene);
+					});
 				}
 			}
-			else if(gene instanceof ParameterGene)
-			{
-				if(parentOp && parentOp.count<3)
-				{
-					if(!parentOp.linq.all(
-							o => o instanceof ParameterGene || o instanceof ConstantGene))
-					{
-						const replacement = parentOp.linq
-							.where(o => o instanceof OperatorGene)
-							.single();
 
-						if(parentOp==newGenome.root)
-							newGenome.root = replacement;
-						else
-							newGenome
-								.findParent(parentOp)!
-								.replace(parentOp, replacement);
-
-						result.push(newGenome);
-					}
-				}
-			}
-			else if(gene instanceof OperatorGene)
+			if(gene instanceof OperatorGene && gene.count==1)
 			{
-				if(Operator.Available.Functions.indexOf(gene.operator)!= -1)
-				{
+				applyClone((gene, newGenome)=>{
+
+					const child = gene.get(0);
+					const parentOp = (<OperatorGene>newGenome.findParent(gene));
+
 					if(isRoot)
 					{
-						if(!gene.count)
-							continue;
-
-						newGenome.root = gene.linq.first();
+						// If the root operator is a function, swap it's contents for the root.
+						newGenome.root = child;
 					}
 					else
 					{
 
-						parentOp!.modifyChildren(v =>
+						parentOp!.modifyChildren(p =>
 						{
-							const index = v.indexOf(gene);
-							if(index!= -1)
+							let pGenes = p.toArray();
+							p.clear();
+							for(let g of pGenes)
 							{
-								for(let o of gene.toArray().reverse())
-								{
-									v.insert(index, o);
-								}
-								v.remove(gene);
-								return true;
+								p.add(g==gene ? child! : g);
 							}
-							return false;
+							return true;
 						});
-
 					}
-					break;
-				}
 
-				if(gene.count==2
-					&& gene.linq.any(o => o instanceof OperatorGene)
-					&& gene.linq.any(o => o instanceof ParameterGene))
-				{
-					let childOpGene = gene.linq.ofType(OperatorGene).single();
-					gene.remove(childOpGene);
+				});
 
-					if(isRoot)
-						newGenome.root = childOpGene;
-					else
-						parentOp!.replace(gene, childOpGene);
 
-					result.push(newGenome);
-				}
-				else if(!isRoot && parentOp && gene.count<3)
-				{
-					parentOp.remove(gene);
-					result.push(newGenome);
-				}
 
 			}
 		}
@@ -248,7 +207,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 			for(let op of Operator.Available.Functions)
 			{
 				const newGenome = source.clone();
-				let newFn = new OperatorGene(op);
+				const newFn = new OperatorGene(op);
 				newFn.add(newGenome.root);
 				newGenome.root = newFn;
 				result.push(newGenome);

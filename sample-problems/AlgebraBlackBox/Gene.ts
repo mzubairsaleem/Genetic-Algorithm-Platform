@@ -1,9 +1,18 @@
 import GeneBase from "../../source/GeneBase";
+import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
+import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
+import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promise";
 
 const EMPTY:string = "";
+const VARIABLE_NAMES = Object.freeze(Enumerable("abcdefghijklmnopqrstuvwxyz").toArray());
 
-abstract class AlgebraGene
-extends GeneBase<AlgebraGene> {
+export function toAlphaParameters(hash:string):string
+{
+	return supplant(hash, VARIABLE_NAMES);
+}
+
+abstract class AlgebraGene extends GeneBase<AlgebraGene>
+{
 
 	constructor(protected _multiple:number = 1)
 	{
@@ -13,9 +22,11 @@ extends GeneBase<AlgebraGene> {
 	abstract clone():AlgebraGene;
 
 	abstract isReducible():boolean;
+
 	abstract asReduced():AlgebraGene;
 
-	serialize():string {
+	serialize():string
+	{
 		return this.toString();
 	}
 
@@ -24,7 +35,8 @@ extends GeneBase<AlgebraGene> {
 		return this._multiple;
 	}
 
-	set multiple(value:number) {
+	set multiple(value:number)
+	{
 		this._multiple = value;
 		this._onModified();
 	}
@@ -32,8 +44,8 @@ extends GeneBase<AlgebraGene> {
 	protected get multiplePrefix():string
 	{
 		const m = this._multiple;
-		if (m != 1)
-			return m == -1 ? "-" : (m+EMPTY);
+		if(m!=1)
+			return m== -1 ? "-" : (m + EMPTY);
 
 		return EMPTY;
 	}
@@ -45,11 +57,16 @@ extends GeneBase<AlgebraGene> {
 		return this.multiplePrefix
 			+ this.toStringContents();
 	}
-	
+
+	toAlphaParameters():string
+	{
+		return toAlphaParameters(this.toString());
+	}
+
 	calculate(values:ArrayLike<number>):number
 	{
 		return this._multiple
-			* this.calculateWithoutMultiple(values);
+			*this.calculateWithoutMultiple(values);
 	}
 
 	protected abstract calculateWithoutMultiple(values:ArrayLike<number>):number;

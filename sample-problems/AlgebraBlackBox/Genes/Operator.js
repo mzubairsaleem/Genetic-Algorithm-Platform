@@ -127,6 +127,19 @@ var OperatorGene = (function (_super) {
                         somethingDone = true;
                         break;
                     }
+                case Operator.MULTIPLY:
+                    {
+                        var g = p
+                            .ofType(OperatorGene)
+                            .where(function (g) { return g.operator == Operator.SQUARE_ROOT; })
+                            .toArray();
+                        while (g.length > 1) {
+                            _.remove(g.pop());
+                            var e = g.pop();
+                            _.replace(e, e.linq.single());
+                        }
+                        break;
+                    }
                 case Operator.DIVIDE:
                     {
                         var first = pa.first();
@@ -136,8 +149,8 @@ var OperatorGene = (function (_super) {
                             _._replaceInternal(next, new ConstantGene_1.default(next.multiple));
                             somethingDone = true;
                         }
+                        break;
                     }
-                    break;
             }
         });
         switch (_._operator) {
@@ -209,9 +222,10 @@ var OperatorGene = (function (_super) {
                         somethingDone = true;
                         break;
                     }
-                    if (values.take(1).any(function (v) { return v.multiple == 0; })) {
+                    if (f && f.multiple == 0) {
                         _._multiple = 0;
                         somethingDone = true;
+                        break;
                     }
                     if (values.skip(1).any(function (v) { return v.multiple == 0; })) {
                         _._multiple = NaN;

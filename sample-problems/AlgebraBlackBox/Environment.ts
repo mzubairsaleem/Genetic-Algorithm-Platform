@@ -3,19 +3,11 @@ import AlgebraGenome from "./Genome";
 import AlgebraGenomeFactory from "./GenomeFactory";
 import AlgebraBlackBoxProblem from "./Problem";
 import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
-import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
-
+import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promise";
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
-	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
-}
-
-const VARIABLE_NAMES = Object.freeze(Enumerable("abcdefghijklmnopqrstuvwxyz").toArray());
-
-export function convertParameterToAlphabet(source:string):string
-{
-	return supplant(source, VARIABLE_NAMES);
+	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
 export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
@@ -27,13 +19,16 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 
 		this._problems
 			.push(new AlgebraBlackBoxProblem(actualFormula));
+
+		// this.maxPopulations = 20;
+		// this.populationSize = 100;
 	}
 
-	protected _onExecute():void
+	protected async _onAsyncExecute():NETPromise<void>
 	{
 		try
 		{
-			super._onExecute();
+			await super._onAsyncExecute();
 
 			const problems = Enumerable(this._problems).memoize();
 			const p = this._populations.linq
@@ -53,10 +48,10 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 										let red = g.root.asReduced(), suffix = "";
 										if(red!=g.root)
 											suffix
-												= " => " + convertParameterToAlphabet(red.toString());
+												= " => " + g.toAlphaParameters(true);
 										let f = r.getFitnessFor(g);
 										return {
-											label: `(${f.count}) ${f.scores}: ${convertParameterToAlphabet(g.hash)}${suffix}`,
+											label: `${g.toAlphaParameters()}${suffix}: (${f.count}) ${f.scores}`,
 											gene: g
 										};
 									}
@@ -67,9 +62,9 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 				.memoize();
 
 			const c = problems.selectMany(p => p.convergent).toArray();
-			console.log("Top:", top.select(s=>s.label).toArray(), "\n");
+			console.log("Top:", "\n\t"+top.select(s=>s.label).toArray().join("\n\t"));
 			if(c.length) console.log("\nConvergent:", c.map(
-				g=>convertParameterToAlphabet(g.hashReduced)));
+				g=>g.toAlphaParameters(true)));
 
 
 			if(problems.count(p=>p.convergent.length!=0)<this._problems.length)
@@ -85,10 +80,10 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 						return n;
 					}));
 
-				console.log("Population Size:", n.count);
-
 				this.start();
 			}
+
+			console.log("");
 
 
 		}

@@ -14,6 +14,7 @@ import {IMap} from "typescript-dotnet-umd/System/Collections/Dictionaries/IDicti
 import {IProblem} from "../../source/IProblem";
 import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
 import {average} from "typescript-dotnet-umd/System/Collections/Array/Procedure";
+import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promise";
 
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, Fitness>
 {
@@ -55,8 +56,8 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	rank(population:IEnumerableOrArray<AlgebraGenome>):IOrderedEnumerable<AlgebraGenome>
 	{
 		return Enumerable(population)
-			.orderByDescending(g=>this.getFitnessFor(g))
-			.thenBy(g=>g.hash.length);
+			.orderByDescending(g => this.getFitnessFor(g))
+			.thenBy(g => g.hash.length);
 	}
 
 	rankAndReduce(
@@ -65,7 +66,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	{
 		let lastFitness:Fitness;
 		return this.rank(population)
-			.takeWhile((g, i)=>
+			.takeWhile((g, i) =>
 			{
 				let lf = lastFitness, f = this.getFitnessFor(g);
 				lastFitness = f;
@@ -74,7 +75,9 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	}
 
 	//noinspection JSMethodCanBeStatic,JSUnusedGlobalSymbols
-	correlation(aSample:ArrayLike<number>, bSample:ArrayLike<number>, gA:AlgebraGenome, gB:AlgebraGenome):number
+	async correlation(
+		aSample:ArrayLike<number>, bSample:ArrayLike<number>, gA:AlgebraGenome,
+		gB:AlgebraGenome):NETPromise<number>
 	{
 		const len = aSample.length*bSample.length;
 
@@ -85,8 +88,10 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 		{
 			for(let b of <number[]>bSample)
 			{
-				gA_result[i] = gA.calculate([a, b]);
-				gB_result[i] = gB.calculate([a, b]);
+				const params = [a, b];
+				gA_result[i] = gA.calculate(params);
+				gB_result[i] = gB.calculate(params);
+				i++;
 			}
 		}
 
@@ -116,10 +121,13 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	}
 
 
-	test(p:Population<AlgebraGenome>, count:number = 1):void
+	async test(p:Population<AlgebraGenome>, count:number = 1):NETPromise<void>
 	{
 		// TODO: Need to find a way to dynamically implement more than 2 params... (discover significant params)
 		let f = this._actualFormula;
+		//noinspection JSMismatchedCollectionQueryUpdate
+		const result:PromiseLike<any>[] = [];
+		const genes = p.toArray();
 		for(let i = 0; i<count; i++)
 		{
 			const aSample = this.sample();
@@ -134,15 +142,14 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 				}
 			}
 
-
-			p.forEach(g=>
+			for(let g of genes)
 			{
-				let result:number[] = [];
+				let calc:number[] = [];
 				for(let a of aSample)
 				{
 					for(let b of bSample)
 					{
-						result.push(g.calculate([a, b]));
+						calc.push(g.calculate([a, b]));
 					}
 				}
 				let divergence:number[] = [];
@@ -151,10 +158,10 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 
 				for(let i = 0; i<len; i++)
 				{
-					divergence[i] = -Math.abs(result[i] - correct[i]);
+					divergence[i] = -Math.abs(calc[i] - correct[i]);
 				}
 
-				let c = correlation(correct, result);
+				let c = correlation(correct, calc);
 				let d = average(divergence) + 1;
 
 				let f = this.getFitnessFor(g);
@@ -163,10 +170,15 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 					(isNaN(d) || !isFinite(d)) ? -Infinity : d
 				]);
 
-				this._convergent.setValue(g.hashReduced, f.hasConverged() ? g : (void 0));
-			});
+				this._convergent.setValue(g.hashReduced, f.hasConverged()
+					? g
+					: (void 0));
+
+			}
 
 		}
+
+		await result;
 	}
 
 

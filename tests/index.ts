@@ -6,7 +6,6 @@ const assert = require("assert");
 import * as Operators from "../sample-problems/AlgebraBlackBox/Operators";
 import OperatorGene from "../sample-problems/AlgebraBlackBox/Genes/Operator";
 import ParameterGene from "../sample-problems/AlgebraBlackBox/Genes/ParameterGene";
-import {convertParameterToAlphabet as formatGene} from "../sample-problems/AlgebraBlackBox/Environment";
 import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene";
 {
 
@@ -19,9 +18,9 @@ import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene"
 			o.add(new ParameterGene(0));
 			o.add(new ParameterGene(0,-1));
 
-			assert.equal(formatGene(o.toString()),"(a-a)");
+			assert.equal(o.toAlphaParameters(),"(a-a)");
 			const r = o.asReduced();
-			assert.equal(formatGene(r.toString()),"(0)")
+			assert.equal(r.toAlphaParameters(),"(0)")
 		});
 
 		it("should reduce to 1", ()=>
@@ -30,9 +29,9 @@ import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene"
 			o.add(new ParameterGene(0));
 			o.add(new ParameterGene(0));
 
-			assert.equal(formatGene(o.toString()),"(a/a)");
+			assert.equal(o.toAlphaParameters(),"(a/a)");
 			const r = o.asReduced();
-			assert.equal(formatGene(r.toString()),"(1)")
+			assert.equal(r.toAlphaParameters(),"(1)")
 		});
 
 		it("should reduce simple summed parameters to minimum", ()=>
@@ -42,9 +41,9 @@ import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene"
 			o.add(new ParameterGene(0,-1));
 			o.add(new ParameterGene(0,-1));
 
-			assert.equal(formatGene(o.toString()),"(a-a-a)");
+			assert.equal(o.toAlphaParameters(),"(a-a-a)");
 			const r = o.asReduced();
-			assert.equal(formatGene(r.toString()),"-(a)")
+			assert.equal(r.toAlphaParameters(),"-(a)")
 		});
 
 		it("should keep sign appropriately", ()=>
@@ -56,9 +55,9 @@ import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene"
 			o.add(p);
 			o.add(new ParameterGene(1,-1));
 
-			assert.equal(formatGene(o.toString()),"((a*a)-b)");
+			assert.equal(o.toAlphaParameters(),"((a*a)-b)");
 			const r = o.asReduced();
-			assert.equal(formatGene(r.toString()),"((a*a)-b)")
+			assert.equal(r.toAlphaParameters(),"((a*a)-b)")
 		});
 
 		it("should reduce constants", ()=>
@@ -72,9 +71,9 @@ import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene"
 			o.add(new ConstantGene(2));
 			o.add(new ConstantGene(3));
 
-			assert.equal(formatGene(o.toString()),"((a*a)-b+3+2)");
+			assert.equal(o.toAlphaParameters(),"((a*a)-b+3+2)");
 			const r = o.asReduced();
-			assert.equal(formatGene(r.toString()),"((a*a)-b+5)")
+			assert.equal(r.toAlphaParameters(),"((a*a)-b+5)")
 		});
 
 		it("should reduce eliminate zero", ()=>
@@ -90,9 +89,9 @@ import ConstantGene from "../sample-problems/AlgebraBlackBox/Genes/ConstantGene"
 			o.add(new ConstantGene(-1));
 			o.add(new ConstantGene(-4));
 
-			assert.equal(formatGene(o.toString()),"((a*a)-b+3+2-1-4)");
+			assert.equal(o.toAlphaParameters(),"((a*a)-b+3+2-1-4)");
 			const r = o.asReduced();
-			assert.equal(formatGene(r.toString()),"((a*a)-b)")
+			assert.equal(r.toAlphaParameters(),"((a*a)-b)")
 		});
 
 	});

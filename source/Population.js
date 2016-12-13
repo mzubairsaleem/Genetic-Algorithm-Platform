@@ -8,6 +8,7 @@ var StringKeyDictionary_1 = require("typescript-dotnet-umd/System/Collections/Di
 var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var ArgumentNullException_1 = require("typescript-dotnet-umd/System/Exceptions/ArgumentNullException");
 var Enumerator_1 = require("typescript-dotnet-umd/System/Collections/Enumeration/Enumerator");
+var Integer_1 = require("typescript-dotnet-umd/System/Integer");
 var Population = (function () {
     function Population(_genomeFactory) {
         this._genomeFactory = _genomeFactory;
@@ -39,6 +40,8 @@ var Population = (function () {
         return !!item && p.containsKey(item.hash);
     };
     Population.prototype.copyTo = function (array, index) {
+        if (index === void 0) { index = 0; }
+        Integer_1.Integer.assertZeroOrGreater(index);
         if (!array)
             throw new ArgumentNullException_1.ArgumentNullException('array');
         var e = this._population.getEnumerator();
@@ -86,14 +89,17 @@ var Population = (function () {
         var f = this._genomeFactory;
         if (rankedGenomes && rankedGenomes.length) {
             var top_1 = rankedGenomes[0];
-            if (!top_1.disableVariations) {
-                top_1.disableVariations = true;
+            if (!top_1.variationCountdown) {
+                top_1.variationCountdown = 20;
                 var v = f.generateVariations(top_1);
+                console.log("Top Variations:", v.length);
                 for (var _i = 0, v_1 = v; _i < v_1.length; _i++) {
                     var n = v_1[_i];
                     this.add(n);
-                    count--;
                 }
+            }
+            else {
+                top_1.variationCountdown--;
             }
         }
         for (var i = 0; i < count; i++) {

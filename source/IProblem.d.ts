@@ -24,7 +24,7 @@ export interface IProblem<TGenome extends IGenome, TFitness>
 		population:IEnumerableOrArray<TGenome>,
 		targetMaxPopulation:number):IEnumerable<TGenome>;
 
-	test(p:IPopulation<TGenome>, count?:number):void;
+	test(p:IPopulation<TGenome>, count?:number):PromiseLike<void>;
 }
 
 export default IProblem;

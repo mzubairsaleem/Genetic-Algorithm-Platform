@@ -5,7 +5,14 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var GeneBase_1 = require("../../source/GeneBase");
+var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+var Utility_1 = require("typescript-dotnet-umd/System/Text/Utility");
 var EMPTY = "";
+var VARIABLE_NAMES = Object.freeze(Linq_1.Enumerable("abcdefghijklmnopqrstuvwxyz").toArray());
+function toAlphaParameters(hash) {
+    return Utility_1.supplant(hash, VARIABLE_NAMES);
+}
+exports.toAlphaParameters = toAlphaParameters;
 var AlgebraGene = (function (_super) {
     __extends(AlgebraGene, _super);
     function AlgebraGene(_multiple) {
@@ -41,6 +48,9 @@ var AlgebraGene = (function (_super) {
     AlgebraGene.prototype.toStringInternal = function () {
         return this.multiplePrefix
             + this.toStringContents();
+    };
+    AlgebraGene.prototype.toAlphaParameters = function () {
+        return toAlphaParameters(this.toString());
     };
     AlgebraGene.prototype.calculate = function (values) {
         return this._multiple

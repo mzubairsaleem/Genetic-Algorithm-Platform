@@ -1,6 +1,6 @@
 import Genome from "../../source/Genome";
 import InvalidOperationException from "typescript-dotnet-umd/System/Exceptions/InvalidOperationException";
-import AlgebraGene from "./Gene";
+import AlgebraGene, {toAlphaParameters} from "./Gene";
 
 export default class AlgebraGenome extends Genome<AlgebraGene>
 {
@@ -32,6 +32,18 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 		return root.asReduced().serialize();
 	}
 
+	toAlphaParameters(reduced?:boolean):string
+	{
+		if(reduced)
+			return this._alphaParameterHashReduced || (this._alphaParameterHashReduced
+					= toAlphaParameters(this.serializeReduced()));
+
+		return this._alphaParameterHash || (this._alphaParameterHash
+				= toAlphaParameters(this.hash));
+	}
+
+	private _alphaParameterHashReduced:string|undefined;
+	private _alphaParameterHash:string|undefined;
 	private _hashReduced:string|undefined;
 	get hashReduced():string
 	{
@@ -41,9 +53,10 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 	resetHash():void
 	{
 		super.resetHash();
-		this._hashReduced = void 0;
+		this._alphaParameterHashReduced =
+			this._alphaParameterHash =
+				this._hashReduced = void 0;
 	}
-
 
 	calculate(values:ArrayLike<number>):number
 	{
@@ -52,4 +65,5 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 			throw new InvalidOperationException("Cannot calculate a gene with no root.");
 		return root.calculate(values);
 	}
+
 }

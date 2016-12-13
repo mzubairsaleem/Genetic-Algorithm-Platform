@@ -18,6 +18,7 @@ import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnum
 import {IGenome} from "./IGenome";
 import {IPopulation} from "./IPopulation";
 import {IGenomeFactory} from "./IGenomeFactory";
+import {Integer} from "typescript-dotnet-umd/System/Integer";
 
 export class Population<TGenome extends IGenome>
 implements IPopulation<TGenome>, IEnumerateEach<TGenome>
@@ -57,8 +58,9 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		return !!item && p.containsKey(item.hash);
 	}
 
-	copyTo(array:TGenome[], index?:number):TGenome[]
+	copyTo(array:TGenome[], index:number = 0):TGenome[]
 	{
+		Integer.assertZeroOrGreater(index);
 		if(!array) throw new ArgumentNullException('array');
 
 		// This is a generic implementation that will work for all derived classes.
@@ -130,13 +132,15 @@ implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 		let f = this._genomeFactory;
 		if(rankedGenomes && rankedGenomes.length) {
 			const top = rankedGenomes[0];
-			if(!top.disableVariations) {
-				top.disableVariations = true;
+			if(!top.variationCountdown) {
+				top.variationCountdown = 20;
 				const v = f.generateVariations(top);
+				console.log("Top Variations:",v.length);
 				for(let n of v) {
 					this.add(n);
-					count--;
 				}
+			} else {
+				top.variationCountdown--;
 			}
 		}
 

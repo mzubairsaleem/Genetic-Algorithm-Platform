@@ -13,7 +13,7 @@ export interface IEnvironment<TGenome extends IGenome>
 	/**
 	 * Initiates a cycle of testing with the current populations and problems.
 	 */
-	test(count?:number):void;
+	test(count?:number):PromiseLike<void>;
 
 	/**
 	 * Spawns a new population. Optionally does so using the source provided.

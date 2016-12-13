@@ -2,8 +2,6 @@
  * @author electricessence / https://github.com/electricessence/
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
-
-
 import AlgebraGene from "../Gene";
 import UnreducibleGene from "./UnreducibleGene";
 

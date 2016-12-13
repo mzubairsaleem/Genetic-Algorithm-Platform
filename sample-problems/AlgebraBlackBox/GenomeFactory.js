@@ -90,87 +90,53 @@ var AlgebraGenomeFactory = (function (_super) {
     };
     AlgebraGenomeFactory.prototype.generateVariations = function (source) {
         var result = [];
-        var count = source.genes.count();
+        var sourceGenes = source.genes.toArray();
+        var count = sourceGenes.length;
         var _loop_1 = function (i) {
-            var newGenome = source.clone();
-            var gene = newGenome.genes.elementAt(i);
-            var isRoot = gene == newGenome.root;
-            var parent_1 = newGenome.findParent(gene);
-            var parentOp = Types_1.Type.as(parent_1, Operator_1.default);
-            if (gene.multiple > 1) {
-                gene.multiple--;
-                result.push(newGenome);
-            }
-            else if (gene.multiple < -1) {
-                gene.multiple++;
-                result.push(newGenome);
-            }
-            else if (gene instanceof ConstantGene_1.default) {
-                if (parentOp) {
-                    parentOp.remove(gene);
+            var gene = sourceGenes[i];
+            var isRoot = gene == source.root;
+            var applyClone = function (handler) {
+                var newGenome = source.clone();
+                if (handler(newGenome.genes.elementAt(i), newGenome) !== false)
                     result.push(newGenome);
+            };
+            var absMultiple = Math.abs(gene.multiple);
+            if (absMultiple > 1) {
+                applyClone(function (gene) {
+                    gene.multiple -= gene.multiple / absMultiple;
+                });
+            }
+            var parentOp = Types_1.Type.as(source.findParent(gene), Operator_1.default);
+            if (parentOp) {
+                if (parentOp.count > 1) {
+                    applyClone(function (gene, newGenome) {
+                        newGenome.findParent(gene).remove(gene);
+                    });
                 }
             }
-            else if (gene instanceof ParameterGene_1.default) {
-                if (parentOp && parentOp.count < 3) {
-                    if (!parentOp.linq.all(function (o) { return o instanceof ParameterGene_1.default || o instanceof ConstantGene_1.default; })) {
-                        var replacement = parentOp.linq
-                            .where(function (o) { return o instanceof Operator_1.default; })
-                            .single();
-                        if (parentOp == newGenome.root)
-                            newGenome.root = replacement;
-                        else
-                            newGenome
-                                .findParent(parentOp)
-                                .replace(parentOp, replacement);
-                        result.push(newGenome);
-                    }
-                }
-            }
-            else if (gene instanceof Operator_1.default) {
-                if (Operator.Available.Functions.indexOf(gene.operator) != -1) {
+            if (gene instanceof Operator_1.default && gene.count == 1) {
+                applyClone(function (gene, newGenome) {
+                    var child = gene.get(0);
+                    var parentOp = newGenome.findParent(gene);
                     if (isRoot) {
-                        if (!gene.count)
-                            return "continue";
-                        newGenome.root = gene.linq.first();
+                        newGenome.root = child;
                     }
                     else {
-                        parentOp.modifyChildren(function (v) {
-                            var index = v.indexOf(gene);
-                            if (index != -1) {
-                                for (var _i = 0, _a = gene.toArray().reverse(); _i < _a.length; _i++) {
-                                    var o = _a[_i];
-                                    v.insert(index, o);
-                                }
-                                v.remove(gene);
-                                return true;
+                        parentOp.modifyChildren(function (p) {
+                            var pGenes = p.toArray();
+                            p.clear();
+                            for (var _i = 0, pGenes_1 = pGenes; _i < pGenes_1.length; _i++) {
+                                var g = pGenes_1[_i];
+                                p.add(g == gene ? child : g);
                             }
-                            return false;
+                            return true;
                         });
                     }
-                    return "break";
-                }
-                if (gene.count == 2
-                    && gene.linq.any(function (o) { return o instanceof Operator_1.default; })
-                    && gene.linq.any(function (o) { return o instanceof ParameterGene_1.default; })) {
-                    var childOpGene = gene.linq.ofType(Operator_1.default).single();
-                    gene.remove(childOpGene);
-                    if (isRoot)
-                        newGenome.root = childOpGene;
-                    else
-                        parentOp.replace(gene, childOpGene);
-                    result.push(newGenome);
-                }
-                else if (!isRoot && parentOp && gene.count < 3) {
-                    parentOp.remove(gene);
-                    result.push(newGenome);
-                }
+                });
             }
         };
         for (var i = 0; i < count; i++) {
-            var state_1 = _loop_1(i);
-            if (state_1 === "break")
-                break;
+            _loop_1(i);
         }
         if (source.root instanceof Operator_1.default && Operator.Available.Functions.indexOf(source.root.operator) != -1) {
         }
@@ -195,14 +161,14 @@ var AlgebraGenomeFactory = (function (_super) {
             var genes = newGenome.genes.toArray();
             var gene = Random_1.Random.select.one(genes, true);
             var isRoot = gene == newGenome.root;
-            var parent_2 = newGenome.findParent(gene);
-            var parentOp = Types_1.Type.as(parent_2, Operator_1.default);
+            var parent_1 = newGenome.findParent(gene);
+            var parentOp = Types_1.Type.as(parent_1, Operator_1.default);
             var invalidOptions = [];
-            var shouldNotRemove = function () { return isRoot || parent_2 == null || parentOp == null; };
+            var shouldNotRemove = function () { return isRoot || parent_1 == null || parentOp == null; };
             var doNotRemove = gene instanceof ParameterGene_1.default && shouldNotRemove();
             var lastOption = -1;
             var _loop_3 = function () {
-                if (parent_2 != null && !parent_2.contains(gene))
+                if (parent_1 != null && !parent_1.contains(gene))
                     throw "Parent changed?";
                 if (gene instanceof ConstantGene_1.default) {
                     var cg = gene;
@@ -248,7 +214,7 @@ var AlgebraGenomeFactory = (function (_super) {
                             if (isRoot)
                                 newGenome.root = newPG;
                             else
-                                parent_2.replace(gene, newPG);
+                                parent_1.replace(gene, newPG);
                             invalidOptions = null;
                             break;
                         case 2:
@@ -257,7 +223,7 @@ var AlgebraGenomeFactory = (function (_super) {
                                 if (isRoot)
                                     newGenome.root = newFn;
                                 else
-                                    parent_2.replace(gene, newFn);
+                                    parent_1.replace(gene, newFn);
                                 newFn.add(gene);
                                 newFn.add(gene.clone());
                                 invalidOptions = null;
@@ -273,7 +239,7 @@ var AlgebraGenomeFactory = (function (_super) {
                                 if (isRoot)
                                     newGenome.root = newFn;
                                 else
-                                    parent_2.replace(gene, newFn);
+                                    parent_1.replace(gene, newFn);
                                 newFn.add(gene);
                                 invalidOptions = null;
                                 break;
@@ -382,7 +348,7 @@ var AlgebraGenomeFactory = (function (_super) {
                                 if (isRoot)
                                     newGenome.root = newFn;
                                 else
-                                    parent_2.replace(gene, newFn);
+                                    parent_1.replace(gene, newFn);
                                 newFn.add(gene);
                                 invalidOptions = null;
                                 break;

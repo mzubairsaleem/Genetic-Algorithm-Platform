@@ -24,7 +24,7 @@ function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 
 	if(b instanceof ConstantGene && !(a instanceof ConstantGene))
 		return -1;
-	
+
 	if(a.multiple<b.multiple)
 		return 1;
 
@@ -50,7 +50,8 @@ function parenGroup(contents:string):string
 
 function getRandomFrom<T>(source:ReadonlyArray<T>, excluding?:T):T
 {
-	return Random.select.one(excluding === void(0) ? source : source.filter(v=>v!==excluding), true);
+	return Random.select.one(excluding=== void(0) ? source : source.filter(
+		v => v!==excluding), true);
 }
 
 function getRandomFromExcluding<T>(source:ReadonlyArray<T>, excluding:IEnumerableOrArray<T>):T
@@ -59,7 +60,7 @@ function getRandomFromExcluding<T>(source:ReadonlyArray<T>, excluding:IEnumerabl
 	if(excluding)
 	{
 		const ex = Enumerable(excluding).memoize();
-		options = source.filter(v=>!ex.contains(v));
+		options = source.filter(v => !ex.contains(v));
 	}
 	else
 	{
@@ -142,11 +143,12 @@ class OperatorGene extends AlgebraGene
 		const _ = this, values:ILinqEnumerable<AlgebraGene> = _.linq;
 		let somethingDone = false;
 
+		// Look for groupings...
 		Enumerable
 			.from<AlgebraGene>(_._source.slice()) // use a copy...
-			.groupBy(g=>g.toStringContents())
-			.where(g=>g.count()>1)
-			.forEach(p=>
+			.groupBy(g => g.toStringContents())
+			.where(g => g.count()>1)
+			.forEach(p =>
 			{
 				let pa = p.memoize();
 
@@ -162,9 +164,25 @@ class OperatorGene extends AlgebraGene
 						else
 							hero.multiple = sum;
 
-						pa.skip(1).forEach(g=>_._removeInternal(g));
+						pa.skip(1).forEach(g => _._removeInternal(g));
 
 						somethingDone = true;
+						break;
+					}
+					case Operator.MULTIPLY:
+					{
+						let g = p
+							.ofType(OperatorGene)
+							.where(g => g.operator==Operator.SQUARE_ROOT)
+							.toArray();
+
+						while(g.length>1)
+						{
+							_.remove(g.pop()!);
+							let e = g.pop()!;
+							_.replace(e, e.linq.single());
+						}
+
 						break;
 					}
 
@@ -178,8 +196,9 @@ class OperatorGene extends AlgebraGene
 							_._replaceInternal(next, new ConstantGene(next.multiple));
 							somethingDone = true;
 						}
-					}
 						break;
+					}
+
 
 				}
 			});
@@ -202,7 +221,7 @@ class OperatorGene extends AlgebraGene
 
 				if(_.count>1 && constGenes.any())
 				{
-					constGenes.forEach(g=>
+					constGenes.forEach(g =>
 					{
 						_._removeInternal(g);
 						_._multiple *= g.multiple;
@@ -217,8 +236,8 @@ class OperatorGene extends AlgebraGene
 					}
 				}
 
-				values.where(v=>v.multiple!=1)
-					.forEach(p=>
+				values.where(v => v.multiple!=1)
+					.forEach(p =>
 					{
 						somethingDone = true;
 						_.multiple *= p.multiple;
@@ -263,7 +282,6 @@ class OperatorGene extends AlgebraGene
 					}
 				}
 
-
 			}
 				break;
 
@@ -282,10 +300,11 @@ class OperatorGene extends AlgebraGene
 				}
 
 				// If the first entry has a zero multiple.
-				if(values.take(1).any(v => v.multiple==0))
+				if(f && f.multiple==0)
 				{
 					_._multiple = 0;
 					somethingDone = true;
+					break;
 				}
 
 				// Check for divide by zero.
@@ -303,7 +322,7 @@ class OperatorGene extends AlgebraGene
 				}
 
 				// look for sign inversion and simplify.
-				values.where(v => v.multiple<0).forEach(p=>
+				values.where(v => v.multiple<0).forEach(p =>
 				{
 					somethingDone = true;
 					_._multiple *= -1;
@@ -615,7 +634,7 @@ class OperatorGene extends AlgebraGene
 
 						// Square root of square?
 						if(og.operator==Operator.MULTIPLY && childCount==2
-							&& og.linq.select(p=>p.asReduced().toString())
+							&& og.linq.select(p => p.asReduced().toString())
 								.distinct()
 								.count()==1)
 						{
@@ -648,9 +667,11 @@ class OperatorGene extends AlgebraGene
 
 
 		// Pull out multiple to allow for reduction.
-		if(_.count==1) {
+		if(_.count==1)
+		{
 			const p = values.first();
-			if(_._operator==Operator.SQUARE_ROOT){
+			if(_._operator==Operator.SQUARE_ROOT)
+			{
 
 				// if(p instanceof OperatorGene) {
 				// 	let childCount = p.count;
@@ -673,15 +694,20 @@ class OperatorGene extends AlgebraGene
 				// 	}
 				// }
 
-				if(p instanceof ConstantGene){
-					if(p.multiple==0) {
+				if(p instanceof ConstantGene)
+				{
+					if(p.multiple==0)
+					{
 						somethingDone = true;
 						_.multiple *= p.multiple;
 						p.multiple = 1;
 					}
 				}
-			} else {
-				if(!(p instanceof ConstantGene) && p.multiple!==1) {
+			}
+			else
+			{
+				if(!(p instanceof ConstantGene) && p.multiple!==1)
+				{
 					somethingDone = true;
 					_.multiple *= p.multiple;
 					p.multiple = 1;
@@ -690,25 +716,29 @@ class OperatorGene extends AlgebraGene
 
 		}
 
-		if(_._operator==Operator.ADD && _._source.length>1) {
+		if(_._operator==Operator.ADD && _._source.length>1)
+		{
 			let constants = Enumerable
 				.from<AlgebraGene>(_._source.slice()) // use a copy...
 				.ofType(ConstantGene);
 			let len = constants.count();
-			if(len) {
+			if(len)
+			{
 
 				let sum = constants.sum(s => s.multiple);
 				let hero = constants.first();
 
-				if(len>1) {
+				if(len>1)
+				{
 					hero.multiple = sum;
-					constants.skip(1).forEach(c=>_._removeInternal(c));
+					constants.skip(1).forEach(c => _._removeInternal(c));
 					len = 1;
 					somethingDone = true;
 				}
 
 				// remove 0 if makes sense.
-				if(sum==0 && _._source.length>len) {
+				if(sum==0 && _._source.length>len)
+				{
 					_._removeInternal(hero);
 					somethingDone = true;
 				}
@@ -760,12 +790,12 @@ class OperatorGene extends AlgebraGene
 					+ _._source[0].toString();
 			else
 				return _.operator
-					+ parenGroup(_.arranged.map(s=>s.toString()).join(","));
+					+ parenGroup(_.arranged.map(s => s.toString()).join(","));
 		}
 		if(_._operator==Operator.ADD)
 		{
 			// Cleanup "+-"...
-			return parenGroup(trim(_.arranged.map(s=>
+			return parenGroup(trim(_.arranged.map(s =>
 			{
 				let r = s.toString();
 				if(!startsWith(r, '-'))
@@ -774,14 +804,14 @@ class OperatorGene extends AlgebraGene
 			}).join(""), "+"));
 		}
 		else
-			return parenGroup(_.arranged.map(s=>s.toString()).join(_.operator));
+			return parenGroup(_.arranged.map(s => s.toString()).join(_.operator));
 	}
 
 
 	clone():OperatorGene
 	{
 		const clone = new OperatorGene(this._operator, this._multiple);
-		this.forEach(g=>
+		this.forEach(g =>
 		{
 			clone._addInternal(g.clone());
 		});

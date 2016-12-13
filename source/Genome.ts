@@ -18,7 +18,7 @@ implements IGenome, ICloneable<Genome<T>>
 		this._hash = null;
 	}
 
-	disableVariations:boolean = false;
+	variationCountdown:number = 0;
 
 	get root():T
 	{

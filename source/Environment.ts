@@ -16,6 +16,7 @@ import {IGenome} from "./IGenome";
 import {IEnvironment} from "./IEnvironment";
 import {IProblem} from "./IProblem";
 import {IGenomeFactory} from "./IGenomeFactory";
+import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promise";
 import Stopwatch from "typescript-dotnet-umd/System/Diagnostics/Stopwatch";
 
 export class Environment<TGenome extends IGenome>
@@ -40,13 +41,19 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		this._populations = new LinkedList<Population<TGenome>>();
 	}
 
-	test(count:number = this.testCount):void
+	async test(count:number = this.testCount):NETPromise<void>
 	{
-		let p = this._populations;
-		for(let pr of this._problems)
-		{
-			p.forEach(po=>pr.test(po, count));
-		}
+		let p = this._populations.toArray();
+		let results = this._problems.map(problem => {
+			let calcP = p.map(population => problem.test(population, count));
+			let a = NETPromise.all(calcP);
+			a.delayAfterResolve(10).then(()=>dispose.these(<any>calcP));
+			return a;
+		});
+
+		let result = NETPromise.all(results);
+		await result;
+		dispose.these(results);
 	}
 
 	//noinspection JSUnusedGlobalSymbols
@@ -61,8 +68,7 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		return this._populations.count;
 	}
 
-	protected _onExecute():void
-	{
+	protected async _onAsyncExecute():NETPromise<void> {
 		const populations = this._populations.linq.reverse(),
 		      problems    = this._problemsEnumerable.memoize();
 
@@ -80,29 +86,39 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 		const p = this.spawn(
 			this.populationSize, previousP.any() ?
-			Triangular.disperse.decreasing<TGenome>(
-				Enumerable.weave<TGenome>(previousP)
-			) : void 0
+				Triangular.disperse.decreasing<TGenome>(
+					Enumerable.weave<TGenome>(previousP)
+				) : void 0
 		);
 
-		if(!p.count)
+		const beforeCulling = p.count;
+		if(!beforeCulling) // Just in case.
 			throw "Nothing spawned!!!";
 
-		console.log("Populations:",this._populations.count);
-		console.log("Selection/Ranking (ms):",sw.currentLapMilliseconds);
+		console.log("Populations:", this._populations.count);
+		console.log("Selection/Ranking (ms):", sw.currentLapMilliseconds);
 		sw.lap();
 
-		this.test();
+		await this.test();
 		this._generations++;
+
+
+		// Since we have 'variations' added into the pool, we don't want to eliminate any new material that may be useful.
+		const additional = Math.max(p.count - this.populationSize, 0);
 
 		p.keepOnly(
 			Enumerable.weave<TGenome>(
-				problems.select(r=>r.rank(p)))
-				.take(this.populationSize/2));
+				problems.select(r => r.rank(p)))
+				.take(this.populationSize/2 + additional));
+		console.log("Population Size:", p.count, '/', beforeCulling);
 
 		dispose(populations);
-		console.log("Testing/Cleanup (ms):",sw.currentLapMilliseconds);
+		console.log("Testing/Cleanup (ms):", sw.currentLapMilliseconds);
+	}
 
+	protected _onExecute():void
+	{
+		this._onAsyncExecute();
 	}
 
 
@@ -128,10 +144,11 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		const problems = this._problemsEnumerable.memoize(), pops = this._populations;
 		pops.linq
 			.takeExceptLast(maxPopulations)
-			.forEach(p=>
+			.forEach(p =>
 			{
 				// Move top items to latest population.
-				problems.forEach(r=>{
+				problems.forEach(r =>
+				{
 					const keep = Enumerable(r.rank(p)).firstOrDefault();
 					if(keep) pops.last!.value.add(keep);
 				});

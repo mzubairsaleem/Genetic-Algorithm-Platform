@@ -11,7 +11,8 @@ import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/
 
 export interface IGenome extends ISerializable, IEquatable<IGenome>
 {
-	disableVariations:boolean;
+	// This allows for variation testing without constantly overloading.
+	variationCountdown:number;
 	root:IGene|undefined;
 	hash:string;
 	genes:IEnumerable<IGene>
