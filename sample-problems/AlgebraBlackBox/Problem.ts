@@ -18,7 +18,7 @@ import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promi
 import {Parallel} from "typescript-dotnet-umd/System/Threading/Tasks/Parallel";
 import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
 
-const S_INDEXES = Object.freeze(Enumerable.range(0, 20).select(n => `s[${n}]`).toArray());
+const S_INDEXES = Object.freeze(Enumerable.range(0, 30).select(n => `s[${n}]`).toArray());
 
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, Fitness>
 {

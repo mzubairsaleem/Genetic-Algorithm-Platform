@@ -43,7 +43,7 @@ var Procedure_1 = require("typescript-dotnet-umd/System/Collections/Array/Proced
 var Promise_1 = require("typescript-dotnet-umd/System/Promises/Promise");
 var Parallel_1 = require("typescript-dotnet-umd/System/Threading/Tasks/Parallel");
 var Utility_1 = require("typescript-dotnet-umd/System/Text/Utility");
-var S_INDEXES = Object.freeze(Linq_1.default.range(0, 20).select(function (n) { return "s[" + n + "]"; }).toArray());
+var S_INDEXES = Object.freeze(Linq_1.default.range(0, 30).select(function (n) { return "s[" + n + "]"; }).toArray());
 var AlgebraBlackBoxProblem = (function () {
     function AlgebraBlackBoxProblem(actualFormula) {
         this._fitness = {};
