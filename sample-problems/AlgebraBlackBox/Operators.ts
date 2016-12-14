@@ -19,6 +19,12 @@ export module Available
 	export const Functions:ReadonlyArray<OperatorSymbol> = Object.freeze([
 		SQUARE_ROOT
 	]);
+
+	export const FunctionActual:ReadonlyArray<string> = Object.freeze([
+		"Math.sqrt"
+	]);
 }
+
+
 
 

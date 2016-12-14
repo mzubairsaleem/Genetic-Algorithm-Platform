@@ -553,6 +553,26 @@ var OperatorGene = (function (_super) {
         else
             return parenGroup(_.arranged.map(function (s) { return s.toString(); }).join(_.operator));
     };
+    OperatorGene.prototype.toEntityWithoutMultiple = function () {
+        var _ = this;
+        var fni = Operator.Available.Functions.indexOf(_._operator);
+        if (fni != -1) {
+            if (!_._source.length)
+                return "NaN";
+            return Operator.Available.FunctionActual[fni]
+                + parenGroup(_.arranged.map(function (s) { return s.toEntity(); }).join(","));
+        }
+        if (_._operator == Operator.ADD) {
+            return parenGroup(Utility_1.trim(_.arranged.map(function (s) {
+                var r = s.toEntity();
+                if (!Utility_1.startsWith(r, '-'))
+                    r = "+" + r;
+                return r;
+            }).join(""), "+"));
+        }
+        else
+            return parenGroup(_.arranged.map(function (s) { return s.toEntity(); }).join(_.operator));
+    };
     OperatorGene.prototype.clone = function () {
         var clone = new OperatorGene(this._operator, this._multiple);
         this.forEach(function (g) {

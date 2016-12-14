@@ -19,7 +19,6 @@ export default class ParameterGene extends UnreducibleGene
 		return this._id;
 	}
 
-
 	toStringContents():string
 	{
 		return "{" + this._id + "}";

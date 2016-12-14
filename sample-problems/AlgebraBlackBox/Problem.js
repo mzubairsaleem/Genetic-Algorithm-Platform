@@ -41,6 +41,9 @@ var Fitness_1 = require("../../source/Fitness");
 var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var Procedure_1 = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
 var Promise_1 = require("typescript-dotnet-umd/System/Promises/Promise");
+var Parallel_1 = require("typescript-dotnet-umd/System/Threading/Tasks/Parallel");
+var Utility_1 = require("typescript-dotnet-umd/System/Text/Utility");
+var S_INDEXES = Object.freeze(Linq_1.default.range(0, 20).select(function (n) { return "s[" + n + "]"; }).toArray());
 var AlgebraBlackBoxProblem = (function () {
     function AlgebraBlackBoxProblem(actualFormula) {
         this._fitness = {};
@@ -114,55 +117,83 @@ var AlgebraBlackBoxProblem = (function () {
     AlgebraBlackBoxProblem.prototype.test = function (p, count) {
         if (count === void 0) { count = 1; }
         return __awaiter(this, void 0, Promise_1.Promise, function () {
-            var f, result, genes, i, aSample, bSample, correct, _i, aSample_1, a, _a, bSample_1, b, _b, genes_1, g, calc, _c, aSample_2, a, _d, bSample_2, b, divergence, len, i_1, c, d, f_1;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var f, result, genomes, i, aSample, bSample, correct, _i, aSample_1, a, _a, bSample_1, b, results, i_1, len, g, calc, divergence, len_1, i_2, c, d, f_1;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
                         f = this._actualFormula;
                         result = [];
-                        genes = p.toArray();
-                        for (i = 0; i < count; i++) {
-                            aSample = this.sample();
-                            bSample = this.sample();
-                            correct = [];
-                            for (_i = 0, aSample_1 = aSample; _i < aSample_1.length; _i++) {
-                                a = aSample_1[_i];
-                                for (_a = 0, bSample_1 = bSample; _a < bSample_1.length; _a++) {
-                                    b = bSample_1[_a];
-                                    correct.push(f(a, b));
-                                }
-                            }
-                            for (_b = 0, genes_1 = genes; _b < genes_1.length; _b++) {
-                                g = genes_1[_b];
-                                calc = [];
-                                for (_c = 0, aSample_2 = aSample; _c < aSample_2.length; _c++) {
-                                    a = aSample_2[_c];
-                                    for (_d = 0, bSample_2 = bSample; _d < bSample_2.length; _d++) {
-                                        b = bSample_2[_d];
-                                        calc.push(g.calculate([a, b]));
-                                    }
-                                }
-                                divergence = [];
-                                len = correct.length;
-                                divergence.length = correct.length;
-                                for (i_1 = 0; i_1 < len; i_1++) {
-                                    divergence[i_1] = -Math.abs(calc[i_1] - correct[i_1]);
-                                }
-                                c = Correlation_1.correlation(correct, calc);
-                                d = Procedure_1.average(divergence) + 1;
-                                f_1 = this.getFitnessFor(g);
-                                f_1.add([
-                                    (isNaN(c) || !isFinite(c)) ? -2 : c,
-                                    (isNaN(d) || !isFinite(d)) ? -Infinity : d
-                                ]);
-                                this._convergent.setValue(g.hashReduced, f_1.hasConverged()
-                                    ? g
-                                    : (void 0));
+                        genomes = p.toArray();
+                        i = 0;
+                        _b.label = 1;
+                    case 1:
+                        if (!(i < count))
+                            return [3 /*break*/, 4];
+                        aSample = this.sample();
+                        bSample = this.sample();
+                        correct = [];
+                        for (_i = 0, aSample_1 = aSample; _i < aSample_1.length; _i++) {
+                            a = aSample_1[_i];
+                            for (_a = 0, bSample_1 = bSample; _a < bSample_1.length; _a++) {
+                                b = bSample_1[_a];
+                                correct.push(f(a, b));
                             }
                         }
-                        return [4 /*yield*/, result];
-                    case 1:
-                        _e.sent();
+                        return [4 /*yield*/, Parallel_1.Parallel.maxConcurrency(3)
+                                .startNew({
+                                fns: genomes.map(function (g) { return Utility_1.supplant(g.toEntity(), S_INDEXES).replace("()", "NaN"); }),
+                                source: [aSample, bSample]
+                            }, function (data) {
+                                var fns = data.fns, source = data.source, result = [];
+                                var aSample = source[0], bSample = source[1];
+                                var samples = [];
+                                for (var _i = 0, aSample_2 = aSample; _i < aSample_2.length; _i++) {
+                                    var a = aSample_2[_i];
+                                    for (var _a = 0, bSample_2 = bSample; _a < bSample_2.length; _a++) {
+                                        var b = bSample_2[_a];
+                                        samples.push([a, b]);
+                                    }
+                                }
+                                for (var _b = 0, fns_1 = fns; _b < fns_1.length; _b++) {
+                                    var f_2 = fns_1[_b];
+                                    var calc = [];
+                                    for (var _c = 0, samples_1 = samples; _c < samples_1.length; _c++) {
+                                        var s = samples_1[_c];
+                                        calc.push(eval(f_2));
+                                    }
+                                    result.push(calc);
+                                }
+                                return result;
+                            })];
+                    case 2:
+                        results = _b.sent();
+                        for (i_1 = 0, len = genomes.length; i_1 < len; i_1++) {
+                            g = genomes[i_1];
+                            calc = results[i_1];
+                            divergence = [];
+                            len_1 = correct.length;
+                            divergence.length = correct.length;
+                            for (i_2 = 0; i_2 < len_1; i_2++) {
+                                divergence[i_2] = -Math.abs(calc[i_2] - correct[i_2]);
+                            }
+                            c = Correlation_1.correlation(correct, calc);
+                            d = Procedure_1.average(divergence) + 1;
+                            f_1 = this.getFitnessFor(g);
+                            f_1.add([
+                                (isNaN(c) || !isFinite(c)) ? -2 : c,
+                                (isNaN(d) || !isFinite(d)) ? -Infinity : d
+                            ]);
+                            this._convergent.setValue(g.hashReduced, f_1.hasConverged()
+                                ? g
+                                : (void 0));
+                        }
+                        _b.label = 3;
+                    case 3:
+                        i++;
+                        return [3 /*break*/, 1];
+                    case 4: return [4 /*yield*/, result];
+                    case 5:
+                        _b.sent();
                         return [2 /*return*/];
                 }
             });

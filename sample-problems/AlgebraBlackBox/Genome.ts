@@ -66,4 +66,12 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 		return root.calculate(values);
 	}
 
+	toEntity():string
+	{
+		let root = this.root;
+		if(!root)
+			throw new InvalidOperationException("Cannot get entity with no root.");
+		return root.toEntity();
+	}
+
 }

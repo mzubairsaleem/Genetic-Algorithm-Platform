@@ -15,6 +15,10 @@ import {IProblem} from "../../source/IProblem";
 import {IOrderedEnumerable, ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
 import {average} from "typescript-dotnet-umd/System/Collections/Array/Procedure";
 import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promise";
+import {Parallel} from "typescript-dotnet-umd/System/Threading/Tasks/Parallel";
+import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
+
+const S_INDEXES = Object.freeze(Enumerable.range(0, 20).select(n => `s[${n}]`).toArray());
 
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, Fitness>
 {
@@ -127,7 +131,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 		let f = this._actualFormula;
 		//noinspection JSMismatchedCollectionQueryUpdate
 		const result:PromiseLike<any>[] = [];
-		const genes = p.toArray();
+		const genomes = p.toArray();
 		for(let i = 0; i<count; i++)
 		{
 			const aSample = this.sample();
@@ -142,16 +146,42 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 				}
 			}
 
-			for(let g of genes)
-			{
-				let calc:number[] = [];
-				for(let a of aSample)
+			const results = await Parallel.maxConcurrency(3)
+				.startNew({
+					fns: genomes.map(g => supplant(g.toEntity(), S_INDEXES).replace("()", "NaN")),
+					source: [aSample,bSample]
+				}, data =>
 				{
-					for(let b of bSample)
+					const {fns, source} = data, result:number[][] = [];
+					const [aSample,bSample] = source;
+
+					const samples:Array<[number,number]> = [];
+					for(let a of aSample)
 					{
-						calc.push(g.calculate([a, b]));
+						for(let b of bSample)
+						{
+							samples.push([a, b]);
+						}
 					}
-				}
+
+					for(let f of fns)
+					{
+						let calc:number[] = [];
+						//noinspection JSUnusedLocalSymbols
+						for(let s of samples)
+						{
+							calc.push(eval(f));
+						}
+						result.push(calc);
+					}
+					return result;
+				});
+
+			for(let i = 0, len = genomes.length; i<len; i++)
+			{
+				const g = genomes[i];
+				const calc = results[i];
+
 				let divergence:number[] = [];
 				let len = correct.length;
 				divergence.length = correct.length;

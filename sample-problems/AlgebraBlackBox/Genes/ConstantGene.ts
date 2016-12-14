@@ -20,6 +20,10 @@ export default class ConstantGene extends UnreducibleGene
 		return EMPTY;
 	}
 
+	toEntity():string {
+		return this.toStringInternal();
+	}
+
 	clone():ConstantGene
 	{
 		return new ConstantGene(this._multiple);

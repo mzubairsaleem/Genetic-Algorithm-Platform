@@ -10,5 +10,8 @@ var Available;
     Available.Functions = Object.freeze([
         exports.SQUARE_ROOT
     ]);
+    Available.FunctionActual = Object.freeze([
+        "Math.sqrt"
+    ]);
 })(Available = exports.Available || (exports.Available = {}));
 //# sourceMappingURL=Operators.js.map

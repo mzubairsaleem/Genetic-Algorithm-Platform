@@ -56,6 +56,22 @@ var AlgebraGene = (function (_super) {
         return this._multiple
             * this.calculateWithoutMultiple(values);
     };
+    AlgebraGene.prototype.toEntityWithoutMultiple = function () {
+        return this.toStringContents();
+    };
+    AlgebraGene.prototype.toEntity = function () {
+        if (this.multiple == 0)
+            return "0";
+        var prefix = this.multiplePrefix;
+        var suffix = this.toEntityWithoutMultiple();
+        if (prefix && suffix)
+            return (prefix == "-" ? prefix : (prefix + "*")) + suffix;
+        if (suffix)
+            return suffix;
+        if (prefix)
+            return prefix;
+        throw "No entity.";
+    };
     return AlgebraGene;
 }(GeneBase_1.default));
 Object.defineProperty(exports, "__esModule", { value: true });

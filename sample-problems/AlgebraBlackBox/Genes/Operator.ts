@@ -807,6 +807,30 @@ class OperatorGene extends AlgebraGene
 			return parenGroup(_.arranged.map(s => s.toString()).join(_.operator));
 	}
 
+	toEntityWithoutMultiple():string
+	{
+		const _ = this;
+		const fni = Operator.Available.Functions.indexOf(_._operator);
+		if(fni!= -1)
+		{
+			if(!_._source.length) return "NaN";
+			return Operator.Available.FunctionActual[fni]
+					+ parenGroup(_.arranged.map(s => s.toEntity()).join(","));
+		}
+		if(_._operator==Operator.ADD)
+		{
+			// Cleanup "+-"...
+			return parenGroup(trim(_.arranged.map(s =>
+			{
+				let r = s.toEntity();
+				if(!startsWith(r, '-'))
+					r = "+" + r;
+				return r;
+			}).join(""), "+"));
+		}
+		else
+			return parenGroup(_.arranged.map(s => s.toEntity()).join(_.operator));
+	}
 
 	clone():OperatorGene
 	{

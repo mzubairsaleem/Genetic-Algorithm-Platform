@@ -17,6 +17,9 @@ var ConstantGene = (function (_super) {
     ConstantGene.prototype.toStringContents = function () {
         return EMPTY;
     };
+    ConstantGene.prototype.toEntity = function () {
+        return this.toStringInternal();
+    };
     ConstantGene.prototype.clone = function () {
         return new ConstantGene(this._multiple);
     };

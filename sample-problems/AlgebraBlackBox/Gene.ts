@@ -1,7 +1,6 @@
 import GeneBase from "../../source/GeneBase";
 import {Enumerable} from "typescript-dotnet-umd/System.Linq/Linq";
 import {supplant} from "typescript-dotnet-umd/System/Text/Utility";
-import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promise";
 
 const EMPTY:string = "";
 const VARIABLE_NAMES = Object.freeze(Enumerable("abcdefghijklmnopqrstuvwxyz").toArray());
@@ -67,6 +66,21 @@ abstract class AlgebraGene extends GeneBase<AlgebraGene>
 	{
 		return this._multiple
 			*this.calculateWithoutMultiple(values);
+	}
+
+	toEntityWithoutMultiple():string
+	{
+		return this.toStringContents();
+	}
+
+	toEntity():string {
+		if(this.multiple==0) return "0";
+		let prefix = this.multiplePrefix;
+		let suffix = this.toEntityWithoutMultiple();
+		if(prefix && suffix) return (prefix=="-" ? prefix : (prefix + "*")) + suffix;
+		if(suffix) return suffix;
+		if(prefix) return prefix;
+		throw "No entity.";
 	}
 
 	protected abstract calculateWithoutMultiple(values:ArrayLike<number>):number;

@@ -53,6 +53,12 @@ var AlgebraGenome = (function (_super) {
             throw new InvalidOperationException_1.default("Cannot calculate a gene with no root.");
         return root.calculate(values);
     };
+    AlgebraGenome.prototype.toEntity = function () {
+        var root = this.root;
+        if (!root)
+            throw new InvalidOperationException_1.default("Cannot get entity with no root.");
+        return root.toEntity();
+    };
     return AlgebraGenome;
 }(Genome_1.default));
 Object.defineProperty(exports, "__esModule", { value: true });
