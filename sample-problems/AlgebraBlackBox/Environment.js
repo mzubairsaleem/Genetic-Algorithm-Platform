@@ -1,4 +1,3 @@
-"use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -39,85 +38,97 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var Environment_1 = require("../../source/Environment");
-var GenomeFactory_1 = require("./GenomeFactory");
-var Problem_1 = require("./Problem");
-var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
-var Promise_1 = require("typescript-dotnet-umd/System/Promises/Promise");
-function actualFormula(a, b) {
-    return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
-}
-var AlgebraEnvironmentSample = (function (_super) {
-    __extends(AlgebraEnvironmentSample, _super);
-    function AlgebraEnvironmentSample() {
-        var _this = _super.call(this, new GenomeFactory_1.default()) || this;
-        _this._problems
-            .push(new Problem_1.default(actualFormula));
-        return _this;
+(function (dependencies, factory) {
+    if (typeof module === 'object' && typeof module.exports === 'object') {
+        var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
-    AlgebraEnvironmentSample.prototype._onAsyncExecute = function () {
-        return __awaiter(this, void 0, Promise_1.Promise, function () {
-            var problems, p_1, top_1, c, n, ex_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        _a.trys.push([0, 2, , 3]);
-                        return [4 /*yield*/, _super.prototype._onAsyncExecute.call(this)];
-                    case 1:
-                        _a.sent();
-                        problems = Linq_1.Enumerable(this._problems).memoize();
-                        p_1 = this._populations.linq
-                            .selectMany(function (s) { return s; })
-                            .orderBy(function (g) { return g.hash.length; })
-                            .groupBy(function (g) { return g.hashReduced; })
-                            .select(function (g) { return g.first(); });
-                        top_1 = Linq_1.Enumerable
-                            .weave(problems
-                            .select(function (r) {
-                            return Linq_1.Enumerable(r.rank(p_1))
-                                .select(function (g) {
-                                var red = g.root.asReduced(), suffix = "";
-                                if (red != g.root)
-                                    suffix
-                                        = " => " + g.toAlphaParameters(true);
-                                var f = r.getFitnessFor(g);
-                                return {
-                                    label: "" + g.toAlphaParameters() + suffix + ": (" + f.count + ") " + f.scores,
-                                    gene: g
-                                };
-                            });
-                        }))
-                            .take(this._problems.length)
-                            .memoize();
-                        c = problems.selectMany(function (p) { return p.convergent; }).toArray();
-                        console.log("Top:", "\n\t" + top_1.select(function (s) { return s.label; }).toArray().join("\n\t"));
-                        if (c.length)
-                            console.log("\nConvergent:", c.map(function (g) { return g.toAlphaParameters(true); }));
-                        if (problems.count(function (p) { return p.convergent.length != 0; }) < this._problems.length) {
-                            n = this._populations.last.value;
-                            n.importEntries(top_1
-                                .select(function (g) { return g.gene; })
-                                .where(function (g) { return g.root.isReducible() && g.root.asReduced() != g.root; })
-                                .select(function (g) {
-                                var n = g.clone();
-                                n.root = g.root.asReduced();
-                                return n;
-                            }));
-                            this.start();
-                        }
-                        console.log("");
-                        return [3 /*break*/, 3];
-                    case 2:
-                        ex_1 = _a.sent();
-                        console.error(ex_1, ex_1.stack);
-                        return [3 /*break*/, 3];
-                    case 3: return [2 /*return*/];
-                }
+    else if (typeof define === 'function' && define.amd) {
+        define(dependencies, factory);
+    }
+})(["require", "exports", "../../source/Environment", "./GenomeFactory", "./Problem", "typescript-dotnet-umd/System.Linq/Linq", "typescript-dotnet-umd/System/Promises/Promise"], function (require, exports) {
+    "use strict";
+    var Environment_1 = require("../../source/Environment");
+    var GenomeFactory_1 = require("./GenomeFactory");
+    var Problem_1 = require("./Problem");
+    var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
+    var Promise_1 = require("typescript-dotnet-umd/System/Promises/Promise");
+    function actualFormula(a, b) {
+        return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
+    }
+    var AlgebraEnvironmentSample = (function (_super) {
+        __extends(AlgebraEnvironmentSample, _super);
+        function AlgebraEnvironmentSample() {
+            var _this = _super.call(this, new GenomeFactory_1.default()) || this;
+            _this._problems
+                .push(new Problem_1.default(actualFormula));
+            return _this;
+        }
+        AlgebraEnvironmentSample.prototype._onAsyncExecute = function () {
+            return __awaiter(this, void 0, Promise_1.Promise, function () {
+                var problems, p_1, top_1, c, topOutput, n, ex_1;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            _a.trys.push([0, 2, , 3]);
+                            return [4 /*yield*/, _super.prototype._onAsyncExecute.call(this)];
+                        case 1:
+                            _a.sent();
+                            problems = Linq_1.Enumerable(this._problems).memoize();
+                            p_1 = this._populations.linq
+                                .selectMany(function (s) { return s; })
+                                .orderBy(function (g) { return g.hash.length; })
+                                .groupBy(function (g) { return g.hashReduced; })
+                                .select(function (g) { return g.first(); });
+                            top_1 = Linq_1.Enumerable
+                                .weave(problems
+                                .select(function (r) {
+                                return Linq_1.Enumerable(r.rank(p_1))
+                                    .select(function (g) {
+                                    var red = g.root.asReduced(), suffix = "";
+                                    if (red != g.root)
+                                        suffix
+                                            = " => " + g.toAlphaParameters(true);
+                                    var f = r.getFitnessFor(g);
+                                    return {
+                                        label: "" + g.toAlphaParameters() + suffix + ": (" + f.count + " samples) " + f.scores,
+                                        gene: g
+                                    };
+                                });
+                            }))
+                                .take(this._problems.length)
+                                .memoize();
+                            c = problems.selectMany(function (p) { return p.convergent; }).toArray();
+                            topOutput = "\n\t" + top_1.select(function (s) { return s.label; }).toArray().join("\n\t");
+                            this.state = "Top Genome: " + topOutput.replace(": ", ":\n\t");
+                            console.log("Top:", topOutput);
+                            if (c.length)
+                                console.log("\nConvergent:", c.map(function (g) { return g.toAlphaParameters(true); }));
+                            if (problems.count(function (p) { return p.convergent.length != 0; }) < this._problems.length) {
+                                n = this._populations.last.value;
+                                n.importEntries(top_1
+                                    .select(function (g) { return g.gene; })
+                                    .where(function (g) { return g.root.isReducible() && g.root.asReduced() != g.root; })
+                                    .select(function (g) {
+                                    var n = g.clone();
+                                    n.root = g.root.asReduced();
+                                    return n;
+                                }));
+                                this.start();
+                            }
+                            console.log("");
+                            return [3 /*break*/, 3];
+                        case 2:
+                            ex_1 = _a.sent();
+                            console.error(ex_1, ex_1.stack);
+                            return [3 /*break*/, 3];
+                        case 3: return [2 /*return*/];
+                    }
+                });
             });
-        });
-    };
-    return AlgebraEnvironmentSample;
-}(Environment_1.default));
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = AlgebraEnvironmentSample;
+        };
+        return AlgebraEnvironmentSample;
+    }(Environment_1.default));
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.default = AlgebraEnvironmentSample;
+});
 //# sourceMappingURL=Environment.js.map

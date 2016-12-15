@@ -23,7 +23,7 @@ const S_INDEXES = Object.freeze(Enumerable.range(0, 30).select(n => `s[${n}]`).t
 export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, Fitness>
 {
 	private _fitness:IMap<Fitness>;
-	private _actualFormula:(...params:number[])=>number;
+	private _actualFormula:(...params:number[]) => number;
 
 	protected _convergent:StringKeyDictionary<AlgebraGenome>;
 	get convergent():AlgebraGenome[]
@@ -31,7 +31,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 		return this._convergent.values;
 	}
 
-	constructor(actualFormula:(...params:number[])=>number)
+	constructor(actualFormula:(...params:number[]) => number)
 	{
 		this._fitness = {};
 		this._actualFormula = actualFormula;
@@ -149,13 +149,15 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 			const results = await Parallel.maxConcurrency(3)
 				.startNew({
 					fns: genomes.map(g => supplant(g.toEntity(), S_INDEXES).replace("()", "NaN")),
-					source: [aSample,bSample]
+					source: [aSample, bSample]
 				}, data =>
 				{
-					const {fns, source} = data, result:number[][] = [];
-					const [aSample,bSample] = source;
 
-					const samples:Array<[number,number]> = [];
+
+					const {fns, source} = data, result:number[][] = [];
+					const [aSample, bSample] = source;
+
+					const samples:Array<[number, number]> = [];
 					for(let a of aSample)
 					{
 						for(let b of bSample)
@@ -166,11 +168,16 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 
 					for(let f of fns)
 					{
-						let calc:number[] = [];
-						//noinspection JSUnusedLocalSymbols
-						for(let s of samples)
+						let calc:number[];
+						try
 						{
-							calc.push(eval(f));
+							// Improve fault tolerance.
+							calc = samples.map(s => eval(f));
+						}
+						catch(ex)
+						{
+							calc = samples.map(s => NaN);
+							console.error(ex);
 						}
 						result.push(calc);
 					}

@@ -24,6 +24,8 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 		// this.populationSize = 100;
 	}
 
+	state:string;
+
 	protected async _onAsyncExecute():NETPromise<void>
 	{
 		try
@@ -51,7 +53,7 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 												= " => " + g.toAlphaParameters(true);
 										let f = r.getFitnessFor(g);
 										return {
-											label: `${g.toAlphaParameters()}${suffix}: (${f.count}) ${f.scores}`,
+											label: `${g.toAlphaParameters()}${suffix}: (${f.count} samples) ${f.scores}`,
 											gene: g
 										};
 									}
@@ -62,7 +64,9 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 				.memoize();
 
 			const c = problems.selectMany(p => p.convergent).toArray();
-			console.log("Top:", "\n\t"+top.select(s=>s.label).toArray().join("\n\t"));
+			const topOutput = "\n\t"+top.select(s=>s.label).toArray().join("\n\t");
+			this.state = "Top Genome: "+topOutput.replace(": ",":\n\t"); // For display elsewhere.
+			console.log("Top:", topOutput);
 			if(c.length) console.log("\nConvergent:", c.map(
 				g=>g.toAlphaParameters(true)));
 

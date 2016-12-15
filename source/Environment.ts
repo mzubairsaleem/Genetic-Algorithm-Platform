@@ -102,7 +102,6 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		await this.test();
 		this._generations++;
 
-
 		// Since we have 'variations' added into the pool, we don't want to eliminate any new material that may be useful.
 		const additional = Math.max(p.count - this.populationSize, 0);
 
