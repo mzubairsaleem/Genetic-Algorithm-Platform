@@ -16,6 +16,9 @@ import {CompareResult} from "typescript-dotnet-umd/System/CompareResult";
 import {ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
 import {startsWith, trim} from "typescript-dotnet-umd/System/Text/Utility";
 import {Random} from "typescript-dotnet-umd/System/Random";
+import {Integer} from "typescript-dotnet-umd/System/Integer";
+import {nextPrime} from "../../../arithmetic/Primes";
+
 
 function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 {
@@ -51,7 +54,7 @@ function parenGroup(contents:string):string
 function getRandomFrom<T>(source:ReadonlyArray<T>, excluding?:T):T
 {
 	return Random.select.one(excluding=== void(0) ? source : source.filter(
-		v => v!==excluding), true);
+			v => v!==excluding), true);
 }
 
 function getRandomFromExcluding<T>(source:ReadonlyArray<T>, excluding:IEnumerableOrArray<T>):T
@@ -86,12 +89,38 @@ function getRandomOperator(
 class OperatorGene extends AlgebraGene
 {
 	constructor(
-		private _operator:OperatorSymbol,
-		multiple:number = 1)
+		operator:OperatorSymbol,
+		children?:Array<AlgebraGene|number|string>);
+
+	constructor(
+		operator:OperatorSymbol,
+		multiple:number,
+		children?:Array<AlgebraGene|number|string>);
+
+	constructor(
+		operator:OperatorSymbol,
+		multiple:number|Array<AlgebraGene|number|string> = 1,
+		children?:Array<AlgebraGene|number|string>)
 	{
-		super(multiple)
+		if(multiple instanceof Array)
+		{
+			children = multiple;
+			multiple = 1;
+		}
+		super(multiple);
+		this._operator = operator;
+		if(children) this.importEntries(children.map(
+			c =>
+			{
+				if(Type.isNumber(c))
+					return new ConstantGene(c);
+				if(Type.isString(c))
+					return new ParameterGene(c);
+				return c;
+			}));
 	}
 
+	private _operator:OperatorSymbol;
 	get operator():OperatorSymbol
 	{
 		return this._operator;
@@ -112,10 +141,9 @@ class OperatorGene extends AlgebraGene
 		return true;
 	}
 
-	modifyChildren(closure:Predicate<List<AlgebraGene>>)
+	modifyChildren(closure:Predicate<List<AlgebraGene>>):boolean
 	{
-		if(closure(this))
-			this._onModified();
+		return this.handleUpdate(() => closure(this));
 	}
 
 
@@ -140,12 +168,12 @@ class OperatorGene extends AlgebraGene
 
 	protected _reduceLoop(reduceGroupings:boolean = false):boolean
 	{
-		const _ = this, values:ILinqEnumerable<AlgebraGene> = _.linq;
+		const _ = this, values:ILinqEnumerable<AlgebraGene> = _.linq, source = _._source;
 		let somethingDone = false;
 
 		// Look for groupings...
 		Enumerable
-			.from<AlgebraGene>(_._source.slice()) // use a copy...
+			.from<AlgebraGene>(source.slice()) // use a copy...
 			.groupBy(g => g.toStringContents())
 			.where(g => g.count()>1)
 			.forEach(p =>
@@ -169,6 +197,7 @@ class OperatorGene extends AlgebraGene
 						somethingDone = true;
 						break;
 					}
+
 					case Operator.MULTIPLY:
 					{
 						let g = p
@@ -282,8 +311,8 @@ class OperatorGene extends AlgebraGene
 					}
 				}
 
-			}
 				break;
+			}
 
 
 			case Operator.DIVIDE:
@@ -555,7 +584,7 @@ class OperatorGene extends AlgebraGene
 
 					if(o.operator==Operator.ADD)
 					{
-						let index = _._source.indexOf(o);
+						let index = source.indexOf(o);
 						for(let og of o.toArray())
 						{
 							o.remove(og);
@@ -576,7 +605,7 @@ class OperatorGene extends AlgebraGene
 					{
 						_._multiple *= o._multiple;
 
-						let index = _._source.indexOf(o);
+						let index = source.indexOf(o);
 						for(let og of o.toArray())
 						{
 							o.remove(og);
@@ -590,70 +619,123 @@ class OperatorGene extends AlgebraGene
 				}
 			}
 
+			const o_firstChild = o.linq.firstOrDefault();
+
+			// Migrate root multiples.
+			if(o.operator==Operator.SQUARE_ROOT && o_firstChild)
+			{
+				let multiple = o_firstChild.multiple;
+
+				if(o_firstChild.multiple>3)
+				{
+					for(let i = 2, m = 4; m<=multiple; i++, m = i*i)
+					{
+						let r:number;
+						while(Integer.is(r = multiple/m))
+						{
+							somethingDone = true;
+							o_firstChild.multiple = multiple = r;
+							o.multiple *= i;
+						}
+					}
+				}
+
+			}
+
 			if(o.count==1)
 			{
-				const opg = o.linq.firstOrDefault();
 
-				if(opg instanceof ParameterGene || opg instanceof ConstantGene)
+				if(o_firstChild instanceof ParameterGene || o_firstChild instanceof ConstantGene)
 				{
-					if(Operator.Available.Functions.indexOf(o.operator)== -1)
+					// Collapse the grouping.
+					if(Operator.Available.Functions.indexOf(o.operator)== -1
+						|| o.operator==Operator.SQUARE_ROOT && o_firstChild instanceof ConstantGene && (o_firstChild.multiple===1 || o_firstChild.multiple===0))
 					{
 
-						o.remove(opg);
-						opg.multiple *= o.multiple;
-						this._replaceInternal(o, opg);
+						o.remove(o_firstChild);
+						o_firstChild.multiple *= o.multiple;
+						this._replaceInternal(o, o_firstChild);
 
 						somethingDone = true;
 						continue;
 
 					}
-					else if(o.operator==Operator.SQUARE_ROOT && opg instanceof ConstantGene && opg.multiple>=0)
-					{
-						let sq = Math.sqrt(opg.multiple);
-						for(let i = 0; i<sq; i++)
-						{
-							if(i==sq)
-							{
-								o.remove(opg);
-								this._replaceInternal(o, opg);
-								somethingDone = true;
-							}
-
-						}
-					}
 				}
 
-				if(opg instanceof OperatorGene)
+				if(o_firstChild instanceof OperatorGene)
 				{
-					let og = <OperatorGene>opg;
-
 					if(o.operator==Operator.SQUARE_ROOT)
 					{
-
-						let childCount = og.count;
-
-						// Square root of square?
-						if(og.operator==Operator.MULTIPLY && childCount==2
-							&& og.linq.select(p => p.asReduced().toString())
-								.distinct()
-								.count()==1)
+						// Square root of squares?
+						if(o_firstChild.operator==Operator.MULTIPLY)
 						{
-							let firstChild = og.linq.first();
-							og.remove(firstChild);
-							o.operator = Operator.MULTIPLY;
-							o.clear();
-							o.add(firstChild);
+							let reduced = false;
 
-							somethingDone = true;
+							// In a perfect scenario, we can pull out the contents and replace them.
+							let childCount = o_firstChild.count;
+							if(childCount==2
+								&& o_firstChild.linq.select(p => p.asReduced().toString())
+									.distinct()
+									.count()==1)
+							{
+								let firstChild = o_firstChild.linq.first();
+								o_firstChild.remove(firstChild);
+								_.replace(o,firstChild);
+
+								reduced = true;
+								somethingDone = true;
+							}
+							else if(childCount>2) // This should always be true, but just in case there's a reduce loop going on.
+							{
+								o_firstChild.linq
+									.groupBy(p => p.asReduced().toString())
+									.where(g => g.count()>1)
+									.take(1)
+									.forEach(g =>
+									{
+										let genes = g.take(2).toArray();
+										o_firstChild.remove(genes[0]);
+										o_firstChild.remove(genes[1]);
+
+										let newParent:OperatorGene;
+										if(_.operator==Operator.MULTIPLY)
+										{
+											newParent = _;
+										}
+										else
+										{
+											newParent = new OperatorGene(Operator.MULTIPLY);
+											_.replace(o, newParent);
+											newParent.add(o);
+										}
+
+										newParent.add(genes[0]);
+
+										if(!genes.length)
+										{
+											newParent.remove(o);
+										}
+
+										reduced = true;
+										somethingDone = true;
+
+									});
+
+
+							}
+							// Too much has been rearranged...
+							if(reduced)
+								continue;
 						}
 
+
 					}
-					else if(Operator.Available.Operators.indexOf(o.operator)!= -1)
+					if(Operator.Available.Operators.indexOf(o.operator)!= -1)
 					{
-						let children = og.toArray();
-						o.operator = og.operator;
-						o.multiple *= og.multiple;
-						og.clear();
+						let children = o_firstChild.toArray();
+						o.operator = o_firstChild.operator;
+						o.multiple *= o_firstChild.multiple;
+						o_firstChild.clear();
 						o.clear();
 						o.importEntries(children);
 
@@ -662,6 +744,25 @@ class OperatorGene extends AlgebraGene
 				}
 
 
+			}
+			else if(o.count>1)
+			{
+				//console.warn(`Square Root has ${o.count} parameters`);
+				if(o.operator==Operator.SQUARE_ROOT)
+				{
+					if(o.modifyChildren(s =>
+						{
+							let len = s.count;
+							while(--len)
+							{
+								s.removeAt(len);
+							}
+							return true;
+						}))
+					{
+						somethingDone = true;
+					}
+				}
 			}
 		}
 
@@ -672,34 +773,12 @@ class OperatorGene extends AlgebraGene
 			const p = values.first();
 			if(_._operator==Operator.SQUARE_ROOT)
 			{
-
-				// if(p instanceof OperatorGene) {
-				// 	let childCount = p.count;
-				//
-				// 	// Square root of square?
-				// 	if(p.operator==Operator.MULTIPLY && childCount==2
-				// 		&& p.linq.select(pp=>pp.asReduced().toString())
-				// 			.distinct()
-				// 			.count()==1)
-				// 	{
-				// 		return p.linq.first();
-				//
-				// 		// _._r
-				// 		// p.remove(firstChild);
-				// 		// p.operator = Operator.MULTIPLY;
-				// 		// p.clear();
-				// 		// p.add(firstChild);
-				// 		//
-				// 		// somethingDone = true;
-				// 	}
-				// }
-
 				if(p instanceof ConstantGene)
 				{
 					if(p.multiple==0)
 					{
 						somethingDone = true;
-						_.multiple *= p.multiple;
+						_.multiple = 0;
 						p.multiple = 1;
 					}
 				}
@@ -716,10 +795,10 @@ class OperatorGene extends AlgebraGene
 
 		}
 
-		if(_._operator==Operator.ADD && _._source.length>1)
+		if(_._operator==Operator.ADD && source.length>1)
 		{
-			let constants = Enumerable
-				.from<AlgebraGene>(_._source.slice()) // use a copy...
+			let genes = Enumerable(source.slice()); // use a copy...
+			let constants = genes
 				.ofType(ConstantGene);
 			let len = constants.count();
 			if(len)
@@ -737,7 +816,7 @@ class OperatorGene extends AlgebraGene
 				}
 
 				// remove 0 if makes sense.
-				if(sum==0 && _._source.length>len)
+				if(sum==0 && source.length>len)
 				{
 					_._removeInternal(hero);
 					somethingDone = true;
@@ -745,12 +824,33 @@ class OperatorGene extends AlgebraGene
 
 			}
 
+			// Pull out multiples...
+			if(genes.all(g => Math.abs(g.multiple)>1))
+			{
+				let smallest = genes.orderBy(g => g.multiple).first();
+				let max = smallest.multiple;
+				for(let i = 2; i<=max; i = nextPrime(i))
+				{
+					while(max%i==0 && source.every(g => g.multiple%i==0))
+					{
+						max /= i;
+						_._multiple *= i;
+						for(let g of source)
+						{
+							g.multiple /= i;
+						}
+					}
+				}
+
+			}
+
+
 		}
 
 
 		if(_._operator!=Operator.DIVIDE)
 		{
-			_._source.sort(arrange);
+			source.sort(arrange);
 		}
 
 		if(somethingDone)
@@ -815,7 +915,7 @@ class OperatorGene extends AlgebraGene
 		{
 			if(!_._source.length) return "NaN";
 			return Operator.Available.FunctionActual[fni]
-					+ parenGroup(_.arranged.map(s => s.toEntity()).join(","));
+				+ parenGroup(_.arranged.map(s => s.toEntity()).join(","));
 		}
 		if(_._operator==Operator.ADD)
 		{

@@ -157,7 +157,22 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 				if(parentOp.count>1)
 				{
 					applyClone((gene, newGenome)=>{
-						(<OperatorGene>newGenome.findParent(gene)).remove(gene);
+						let parentOp = <OperatorGene>newGenome.findParent(gene);
+						parentOp.remove(gene);
+
+						// Reduce to avoid NaN.
+						if(parentOp.count==1 && Operator.Available.Operators.indexOf(parentOp.operator)!=-1) {
+							if(parentOp)
+							{
+								let grandParent = <OperatorGene>newGenome.findParent(parentOp);
+								if(grandParent) {
+									let grandChild = parentOp.linq.single();
+									grandChild.multiple *= parentOp.multiple;
+									parentOp.remove(grandChild);
+									grandParent.replace(parentOp,grandChild);
+								}
+							}
+						}
 					});
 				}
 			}
@@ -191,6 +206,14 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 				});
 
+				if(Operator.Available.Functions.indexOf(gene.operator))
+				{
+					applyClone((gene:OperatorGene)=>{
+
+						gene.operator = "+";
+
+					});
+				}
 
 
 			}
@@ -198,7 +221,13 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 		if(source.root instanceof OperatorGene && Operator.Available.Functions.indexOf(source.root.operator)!= -1)
 		{
-			// do nothing.
+			// Try it without a function!
+
+			const newGenome = source.clone();
+			const first = newGenome.root.get(0);
+			newGenome.root.remove(first);
+			newGenome.root = first;
+			result.push(newGenome);
 		}
 		else
 		{
@@ -215,7 +244,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		}
 
 		const p = this._previousGenomes;
-		return result.filter(genome => !p.containsKey(genome.hash));
+		return result
+			.filter(genome => !p.containsKey(genome.hash))
+			.map(genome => genome.asReduced())
+			.filter(genome => !p.containsKey(genome.hash));
 	}
 
 	mutate(source:AlgebraGenome, mutations:number = 1):AlgebraGenome
@@ -486,8 +518,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 						// Add random parameter.
 						case 2:
-							// In order to avoid unnecessary reduction, avoid adding subsequent divisors.
-							if(gene.operator==Operator.DIVIDE && gene.count>1)
+
+							if(gene.operator==Operator.SQUARE_ROOT
+								// In order to avoid unnecessary reduction, avoid adding subsequent divisors.
+								|| gene.operator==Operator.DIVIDE && gene.count>1)
 								break;
 
 							gene.add(new ParameterGene(Random.next(inputParamCount)));

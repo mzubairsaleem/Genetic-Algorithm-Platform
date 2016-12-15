@@ -18,7 +18,7 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 
 	serialize():string
 	{
-		let root = this.root;
+		const root = this.root;
 		if(!root)
 			throw new InvalidOperationException("Cannot calculate a gene with no root.");
 		return root.serialize();
@@ -26,10 +26,16 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 
 	serializeReduced():string
 	{
-		let root = this.root;
+		const root = this.root;
 		if(!root)
 			throw new InvalidOperationException("Cannot calculate a gene with no root.");
 		return root.asReduced().serialize();
+	}
+
+	asReduced():AlgebraGenome
+	{
+		const root = this.root;
+		return root.isReducible() ? new AlgebraGenome(root.asReduced()) : this;
 	}
 
 	toAlphaParameters(reduced?:boolean):string

@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var Set_1 = require("typescript-dotnet-umd/System/Collections/Set");
 var StringKeyDictionary_1 = require("typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary");
-var Correlation_1 = require("./arithmetic/Correlation");
+var Correlation_1 = require("../../arithmetic/Correlation");
 var Fitness_1 = require("../../source/Fitness");
 var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var Procedure_1 = require("typescript-dotnet-umd/System/Collections/Array/Procedure");

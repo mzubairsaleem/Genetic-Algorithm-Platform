@@ -110,7 +110,19 @@ var AlgebraGenomeFactory = (function (_super) {
             if (parentOp) {
                 if (parentOp.count > 1) {
                     applyClone(function (gene, newGenome) {
-                        newGenome.findParent(gene).remove(gene);
+                        var parentOp = newGenome.findParent(gene);
+                        parentOp.remove(gene);
+                        if (parentOp.count == 1 && Operator.Available.Operators.indexOf(parentOp.operator) != -1) {
+                            if (parentOp) {
+                                var grandParent = newGenome.findParent(parentOp);
+                                if (grandParent) {
+                                    var grandChild = parentOp.linq.single();
+                                    grandChild.multiple *= parentOp.multiple;
+                                    parentOp.remove(grandChild);
+                                    grandParent.replace(parentOp, grandChild);
+                                }
+                            }
+                        }
                     });
                 }
             }
@@ -133,12 +145,22 @@ var AlgebraGenomeFactory = (function (_super) {
                         });
                     }
                 });
+                if (Operator.Available.Functions.indexOf(gene.operator)) {
+                    applyClone(function (gene) {
+                        gene.operator = "+";
+                    });
+                }
             }
         };
         for (var i = 0; i < count; i++) {
             _loop_1(i);
         }
         if (source.root instanceof Operator_1.default && Operator.Available.Functions.indexOf(source.root.operator) != -1) {
+            var newGenome = source.clone();
+            var first = newGenome.root.get(0);
+            newGenome.root.remove(first);
+            newGenome.root = first;
+            result.push(newGenome);
         }
         else {
             for (var _i = 0, _a = Operator.Available.Functions; _i < _a.length; _i++) {
@@ -151,7 +173,10 @@ var AlgebraGenomeFactory = (function (_super) {
             }
         }
         var p = this._previousGenomes;
-        return result.filter(function (genome) { return !p.containsKey(genome.hash); });
+        return result
+            .filter(function (genome) { return !p.containsKey(genome.hash); })
+            .map(function (genome) { return genome.asReduced(); })
+            .filter(function (genome) { return !p.containsKey(genome.hash); });
     };
     AlgebraGenomeFactory.prototype.mutate = function (source, mutations) {
         if (mutations === void 0) { mutations = 1; }
@@ -321,7 +346,8 @@ var AlgebraGenomeFactory = (function (_super) {
                             invalidOptions = null;
                             break;
                         case 2:
-                            if (gene.operator == Operator.DIVIDE && gene.count > 1)
+                            if (gene.operator == Operator.SQUARE_ROOT
+                                || gene.operator == Operator.DIVIDE && gene.count > 1)
                                 break;
                             gene.add(new ParameterGene_1.default(Random_1.Random.next(inputParamCount)));
                             invalidOptions = null;

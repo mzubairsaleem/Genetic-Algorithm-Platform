@@ -45,7 +45,7 @@ var Problem_1 = require("./Problem");
 var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
 var Promise_1 = require("typescript-dotnet-umd/System/Promises/Promise");
 function actualFormula(a, b) {
-    return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+    return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
 }
 var AlgebraEnvironmentSample = (function (_super) {
     __extends(AlgebraEnvironmentSample, _super);

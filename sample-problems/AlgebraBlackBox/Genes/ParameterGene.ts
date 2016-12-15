@@ -5,15 +5,39 @@
 import Integer from "typescript-dotnet-umd/System/Integer";
 import AlgebraGene from "../Gene";
 import UnreducibleGene from "./UnreducibleGene";
+import {Type} from "typescript-dotnet-umd/System/Types";
+import {Regex} from "typescript-dotnet-umd/System/Text/RegularExpressions";
+
+const PATTERN = new Regex("(?<multiple>-?\\d*){(?<id>\\d+)}");
 
 export default class ParameterGene extends UnreducibleGene
 {
-	constructor(protected _id:number, multiple:number = 1)
+	constructor(pattern:string);
+	constructor(id:number, multiple?:number)
+	constructor(id:number|string, multiple:number = 1)
 	{
+		if(Type.isString(id))
+		{
+			const m = PATTERN.match(id);
+			if(!m)
+				throw "Unrecognized parameter pattern.";
+			const groups = m.namedGroups;
+			let pm = groups["multiple"].value;
+			if(pm) {
+				if(pm==="" || pm==="-")
+					pm += "1";
+				multiple *= Number(pm);
+			}
+
+			id = Number(groups["id"].value);
+		}
+
 		super(multiple);
-		Integer.assert(_id, 'id');
+		Integer.assert(id, 'id');
+		this._id = id;
 	}
 
+	protected _id:number;
 	get id():number
 	{
 		return this._id;

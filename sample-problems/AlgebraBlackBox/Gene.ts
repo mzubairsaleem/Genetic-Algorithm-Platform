@@ -10,6 +10,7 @@ export function toAlphaParameters(hash:string):string
 	return supplant(hash, VARIABLE_NAMES);
 }
 
+
 abstract class AlgebraGene extends GeneBase<AlgebraGene>
 {
 

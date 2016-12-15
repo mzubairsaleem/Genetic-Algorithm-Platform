@@ -27,6 +27,10 @@ var AlgebraGenome = (function (_super) {
             throw new InvalidOperationException_1.default("Cannot calculate a gene with no root.");
         return root.asReduced().serialize();
     };
+    AlgebraGenome.prototype.asReduced = function () {
+        var root = this.root;
+        return root.isReducible() ? new AlgebraGenome(root.asReduced()) : this;
+    };
     AlgebraGenome.prototype.toAlphaParameters = function (reduced) {
         if (reduced)
             return this._alphaParameterHashReduced || (this._alphaParameterHashReduced

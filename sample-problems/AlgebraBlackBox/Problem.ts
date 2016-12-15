@@ -4,7 +4,7 @@
  */
 import Set from "typescript-dotnet-umd/System/Collections/Set";
 import StringKeyDictionary from "typescript-dotnet-umd/System/Collections/Dictionaries/StringKeyDictionary";
-import {correlation} from "./arithmetic/Correlation";
+import {correlation} from "../../arithmetic/Correlation";
 import AlgebraGenome from "./Genome";
 import Fitness from "../../source/Fitness";
 import Enumerable from "typescript-dotnet-umd/System.Linq/Linq";

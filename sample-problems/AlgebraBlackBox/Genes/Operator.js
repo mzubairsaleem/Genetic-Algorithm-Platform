@@ -13,6 +13,8 @@ var ParameterGene_1 = require("./ParameterGene");
 var Operator = require("../Operators");
 var Utility_1 = require("typescript-dotnet-umd/System/Text/Utility");
 var Random_1 = require("typescript-dotnet-umd/System/Random");
+var Integer_1 = require("typescript-dotnet-umd/System/Integer");
+var Primes_1 = require("../../../arithmetic/Primes");
 function arrange(a, b) {
     if (a instanceof ConstantGene_1.default && !(b instanceof ConstantGene_1.default))
         return 1;
@@ -57,10 +59,23 @@ function getRandomOperator(source, excluded) {
 }
 var OperatorGene = (function (_super) {
     __extends(OperatorGene, _super);
-    function OperatorGene(_operator, multiple) {
+    function OperatorGene(operator, multiple, children) {
         if (multiple === void 0) { multiple = 1; }
-        var _this = _super.call(this, multiple) || this;
-        _this._operator = _operator;
+        var _this;
+        if (multiple instanceof Array) {
+            children = multiple;
+            multiple = 1;
+        }
+        _this = _super.call(this, multiple) || this;
+        _this._operator = operator;
+        if (children)
+            _this.importEntries(children.map(function (c) {
+                if (Types_1.default.isNumber(c))
+                    return new ConstantGene_1.default(c);
+                if (Types_1.default.isString(c))
+                    return new ParameterGene_1.default(c);
+                return c;
+            }));
         return _this;
     }
     Object.defineProperty(OperatorGene.prototype, "operator", {
@@ -80,8 +95,8 @@ var OperatorGene = (function (_super) {
         return true;
     };
     OperatorGene.prototype.modifyChildren = function (closure) {
-        if (closure(this))
-            this._onModified();
+        var _this = this;
+        return this.handleUpdate(function () { return closure(_this); });
     };
     Object.defineProperty(OperatorGene.prototype, "arranged", {
         get: function () {
@@ -106,10 +121,10 @@ var OperatorGene = (function (_super) {
     };
     OperatorGene.prototype._reduceLoop = function (reduceGroupings) {
         if (reduceGroupings === void 0) { reduceGroupings = false; }
-        var _ = this, values = _.linq;
+        var _ = this, values = _.linq, source = _._source;
         var somethingDone = false;
         Linq_1.default
-            .from(_._source.slice())
+            .from(source.slice())
             .groupBy(function (g) { return g.toStringContents(); })
             .where(function (g) { return g.count() > 1; })
             .forEach(function (p) {
@@ -211,8 +226,8 @@ var OperatorGene = (function (_super) {
                             somethingDone = true;
                         }
                     }
+                    break;
                 }
-                break;
             case Operator.DIVIDE:
                 {
                     var f = values.firstOrDefault();
@@ -376,102 +391,152 @@ var OperatorGene = (function (_super) {
                 somethingDone = true;
             }
         }
-        for (var _e = 0, _f = values
-            .ofType(OperatorGene)
-            .toArray(); _e < _f.length; _e++) {
-            var o = _f[_e];
+        var _loop_1 = function (o) {
             if (!values.contains(o))
-                continue;
+                return "continue";
             if (o.reduce(reduceGroupings))
                 somethingDone = true;
             if (o.count == 0) {
                 somethingDone = true;
                 _._replaceInternal(o, new ConstantGene_1.default(o.multiple));
-                continue;
+                return "continue";
             }
             if (reduceGroupings) {
                 if (_._operator == Operator.ADD) {
                     if (o.multiple == 0) {
                         _._removeInternal(o);
                         somethingDone = true;
-                        continue;
+                        return "continue";
                     }
                     if (o.operator == Operator.ADD) {
-                        var index = _._source.indexOf(o);
-                        for (var _g = 0, _h = o.toArray(); _g < _h.length; _g++) {
-                            var og = _h[_g];
+                        var index = source.indexOf(o);
+                        for (var _i = 0, _a = o.toArray(); _i < _a.length; _i++) {
+                            var og = _a[_i];
                             o.remove(og);
                             og.multiple *= o.multiple;
                             _.insert(index, og);
                         }
                         _._removeInternal(o);
                         somethingDone = true;
-                        continue;
+                        return "continue";
                     }
                 }
                 if (_._operator == Operator.MULTIPLY) {
                     if (o.operator == Operator.MULTIPLY) {
                         _._multiple *= o._multiple;
-                        var index = _._source.indexOf(o);
-                        for (var _j = 0, _k = o.toArray(); _j < _k.length; _j++) {
-                            var og = _k[_j];
+                        var index = source.indexOf(o);
+                        for (var _b = 0, _c = o.toArray(); _b < _c.length; _b++) {
+                            var og = _c[_b];
                             o.remove(og);
                             _.insert(index, og);
                         }
                         _._removeInternal(o);
                         somethingDone = true;
-                        continue;
+                        return "continue";
+                    }
+                }
+            }
+            var o_firstChild = o.linq.firstOrDefault();
+            if (o.operator == Operator.SQUARE_ROOT && o_firstChild) {
+                var multiple_2 = o_firstChild.multiple;
+                if (o_firstChild.multiple > 3) {
+                    for (var i = 2, m = 4; m <= multiple_2; i++, m = i * i) {
+                        var r = void 0;
+                        while (Integer_1.Integer.is(r = multiple_2 / m)) {
+                            somethingDone = true;
+                            o_firstChild.multiple = multiple_2 = r;
+                            o.multiple *= i;
+                        }
                     }
                 }
             }
             if (o.count == 1) {
-                var opg = o.linq.firstOrDefault();
-                if (opg instanceof ParameterGene_1.default || opg instanceof ConstantGene_1.default) {
-                    if (Operator.Available.Functions.indexOf(o.operator) == -1) {
-                        o.remove(opg);
-                        opg.multiple *= o.multiple;
-                        this._replaceInternal(o, opg);
+                if (o_firstChild instanceof ParameterGene_1.default || o_firstChild instanceof ConstantGene_1.default) {
+                    if (Operator.Available.Functions.indexOf(o.operator) == -1
+                        || o.operator == Operator.SQUARE_ROOT && o_firstChild instanceof ConstantGene_1.default && (o_firstChild.multiple === 1 || o_firstChild.multiple === 0)) {
+                        o.remove(o_firstChild);
+                        o_firstChild.multiple *= o.multiple;
+                        this_1._replaceInternal(o, o_firstChild);
                         somethingDone = true;
-                        continue;
-                    }
-                    else if (o.operator == Operator.SQUARE_ROOT && opg instanceof ConstantGene_1.default && opg.multiple >= 0) {
-                        var sq = Math.sqrt(opg.multiple);
-                        for (var i = 0; i < sq; i++) {
-                            if (i == sq) {
-                                o.remove(opg);
-                                this._replaceInternal(o, opg);
-                                somethingDone = true;
-                            }
-                        }
+                        return "continue";
                     }
                 }
-                if (opg instanceof OperatorGene) {
-                    var og = opg;
+                if (o_firstChild instanceof OperatorGene) {
                     if (o.operator == Operator.SQUARE_ROOT) {
-                        var childCount = og.count;
-                        if (og.operator == Operator.MULTIPLY && childCount == 2
-                            && og.linq.select(function (p) { return p.asReduced().toString(); })
-                                .distinct()
-                                .count() == 1) {
-                            var firstChild = og.linq.first();
-                            og.remove(firstChild);
-                            o.operator = Operator.MULTIPLY;
-                            o.clear();
-                            o.add(firstChild);
-                            somethingDone = true;
+                        if (o_firstChild.operator == Operator.MULTIPLY) {
+                            var reduced_1 = false;
+                            var childCount = o_firstChild.count;
+                            if (childCount == 2
+                                && o_firstChild.linq.select(function (p) { return p.asReduced().toString(); })
+                                    .distinct()
+                                    .count() == 1) {
+                                var firstChild = o_firstChild.linq.first();
+                                o_firstChild.remove(firstChild);
+                                _.replace(o, firstChild);
+                                reduced_1 = true;
+                                somethingDone = true;
+                            }
+                            else if (childCount > 2) {
+                                o_firstChild.linq
+                                    .groupBy(function (p) { return p.asReduced().toString(); })
+                                    .where(function (g) { return g.count() > 1; })
+                                    .take(1)
+                                    .forEach(function (g) {
+                                    var genes = g.take(2).toArray();
+                                    o_firstChild.remove(genes[0]);
+                                    o_firstChild.remove(genes[1]);
+                                    var newParent;
+                                    if (_.operator == Operator.MULTIPLY) {
+                                        newParent = _;
+                                    }
+                                    else {
+                                        newParent = new OperatorGene(Operator.MULTIPLY);
+                                        _.replace(o, newParent);
+                                        newParent.add(o);
+                                    }
+                                    newParent.add(genes[0]);
+                                    if (!genes.length) {
+                                        newParent.remove(o);
+                                    }
+                                    reduced_1 = true;
+                                    somethingDone = true;
+                                });
+                            }
+                            if (reduced_1)
+                                return "continue";
                         }
                     }
-                    else if (Operator.Available.Operators.indexOf(o.operator) != -1) {
-                        var children = og.toArray();
-                        o.operator = og.operator;
-                        o.multiple *= og.multiple;
-                        og.clear();
+                    if (Operator.Available.Operators.indexOf(o.operator) != -1) {
+                        var children = o_firstChild.toArray();
+                        o.operator = o_firstChild.operator;
+                        o.multiple *= o_firstChild.multiple;
+                        o_firstChild.clear();
                         o.clear();
                         o.importEntries(children);
                         somethingDone = true;
                     }
                 }
             }
+            else if (o.count > 1) {
+                if (o.operator == Operator.SQUARE_ROOT) {
+                    if (o.modifyChildren(function (s) {
+                        var len = s.count;
+                        while (--len) {
+                            s.removeAt(len);
+                        }
+                        return true;
+                    })) {
+                        somethingDone = true;
+                    }
+                }
+            }
+        };
+        var this_1 = this;
+        for (var _e = 0, _f = values
+            .ofType(OperatorGene)
+            .toArray(); _e < _f.length; _e++) {
+            var o = _f[_e];
+            _loop_1(o);
         }
         if (_.count == 1) {
             var p = values.first();
@@ -479,7 +544,7 @@ var OperatorGene = (function (_super) {
                 if (p instanceof ConstantGene_1.default) {
                     if (p.multiple == 0) {
                         somethingDone = true;
-                        _.multiple *= p.multiple;
+                        _.multiple = 0;
                         p.multiple = 1;
                     }
                 }
@@ -492,9 +557,9 @@ var OperatorGene = (function (_super) {
                 }
             }
         }
-        if (_._operator == Operator.ADD && _._source.length > 1) {
-            var constants = Linq_1.default
-                .from(_._source.slice())
+        if (_._operator == Operator.ADD && source.length > 1) {
+            var genes = Linq_1.default(source.slice());
+            var constants = genes
                 .ofType(ConstantGene_1.default);
             var len = constants.count();
             if (len) {
@@ -506,14 +571,31 @@ var OperatorGene = (function (_super) {
                     len = 1;
                     somethingDone = true;
                 }
-                if (sum == 0 && _._source.length > len) {
+                if (sum == 0 && source.length > len) {
                     _._removeInternal(hero);
                     somethingDone = true;
                 }
             }
+            if (genes.all(function (g) { return Math.abs(g.multiple) > 1; })) {
+                var smallest = genes.orderBy(function (g) { return g.multiple; }).first();
+                var max = smallest.multiple;
+                var _loop_2 = function (i) {
+                    while (max % i == 0 && source.every(function (g) { return g.multiple % i == 0; })) {
+                        max /= i;
+                        _._multiple *= i;
+                        for (var _i = 0, source_1 = source; _i < source_1.length; _i++) {
+                            var g = source_1[_i];
+                            g.multiple /= i;
+                        }
+                    }
+                };
+                for (var i = 2; i <= max; i = Primes_1.nextPrime(i)) {
+                    _loop_2(i);
+                }
+            }
         }
         if (_._operator != Operator.DIVIDE) {
-            _._source.sort(arrange);
+            source.sort(arrange);
         }
         if (somethingDone)
             _._onModified();

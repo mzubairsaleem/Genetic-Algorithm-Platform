@@ -6,13 +6,30 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var Integer_1 = require("typescript-dotnet-umd/System/Integer");
 var UnreducibleGene_1 = require("./UnreducibleGene");
+var Types_1 = require("typescript-dotnet-umd/System/Types");
+var RegularExpressions_1 = require("typescript-dotnet-umd/System/Text/RegularExpressions");
+var PATTERN = new RegularExpressions_1.Regex("(?<multiple>-?\\d*){(?<id>\\d+)}");
 var ParameterGene = (function (_super) {
     __extends(ParameterGene, _super);
-    function ParameterGene(_id, multiple) {
+    function ParameterGene(id, multiple) {
         if (multiple === void 0) { multiple = 1; }
-        var _this = _super.call(this, multiple) || this;
-        _this._id = _id;
-        Integer_1.default.assert(_id, 'id');
+        var _this;
+        if (Types_1.Type.isString(id)) {
+            var m = PATTERN.match(id);
+            if (!m)
+                throw "Unrecognized parameter pattern.";
+            var groups = m.namedGroups;
+            var pm = groups["multiple"].value;
+            if (pm) {
+                if (pm === "" || pm === "-")
+                    pm += "1";
+                multiple *= Number(pm);
+            }
+            id = Number(groups["id"].value);
+        }
+        _this = _super.call(this, multiple) || this;
+        Integer_1.default.assert(id, 'id');
+        _this._id = id;
         return _this;
     }
     Object.defineProperty(ParameterGene.prototype, "id", {
