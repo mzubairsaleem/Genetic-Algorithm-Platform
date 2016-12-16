@@ -44,10 +44,11 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 	async test(count:number = this.testCount):NETPromise<void>
 	{
 		let p = this._populations.toArray();
-		let results = this._problems.map(problem => {
+		let results = this._problems.map(problem =>
+		{
 			let calcP = p.map(population => problem.test(population, count));
 			let a = NETPromise.all(calcP);
-			a.delayAfterResolve(10).then(()=>dispose.these(<any>calcP));
+			a.delayAfterResolve(10).then(() => dispose.these(<any>calcP));
 			return a;
 		});
 
@@ -68,12 +69,16 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		return this._populations.count;
 	}
 
-	protected async _onAsyncExecute():NETPromise<void> {
+	private _totalTime:number = 0;
+
+	protected async _onAsyncExecute():NETPromise<void>
+	{
+		const sw = Stopwatch.startNew();
 		const populations = this._populations.linq.reverse(),
 		      problems    = this._problemsEnumerable.memoize();
 
 		// Get ranked population for each problem and merge it into a weaved enumeration.
-		const sw = Stopwatch.startNew();
+		sw.lap();
 		const previousP = populations
 			.selectMany<IEnumerable<TGenome>>(
 				o =>
@@ -113,6 +118,12 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 
 		dispose(populations);
 		console.log("Testing/Cleanup (ms):", sw.currentLapMilliseconds);
+		const time = sw.elapsedMilliseconds;
+		this._totalTime += time;
+		console.log(
+			"Generations:", this._generations+",",
+			"Time:", time, "current /", this._totalTime, "total",
+			"("+ Math.floor(this._totalTime/this._generations), "average)");
 	}
 
 	protected _onExecute():void

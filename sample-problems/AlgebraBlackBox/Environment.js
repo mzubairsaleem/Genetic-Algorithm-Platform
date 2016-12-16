@@ -53,7 +53,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     var Linq_1 = require("typescript-dotnet-umd/System.Linq/Linq");
     var Promise_1 = require("typescript-dotnet-umd/System/Promises/Promise");
     function actualFormula(a, b) {
-        return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
+        return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
     }
     var AlgebraEnvironmentSample = (function (_super) {
         __extends(AlgebraEnvironmentSample, _super);
@@ -90,7 +90,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                                             = " => " + g.toAlphaParameters(true);
                                     var f = r.getFitnessFor(g);
                                     return {
-                                        label: "" + g.toAlphaParameters() + suffix + ": (" + f.count + " samples) " + f.scores,
+                                        label: "" + g.toAlphaParameters() + suffix + ": (" + f.sampleCount + " samples) " + f.scores,
                                         gene: g
                                     };
                                 });

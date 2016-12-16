@@ -146,13 +146,19 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 				}
 			}
 
-			const results = await Parallel.maxConcurrency(3)
+
+			const results = await Parallel.options({
+					maxConcurrency: 4/*, evalPath: "eval.js"*/
+				})
+				// .requireThese(isRequireJS ? ["../../lib/require.js"] : [])
 				.startNew({
 					fns: genomes.map(g => supplant(g.toEntity(), S_INDEXES).replace("()", "NaN")),
 					source: [aSample, bSample]
 				}, data =>
 				{
-
+					// const Set = require("typescript-dotnet-umd/System/Collections/Set");
+					//
+					// console.log(Set);
 
 					const {fns, source} = data, result:number[][] = [];
 					const [aSample, bSample] = source;
@@ -177,6 +183,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 						catch(ex)
 						{
 							calc = samples.map(s => NaN);
+							console.error("Bad Function:",f);
 							console.error(ex);
 						}
 						result.push(calc);
@@ -202,10 +209,10 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 				let d = average(divergence) + 1;
 
 				let f = this.getFitnessFor(g);
-				f.add([
+				f.addScores(
 					(isNaN(c) || !isFinite(c)) ? -2 : c,
 					(isNaN(d) || !isFinite(d)) ? -Infinity : d
-				]);
+				);
 
 				this._convergent.setValue(g.hashReduced, f.hasConverged()
 					? g

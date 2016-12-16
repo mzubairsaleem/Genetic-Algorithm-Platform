@@ -46,7 +46,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             var hash = null;
             if (source && source.length) {
                 for (var m = 1; m < 4; m++) {
-                    var tries = 200;
+                    var tries = 10;
                     do {
                         genome = _.mutate(Random_1.Random.select.one(source, true), m);
                         hash = genome.hash;
@@ -54,8 +54,6 @@ var __extends = (this && this.__extends) || function (d, b) {
                     } while (p.containsKey(hash) && --tries);
                     if (tries)
                         break;
-                    else
-                        genome = null;
                 }
             }
             if (!genome) {
@@ -88,12 +86,14 @@ var __extends = (this && this.__extends) || function (d, b) {
                     } while (--tries);
                     if (tries)
                         break;
-                    else
-                        genome = null;
                 }
             }
-            if (genome && hash)
-                p.addByKeyValue(hash, genome);
+            if (hash) {
+                if (p.containsKey(hash))
+                    return p.getAssuredValue(hash);
+                if (genome)
+                    p.addByKeyValue(hash, genome);
+            }
             return genome;
         };
         AlgebraGenomeFactory.prototype.generateVariations = function (source) {
@@ -182,9 +182,12 @@ var __extends = (this && this.__extends) || function (d, b) {
             }
             var p = this._previousGenomes;
             return result
-                .filter(function (genome) { return !p.containsKey(genome.hash); })
-                .map(function (genome) { return genome.asReduced(); })
-                .filter(function (genome) { return !p.containsKey(genome.hash); });
+                .map(function (genome) {
+                genome = p.getValue(genome.hash) || genome;
+                genome = genome.asReduced();
+                genome = p.getValue(genome.hash) || genome;
+                return genome;
+            });
         };
         AlgebraGenomeFactory.prototype.mutate = function (source, mutations) {
             if (mutations === void 0) { mutations = 1; }

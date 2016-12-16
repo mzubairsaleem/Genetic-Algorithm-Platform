@@ -147,7 +147,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                                     correct.push(f(a, b));
                                 }
                             }
-                            return [4 /*yield*/, Parallel_1.Parallel.maxConcurrency(3)
+                            return [4 /*yield*/, Parallel_1.Parallel.options({
+                                    maxConcurrency: 4
+                                })
                                     .startNew({
                                     fns: genomes.map(function (g) { return Utility_1.supplant(g.toEntity(), S_INDEXES).replace("()", "NaN"); }),
                                     source: [aSample, bSample]
@@ -169,6 +171,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                                         }
                                         catch (ex) {
                                             calc = samples.map(function (s) { return NaN; });
+                                            console.error("Bad Function:", f_2);
                                             console.error(ex);
                                         }
                                         result.push(calc);
@@ -193,10 +196,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                                 c = Correlation_1.correlation(correct, calc);
                                 d = Procedure_1.average(divergence) + 1;
                                 f_1 = this.getFitnessFor(g);
-                                f_1.add([
-                                    (isNaN(c) || !isFinite(c)) ? -2 : c,
-                                    (isNaN(d) || !isFinite(d)) ? -Infinity : d
-                                ]);
+                                f_1.addScores((isNaN(c) || !isFinite(c)) ? -2 : c, (isNaN(d) || !isFinite(d)) ? -Infinity : d);
                                 this._convergent.setValue(g.hashReduced, f_1.hasConverged()
                                     ? g
                                     : (void 0));

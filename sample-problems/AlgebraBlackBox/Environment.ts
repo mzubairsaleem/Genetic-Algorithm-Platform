@@ -7,7 +7,7 @@ import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promi
 
 function actualFormula(a:number, b:number):number // Solve for 'c'.
 {
-	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
+	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 }
 
 export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
@@ -53,7 +53,7 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 												= " => " + g.toAlphaParameters(true);
 										let f = r.getFitnessFor(g);
 										return {
-											label: `${g.toAlphaParameters()}${suffix}: (${f.count} samples) ${f.scores}`,
+											label: `${g.toAlphaParameters()}${suffix}: (${f.sampleCount} samples) ${f.scores}`,
 											gene: g
 										};
 									}

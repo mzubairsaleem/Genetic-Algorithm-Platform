@@ -136,23 +136,23 @@ var __extends = (this && this.__extends) || function (d, b) {
                 .groupBy(function (g) { return g.toStringContents(); })
                 .where(function (g) { return g.count() > 1; })
                 .forEach(function (p) {
-                var pa = p.memoize();
+                var matches = p.memoize();
                 switch (_._operator) {
                     case Operator.ADD:
                         {
-                            var sum = pa.sum(function (s) { return s.multiple; });
-                            var hero = pa.first();
+                            var sum = matches.sum(function (s) { return s.multiple; });
+                            var hero = matches.first();
                             if (sum == 0)
                                 _._replaceInternal(hero, new ConstantGene_1.default(0));
                             else
                                 hero.multiple = sum;
-                            pa.skip(1).forEach(function (g) { return _._removeInternal(g); });
+                            matches.skip(1).forEach(function (g) { return _._removeInternal(g); });
                             somethingDone = true;
                             break;
                         }
                     case Operator.MULTIPLY:
                         {
-                            var g = p
+                            var g = matches
                                 .ofType(OperatorGene)
                                 .where(function (g) { return g.operator == Operator.SQUARE_ROOT; })
                                 .toArray();
@@ -160,13 +160,14 @@ var __extends = (this && this.__extends) || function (d, b) {
                                 _.remove(g.pop());
                                 var e = g.pop();
                                 _.replace(e, e.linq.single());
+                                somethingDone = true;
                             }
                             break;
                         }
                     case Operator.DIVIDE:
                         {
-                            var first = pa.first();
-                            var next = pa.elementAt(1);
+                            var first = matches.first();
+                            var next = matches.elementAt(1);
                             if (!(first instanceof ConstantGene_1.default)) {
                                 _._replaceInternal(first, new ConstantGene_1.default(first.multiple));
                                 _._replaceInternal(next, new ConstantGene_1.default(next.multiple));

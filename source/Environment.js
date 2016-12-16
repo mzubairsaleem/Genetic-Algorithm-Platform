@@ -68,6 +68,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
             _this.populationSize = 50;
             _this.maxPopulations = 10;
             _this.testCount = 5;
+            _this._totalTime = 0;
             _this._problemsEnumerable
                 = Linq_1.Enumerable(_this._problems = []);
             _this._populations = new LinkedList_1.LinkedList();
@@ -113,12 +114,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         });
         Environment.prototype._onAsyncExecute = function () {
             return __awaiter(this, void 0, Promise_1.Promise, function () {
-                var populations, problems, sw, previousP, p, beforeCulling, additional;
+                var sw, populations, problems, previousP, p, beforeCulling, additional, time;
                 return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0:
-                            populations = this._populations.linq.reverse(), problems = this._problemsEnumerable.memoize();
                             sw = Stopwatch_1.default.startNew();
+                            populations = this._populations.linq.reverse(), problems = this._problemsEnumerable.memoize();
+                            sw.lap();
                             previousP = populations
                                 .selectMany(function (o) {
                                 var x = problems.select(function (r) { return r.rank(o); });
@@ -144,6 +146,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                             console.log("Population Size:", p.count, '/', beforeCulling);
                             dispose_1.dispose(populations);
                             console.log("Testing/Cleanup (ms):", sw.currentLapMilliseconds);
+                            time = sw.elapsedMilliseconds;
+                            this._totalTime += time;
+                            console.log("Generations:", this._generations + ",", "Time:", time, "current /", this._totalTime, "total", "(" + Math.floor(this._totalTime / this._generations), "average)");
                             return [2 /*return*/];
                     }
                 });

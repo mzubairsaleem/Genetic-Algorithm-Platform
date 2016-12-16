@@ -178,21 +178,21 @@ class OperatorGene extends AlgebraGene
 			.where(g => g.count()>1)
 			.forEach(p =>
 			{
-				let pa = p.memoize();
+				let matches = p.memoize();
 
 				switch(_._operator)
 				{
 					case Operator.ADD:
 					{
-						let sum = pa.sum(s => s.multiple);
-						let hero = pa.first();
+						let sum = matches.sum(s => s.multiple);
+						let hero = matches.first();
 
 						if(sum==0)
 							_._replaceInternal(hero, new ConstantGene(0));
 						else
 							hero.multiple = sum;
 
-						pa.skip(1).forEach(g => _._removeInternal(g));
+						matches.skip(1).forEach(g => _._removeInternal(g));
 
 						somethingDone = true;
 						break;
@@ -200,7 +200,7 @@ class OperatorGene extends AlgebraGene
 
 					case Operator.MULTIPLY:
 					{
-						let g = p
+						let g = matches
 							.ofType(OperatorGene)
 							.where(g => g.operator==Operator.SQUARE_ROOT)
 							.toArray();
@@ -210,6 +210,7 @@ class OperatorGene extends AlgebraGene
 							_.remove(g.pop()!);
 							let e = g.pop()!;
 							_.replace(e, e.linq.single());
+							somethingDone = true;
 						}
 
 						break;
@@ -217,8 +218,8 @@ class OperatorGene extends AlgebraGene
 
 					case Operator.DIVIDE:
 					{
-						let first = pa.first();
-						let next = pa.elementAt(1);
+						let first = matches.first();
+						let next = matches.elementAt(1);
 						if(!(first instanceof ConstantGene))
 						{
 							_._replaceInternal(first, new ConstantGene(first.multiple));

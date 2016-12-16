@@ -51,7 +51,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 			// Find one that will mutate well and use it.
 			for(let m = 1; m<4; m++)
 			{
-				let tries = 200;
+				let tries = 10;//200;
 				do
 				{
 					genome = _.mutate(Random.select.one(source, true), m);
@@ -62,8 +62,8 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 				if(tries)
 					break;
-				else
-					genome = null; // Failed... Converged? No solutions? Saturated?
+				// else
+				// 	genome = null; // Failed... Converged? No solutions? Saturated?
 			}
 
 		}
@@ -109,16 +109,22 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 				if(tries)
 					break;
-				else
-					genome = null; // Failed... Converged? No solutions? Saturated?
+				// else
+				// 	genome = null; // Failed... Converged? No solutions? Saturated?
 			}
 
 		}
 
 		//console.log("Generate attempts:",attempts);
+		if(hash)
+		{
+			if(p.containsKey(hash))
+				return p.getAssuredValue(hash);
 
-		if(genome && hash)
-			p.addByKeyValue(hash, genome);
+			if(genome)
+				p.addByKeyValue(hash, genome);
+		}
+
 
 		// if(!genome)
 		// 	throw "Failed... Converged? No solutions? Saturated?";
@@ -137,7 +143,11 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 			const gene = sourceGenes[i];
 			const isRoot = gene==source.root;
 
-			const applyClone = (handler:(gene:AlgebraGene, newGenome:AlgebraGenome)=>boolean|void)=>{
+			const applyClone = (
+				handler:(
+					gene:AlgebraGene,
+					newGenome:AlgebraGenome) => boolean|void) =>
+			{
 				const newGenome = source.clone();
 				if(handler(<AlgebraGene>newGenome.genes.elementAt(i), newGenome)!==false)
 					result.push(newGenome);
@@ -146,7 +156,8 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 			const absMultiple = Math.abs(gene.multiple);
 			if(absMultiple>1)
 			{
-				applyClone((gene)=>{
+				applyClone((gene) =>
+				{
 					gene.multiple -= gene.multiple/absMultiple;
 				});
 			}
@@ -156,20 +167,23 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 			{
 				if(parentOp.count>1)
 				{
-					applyClone((gene, newGenome)=>{
+					applyClone((gene, newGenome) =>
+					{
 						let parentOp = <OperatorGene>newGenome.findParent(gene);
 						parentOp.remove(gene);
 
 						// Reduce to avoid NaN.
-						if(parentOp.count==1 && Operator.Available.Operators.indexOf(parentOp.operator)!=-1) {
+						if(parentOp.count==1 && Operator.Available.Operators.indexOf(parentOp.operator)!= -1)
+						{
 							if(parentOp)
 							{
 								let grandParent = <OperatorGene>newGenome.findParent(parentOp);
-								if(grandParent) {
+								if(grandParent)
+								{
 									let grandChild = parentOp.linq.single();
 									grandChild.multiple *= parentOp.multiple;
 									parentOp.remove(grandChild);
-									grandParent.replace(parentOp,grandChild);
+									grandParent.replace(parentOp, grandChild);
 								}
 							}
 						}
@@ -179,7 +193,8 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 			if(gene instanceof OperatorGene && gene.count==1)
 			{
-				applyClone((gene, newGenome)=>{
+				applyClone((gene, newGenome) =>
+				{
 
 					const child = gene.get(0);
 					const parentOp = (<OperatorGene>newGenome.findParent(gene));
@@ -208,7 +223,8 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 				if(Operator.Available.Functions.indexOf(gene.operator))
 				{
-					applyClone((gene:OperatorGene)=>{
+					applyClone((gene:OperatorGene) =>
+					{
 
 						gene.operator = "+";
 
@@ -245,9 +261,16 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 		const p = this._previousGenomes;
 		return result
-			.filter(genome => !p.containsKey(genome.hash))
-			.map(genome => genome.asReduced())
-			.filter(genome => !p.containsKey(genome.hash));
+		//.filter(genome => !p.containsKey(genome.hash))
+			.map(genome =>
+			{
+				genome = p.getValue(genome.hash) || genome;
+				genome = genome.asReduced();
+				genome = p.getValue(genome.hash) || genome;
+				return genome;
+			})
+			//.filter(genome => !p.containsKey(genome.hash))
+			;
 	}
 
 	mutate(source:AlgebraGenome, mutations:number = 1):AlgebraGenome
