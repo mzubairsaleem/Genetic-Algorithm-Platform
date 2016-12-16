@@ -15,11 +15,6 @@ var __extends = (this && this.__extends) || function (d, b) {
     var Procedure = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
     var List_1 = require("typescript-dotnet-umd/System/Collections/List");
     var Exception_1 = require("typescript-dotnet-umd/System/Exception");
-    exports.DefaultK = 1;
-    function LogisticAdjuster(e) {
-        return (e.average / (1 + Math.exp(-exports.DefaultK * (e.count))) - 0.5) * 2;
-    }
-    exports.LogisticAdjuster = LogisticAdjuster;
     function NoAdjuster(e) {
         return e.average;
     }

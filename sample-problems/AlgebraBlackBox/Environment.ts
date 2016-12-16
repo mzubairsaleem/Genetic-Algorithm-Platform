@@ -20,7 +20,7 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 		this._problems
 			.push(new AlgebraBlackBoxProblem(actualFormula));
 
-		// this.maxPopulations = 20;
+		this.maxPopulations = 20;
 		// this.populationSize = 100;
 	}
 

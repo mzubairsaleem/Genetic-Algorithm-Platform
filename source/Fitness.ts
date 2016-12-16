@@ -4,18 +4,18 @@ import * as Procedure from "typescript-dotnet-umd/System/Collections/Array/Proce
 import {List} from "typescript-dotnet-umd/System/Collections/List";
 import {Exception} from "typescript-dotnet-umd/System/Exception";
 
-export const DefaultK:number = 1; // Steepness.
+// export const DefaultK:number = 1; // Steepness.
 
-/**
- * The default adjuster uses a logistic function to adjust the relative values based on the number of samples.
- * @param e
- * @returns {number}
- * @constructor
- */
-export function LogisticAdjuster(e:SingularFitness)
-{
-	return (e.average/(1 + Math.exp(-DefaultK*(e.count))) - 0.5)*2;
-}
+// /**
+//  * The default adjuster uses a logistic function to adjust the relative values based on the number of samples.
+//  * @param e
+//  * @returns {number}
+//  * @constructor
+//  */
+// export function LogisticAdjuster(e:SingularFitness)
+// {
+// 	return (e.average/(1 + Math.exp(-DefaultK*(e.count))) - 0.5)*2;
+// }
 
 export function NoAdjuster(e:SingularFitness)
 {

@@ -61,6 +61,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
             var _this = _super.call(this, new GenomeFactory_1.default()) || this;
             _this._problems
                 .push(new Problem_1.default(actualFormula));
+            _this.maxPopulations = 20;
             return _this;
         }
         AlgebraEnvironmentSample.prototype._onAsyncExecute = function () {
