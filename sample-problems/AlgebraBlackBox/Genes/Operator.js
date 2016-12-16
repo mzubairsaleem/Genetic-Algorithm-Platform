@@ -159,8 +159,14 @@ var __extends = (this && this.__extends) || function (d, b) {
                             while (g.length > 1) {
                                 _.remove(g.pop());
                                 var e = g.pop();
-                                _.replace(e, e.linq.single());
-                                somethingDone = true;
+                                try {
+                                    _.replace(e, e.linq.single());
+                                    somethingDone = true;
+                                }
+                                catch (ex) {
+                                    console.error(e.toString());
+                                    throw ex;
+                                }
                             }
                             break;
                         }

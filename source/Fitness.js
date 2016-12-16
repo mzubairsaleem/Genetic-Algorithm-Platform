@@ -95,8 +95,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             if (minSamples === void 0) { minSamples = 100; }
             if (convergence === void 0) { convergence = 1; }
             if (tolerance === void 0) { tolerance = 0; }
-            var len = this.count;
-            if (len < minSamples || len == 0)
+            if (minSamples > this.sampleCount)
                 return false;
             for (var _i = 0, _a = this._source; _i < _a.length; _i++) {
                 var s = _a[_i];

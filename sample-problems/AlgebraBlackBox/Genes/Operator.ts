@@ -209,8 +209,14 @@ class OperatorGene extends AlgebraGene
 						{
 							_.remove(g.pop()!);
 							let e = g.pop()!;
-							_.replace(e, e.linq.single());
-							somethingDone = true;
+							try {
+								_.replace(e, e.linq.single());
+								somethingDone = true;
+							} catch (ex)
+							{
+								console.error(e.toString());
+								throw ex;
+							}
 						}
 
 						break;

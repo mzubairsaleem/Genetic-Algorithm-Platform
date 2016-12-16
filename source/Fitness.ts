@@ -86,8 +86,7 @@ export class Fitness extends List<SingularFitness> implements IComparable<Fitnes
 
 	hasConverged(minSamples:number = 100, convergence:number = 1, tolerance:number = 0):boolean
 	{
-		const len = this.count;
-		if(len<minSamples || len==0) return false;
+		if(minSamples>this.sampleCount) return false;
 
 		for(let s of this._source)
 		{
