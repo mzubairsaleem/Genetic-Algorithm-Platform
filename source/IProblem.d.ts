@@ -24,6 +24,8 @@ export interface IProblem<TGenome extends IGenome, TFitness>
 		population:IEnumerableOrArray<TGenome>,
 		targetMaxPopulation:number):IEnumerable<TGenome>;
 
+	pareto(population:IEnumerableOrArray<TGenome>):TGenome[];
+
 	test(p:IPopulation<TGenome>, count?:number):PromiseLike<void>;
 }
 

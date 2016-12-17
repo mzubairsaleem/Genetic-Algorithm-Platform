@@ -1,7 +1,3 @@
-/*!
- * @author electricessence / https://github.com/electricessence/
- * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
- */
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -114,25 +110,21 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         });
         Environment.prototype._onAsyncExecute = function () {
             return __awaiter(this, void 0, Promise_1.Promise, function () {
-                var sw, populations, problems, previousP, p, beforeCulling, additional, time;
+                var sw, populations, problems, allGenes, previousP, p, beforeCulling, additional, time;
                 return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0:
                             sw = Stopwatch_1.default.startNew();
                             populations = this._populations.linq.reverse(), problems = this._problemsEnumerable.memoize();
                             sw.lap();
-                            previousP = populations
-                                .selectMany(function (o) {
-                                var x = problems.select(function (r) { return r.rank(o); });
-                                if (!x.any())
-                                    return x;
-                                return Linq_1.Enumerable.make(x.first()).concat(x);
-                            }).memoize();
+                            allGenes = populations.selectMany(function (g) { return g; }).memoize();
+                            previousP = problems.select(function (r) { return r.rank(allGenes); });
                             p = this.spawn(this.populationSize, previousP.any() ?
                                 Triangular.disperse.decreasing(Linq_1.Enumerable.weave(previousP)) : void 0);
                             beforeCulling = p.count;
                             if (!beforeCulling)
                                 throw "Nothing spawned!!!";
+                            p.importEntries(problems.selectMany(function (r) { return r.pareto(allGenes); }));
                             console.log("Populations:", this._populations.count);
                             console.log("Selection/Ranking (ms):", sw.currentLapMilliseconds);
                             sw.lap();

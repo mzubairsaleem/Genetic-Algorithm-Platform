@@ -46,7 +46,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             var hash = null;
             if (source && source.length) {
                 for (var m = 1; m < 4; m++) {
-                    var tries = 100; //200;
+                    var tries = 10;
                     do {
                         genome = _.mutate(Random_1.Random.select.one(source, true), m);
                         hash = genome.hash;
@@ -54,8 +54,6 @@ var __extends = (this && this.__extends) || function (d, b) {
                     } while (p.containsKey(hash) && --tries);
                     if (tries)
                         break;
-                    // else
-                    //     genome = null;
                 }
             }
             if (!genome) {

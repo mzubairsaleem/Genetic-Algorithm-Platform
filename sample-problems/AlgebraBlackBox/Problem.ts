@@ -60,6 +60,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 	rank(population:IEnumerableOrArray<AlgebraGenome>):IOrderedEnumerable<AlgebraGenome>
 	{
 		return Enumerable(population)
+			.where(g => this.getFitnessFor(g).scores.every(s=>!isNaN(s)))
 			.orderByDescending(g => this.getFitnessFor(g))
 			.thenBy(g => g.hash.length);
 	}
@@ -76,6 +77,42 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 				lastFitness = f;
 				return i<targetMaxPopulation || lf.compareTo(f)===0;
 			});
+	}
+
+	pareto(population:IEnumerableOrArray<AlgebraGenome>):AlgebraGenome[]
+	{
+		// TODO: Needs work/optimization.
+		let d = Enumerable(population)
+			.distinct(g=>g.hash)
+			.toDictionary(g => g.hash, g => g);
+
+		let found:boolean, p:AlgebraGenome[];
+		do {
+			found = false;
+			p = d.values;
+			for(let g of p)
+			{
+				const gs = this.getFitnessFor(g).scores;
+				const len = gs.length;
+				if(d.values.some(o =>
+					{
+						const os = this.getFitnessFor(o).scores;
+						for(let i = 0; i<len; i++)
+						{
+							let osv = os[i];
+							if(isNaN(osv)) return true;
+							if(gs[i]<=os[i]) return false;
+						}
+						return true;
+					}))
+				{
+					found = true;
+					d.removeByKey(g.hash);
+				}
+			}
+		} while (found);
+
+		return p;
 	}
 
 	//noinspection JSMethodCanBeStatic,JSUnusedGlobalSymbols
@@ -183,7 +220,7 @@ export default class AlgebraBlackBoxProblem implements IProblem<AlgebraGenome, F
 						catch(ex)
 						{
 							calc = samples.map(s => NaN);
-							console.error("Bad Function:",f);
+							console.error("Bad Function:", f);
 							console.error(ex);
 						}
 						result.push(calc);

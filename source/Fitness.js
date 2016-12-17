@@ -15,17 +15,10 @@ var __extends = (this && this.__extends) || function (d, b) {
     var Procedure = require("typescript-dotnet-umd/System/Collections/Array/Procedure");
     var List_1 = require("typescript-dotnet-umd/System/Collections/List");
     var Exception_1 = require("typescript-dotnet-umd/System/Exception");
-    function NoAdjuster(e) {
-        return e.average;
-    }
-    exports.NoAdjuster = NoAdjuster;
     var SingularFitness = (function (_super) {
         __extends(SingularFitness, _super);
-        function SingularFitness(_adjuster) {
-            if (_adjuster === void 0) { _adjuster = NoAdjuster; }
-            var _this = _super.call(this) || this;
-            _this._adjuster = _adjuster;
-            return _this;
+        function SingularFitness() {
+            return _super.call(this) || this;
         }
         SingularFitness.prototype.add = function (entry) {
             this._average = null;
@@ -36,16 +29,6 @@ var __extends = (this && this.__extends) || function (d, b) {
                 var v = this._average;
                 if (v == null)
                     this._average = v = Procedure.average(this._source);
-                return v;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(SingularFitness.prototype, "adjusted", {
-            get: function () {
-                var v = this._adjusted;
-                if (v == null)
-                    this._adjusted = v = this._adjuster(this);
                 return v;
             },
             enumerable: true,
@@ -105,11 +88,17 @@ var __extends = (this && this.__extends) || function (d, b) {
         Fitness.prototype.compareTo = function (other) {
             var len = this._source.length;
             for (var i = 0; i < len; i++) {
-                var a = this.get(i).adjusted;
-                var b = other.get(i).adjusted;
-                if (a < b || isNaN(a) && !isNaN(b))
+                var a = this.get(i);
+                var b = other.get(i);
+                var aA = a.average;
+                var bA = b.average;
+                if (aA < bA || isNaN(aA) && !isNaN(bA))
                     return -1;
-                if (a > b || !isNaN(a) && isNaN(b))
+                if (aA > bA || !isNaN(aA) && isNaN(bA))
+                    return +1;
+                if (a.count < b.count)
+                    return -1;
+                if (a.count > b.count)
                     return +1;
             }
             return 0;

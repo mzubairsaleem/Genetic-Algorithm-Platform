@@ -76,6 +76,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         AlgebraBlackBoxProblem.prototype.rank = function (population) {
             var _this = this;
             return Linq_1.default(population)
+                .where(function (g) { return _this.getFitnessFor(g).scores.every(function (s) { return !isNaN(s); }); })
                 .orderByDescending(function (g) { return _this.getFitnessFor(g); })
                 .thenBy(function (g) { return g.hash.length; });
         };
@@ -88,6 +89,41 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                 lastFitness = f;
                 return i < targetMaxPopulation || lf.compareTo(f) === 0;
             });
+        };
+        AlgebraBlackBoxProblem.prototype.pareto = function (population) {
+            var _this = this;
+            var d = Linq_1.default(population)
+                .distinct(function (g) { return g.hash; })
+                .toDictionary(function (g) { return g.hash; }, function (g) { return g; });
+            var found, p;
+            do {
+                found = false;
+                p = d.values;
+                var _loop_1 = function (g) {
+                    var gs = this_1.getFitnessFor(g).scores;
+                    var len = gs.length;
+                    if (d.values.some(function (o) {
+                        var os = _this.getFitnessFor(o).scores;
+                        for (var i = 0; i < len; i++) {
+                            var osv = os[i];
+                            if (isNaN(osv))
+                                return true;
+                            if (gs[i] <= os[i])
+                                return false;
+                        }
+                        return true;
+                    })) {
+                        found = true;
+                        d.removeByKey(g.hash);
+                    }
+                };
+                var this_1 = this;
+                for (var _i = 0, p_1 = p; _i < p_1.length; _i++) {
+                    var g = p_1[_i];
+                    _loop_1(g);
+                }
+            } while (found);
+            return p;
         };
         AlgebraBlackBoxProblem.prototype.correlation = function (aSample, bSample, gA, gB) {
             return __awaiter(this, void 0, Promise_1.Promise, function () {
@@ -164,7 +200,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                                             samples.push([a, b]);
                                         }
                                     }
-                                    var _loop_1 = function (f_2) {
+                                    var _loop_2 = function (f_2) {
                                         var calc = void 0;
                                         try {
                                             calc = samples.map(function (s) { return eval(f_2); });
@@ -178,7 +214,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                                     };
                                     for (var _b = 0, fns_1 = fns; _b < fns_1.length; _b++) {
                                         var f_2 = fns_1[_b];
-                                        _loop_1(f_2);
+                                        _loop_2(f_2);
                                     }
                                     return result;
                                 })];

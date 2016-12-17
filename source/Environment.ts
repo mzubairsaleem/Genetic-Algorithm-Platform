@@ -2,15 +2,12 @@
  * @author electricessence / https://github.com/electricessence/
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
-
-
 import * as Triangular from "./Triangular";
 import {dispose} from "typescript-dotnet-umd/System/Disposable/dispose";
 import {LinkedList} from "typescript-dotnet-umd/System/Collections/LinkedList";
 import {TaskHandlerBase} from "typescript-dotnet-umd/System/Threading/Tasks/TaskHandlerBase";
 import {Population} from "./Population";
 import {Enumerable, LinqEnumerable} from "typescript-dotnet-umd/System.Linq/Linq";
-import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerable";
 import {IEnumerableOrArray} from "typescript-dotnet-umd/System/Collections/IEnumerableOrArray";
 import {IGenome} from "./IGenome";
 import {IEnvironment} from "./IEnvironment";
@@ -77,28 +74,25 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		const populations = this._populations.linq.reverse(),
 		      problems    = this._problemsEnumerable.memoize();
 
-		// Get ranked population for each problem and merge it into a weaved enumeration.
 		sw.lap();
-		const previousP = populations
-			.selectMany<IEnumerable<TGenome>>(
-				o =>
-				{
-					let x = problems.select(r => r.rank(o));
-					if(!x.any()) return x;
-					return Enumerable.make(x.first()).concat(x); // Take the first one an bias it as the winner.
-				}
-			).memoize();
+
+		const allGenes = populations.selectMany(g=>g).memoize();
+		// Get ranked population for each problem and merge it into a weaved enumeration.
+		const previousP = problems.select(r => r.rank(allGenes));
 
 		const p = this.spawn(
 			this.populationSize, previousP.any() ?
-				Triangular.disperse.decreasing<TGenome>(
-					Enumerable.weave<TGenome>(previousP)
+				Triangular.disperse.decreasing(
+					Enumerable.weave(previousP)
 				) : void 0
 		);
 
 		const beforeCulling = p.count;
 		if(!beforeCulling) // Just in case.
 			throw "Nothing spawned!!!";
+
+		// Retain genomes on the pareto...
+		p.importEntries(problems.selectMany(r => r.pareto(allGenes)));
 
 		console.log("Populations:", this._populations.count);
 		console.log("Selection/Ranking (ms):", sw.currentLapMilliseconds);
