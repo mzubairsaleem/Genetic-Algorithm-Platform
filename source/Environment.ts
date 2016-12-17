@@ -91,8 +91,12 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		if(!beforeCulling) // Just in case.
 			throw "Nothing spawned!!!";
 
-		// Retain genomes on the pareto...
-		p.importEntries(problems.selectMany(r => r.pareto(allGenes)));
+		// {
+		// 	// Retain genomes on the pareto...
+		// 	const elite = this.getNewPopulation();
+		// 	elite.importEntries(problems.selectMany(r => r.pareto(allGenes)));
+		// 	this._populations.add(elite);
+		// }
 
 		console.log("Populations:", this._populations.count);
 		console.log("Selection/Ranking (ms):", sw.currentLapMilliseconds);
@@ -140,6 +144,11 @@ extends TaskHandlerBase implements IEnvironment<TGenome>
 		_._genomeFactory.trimPreviousGenomes();
 		_.trimEarlyPopulations(_.maxPopulations);
 		return p;
+	}
+
+	getNewPopulation():Population<TGenome>
+	{
+		return new Population(this._genomeFactory);
 	}
 
 

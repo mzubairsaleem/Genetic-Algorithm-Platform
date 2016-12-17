@@ -37,6 +37,6 @@
     "@types/assert": "0.0.29",
     "@types/mocha": "^2.2.32",
     "@types/node": "^6.0.46",
-    "typescript-dotnet-umd": "^4.7.11"
+    "typescript-dotnet-umd": "^4.7.13"
   }
 }

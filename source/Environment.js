@@ -124,7 +124,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                             beforeCulling = p.count;
                             if (!beforeCulling)
                                 throw "Nothing spawned!!!";
-                            p.importEntries(problems.selectMany(function (r) { return r.pareto(allGenes); }));
                             console.log("Populations:", this._populations.count);
                             console.log("Selection/Ranking (ms):", sw.currentLapMilliseconds);
                             sw.lap();
@@ -157,6 +156,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
             _._genomeFactory.trimPreviousGenomes();
             _.trimEarlyPopulations(_.maxPopulations);
             return p;
+        };
+        Environment.prototype.getNewPopulation = function () {
+            return new Population_1.Population(this._genomeFactory);
         };
         Environment.prototype.trimEarlyPopulations = function (maxPopulations) {
             var problems = this._problemsEnumerable.memoize(), pops = this._populations;
