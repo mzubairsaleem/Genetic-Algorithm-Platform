@@ -382,7 +382,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						// Split it...
 						case 2:
 						{
-							let newFn = OperatorGene.getRandomOperation(Operator.DIVIDE);
+							let newFn = OperatorGene.getRandomOperation(Operator.DIVIDE); // excluding divide
 
 							if(isRoot)
 								newGenome.root = newFn;
@@ -463,9 +463,11 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 				}
 				else if(gene instanceof OperatorGene)
 				{
-					if(Operator.Available.Functions.indexOf(gene.operator)!= -1)
+					const isFn = Operator.Available.Functions.indexOf(gene.operator)!= -1;
+					if(isFn)
 					{
-						invalidOptions.push(3);
+						if(!isRoot) // Might need to break it out.
+							invalidOptions.push(3);
 						invalidOptions.push(4);
 					}
 
@@ -475,12 +477,15 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 					{
 						// Simply invert the sign
 						case 0:
+						{
 							gene.multiple *= -1;
 							invalidOptions = null;
 							break;
+						}
 
 						// Simply change operations
 						case 1:
+						{
 							let currentOperatorIndex
 								    = Operator.Available.Operators.indexOf(gene.operator);
 							if(currentOperatorIndex== -1)
@@ -537,11 +542,11 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 							invalidOptions = null;
 							break;
-
+						}
 
 						// Add random parameter.
 						case 2:
-
+						{
 							if(gene.operator==Operator.SQUARE_ROOT
 								// In order to avoid unnecessary reduction, avoid adding subsequent divisors.
 								|| gene.operator==Operator.DIVIDE && gene.count>1)
@@ -550,28 +555,50 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							gene.add(new ParameterGene(Random.next(inputParamCount)));
 							invalidOptions = null;
 							break;
+						}
 
 						// Add random operator branch.
 						case 3:
-
-
-							const first = new ParameterGene(Random.next(inputParamCount));
+						{
+							const n = new ParameterGene(Random.next(inputParamCount));
 
 							const newOp = inputParamCount<=1
 								? OperatorGene.getRandomOperation('/')
 								: OperatorGene.getRandomOperation();
 
-							newOp.add(first);
+							if(isFn || Random.next(4)==0)
+							{
+								// logic states that this MUST be the root node.
+								const index = Random.next(2);
+								if(index) {
+									newOp.add(n);
+									newOp.add(newGenome.root);
+								} else {
+									newOp.add(newGenome.root);
+									newOp.add(n);
+								}
 
-							// Useless to divide a param by itself, avoid...
-							if(newOp.operator==Operator.DIVIDE)
-								newOp.add(new ParameterGene(nextRandomIntegerExcluding(inputParamCount, first.id)));
+								newGenome.root = newOp;
+							}
 							else
-								newOp.add(new ParameterGene(Random.next(inputParamCount)));
+							{
 
-							gene.add(newOp);
-							invalidOptions = null;
+								newOp.add(n);
+
+								// Useless to divide a param by itself, avoid...
+								if(newOp.operator==Operator.DIVIDE)
+									newOp.add(new ParameterGene(nextRandomIntegerExcluding(inputParamCount, n.id)));
+								else
+									newOp.add(new ParameterGene(Random.next(inputParamCount)));
+
+								gene.add(newOp);
+								invalidOptions = null;
+
+							}
+
 							break;
+						}
+
 						// Apply a function
 						case 4:
 						{
@@ -610,11 +637,15 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							break;
 						}
 						case 5:
+						{
 							if(gene.reduce())
 								invalidOptions = null;
 							break;
+						}
 						// Remove it!
 						default:
+						{
+
 							if(Operator.Available.Functions.indexOf(gene.operator)!= -1)
 							{
 								if(isRoot)
@@ -678,7 +709,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							invalidOptions = null;
 							break;
 
-
+						}
 					}
 				}
 			}

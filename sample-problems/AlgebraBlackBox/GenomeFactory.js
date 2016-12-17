@@ -306,76 +306,100 @@ var __extends = (this && this.__extends) || function (d, b) {
                         }
                     }
                     else if (gene instanceof Operator_1.default) {
-                        if (Operator.Available.Functions.indexOf(gene.operator) != -1) {
-                            invalidOptions.push(3);
+                        var isFn = Operator.Available.Functions.indexOf(gene.operator) != -1;
+                        if (isFn) {
+                            if (!isRoot)
+                                invalidOptions.push(3);
                             invalidOptions.push(4);
                         }
                         switch (lastOption = nextRandomIntegerExcluding_1.default(doNotRemove
                             ? 6
                             : 10, invalidOptions)) {
                             case 0:
-                                gene.multiple *= -1;
-                                invalidOptions = null;
-                                break;
+                                {
+                                    gene.multiple *= -1;
+                                    invalidOptions = null;
+                                    break;
+                                }
                             case 1:
-                                var currentOperatorIndex = Operator.Available.Operators.indexOf(gene.operator);
-                                if (currentOperatorIndex == -1) {
-                                    currentOperatorIndex
-                                        = Operator.Available.Functions.indexOf(gene.operator);
-                                    if (currentOperatorIndex != -1) {
-                                        if (Operator.Available.Functions.length == 1) {
-                                            invalidOptions.push(1);
-                                            break;
+                                {
+                                    var currentOperatorIndex = Operator.Available.Operators.indexOf(gene.operator);
+                                    if (currentOperatorIndex == -1) {
+                                        currentOperatorIndex
+                                            = Operator.Available.Functions.indexOf(gene.operator);
+                                        if (currentOperatorIndex != -1) {
+                                            if (Operator.Available.Functions.length == 1) {
+                                                invalidOptions.push(1);
+                                                break;
+                                            }
+                                            gene.operator = Operator.Available.Functions[nextRandomIntegerExcluding_1.default(Operator.Available.Functions.length, currentOperatorIndex)];
                                         }
-                                        gene.operator = Operator.Available.Functions[nextRandomIntegerExcluding_1.default(Operator.Available.Functions.length, currentOperatorIndex)];
+                                        break;
+                                    }
+                                    var newOperatorIndex = nextRandomIntegerExcluding_1.default(Operator.Available.Operators.length, currentOperatorIndex);
+                                    if (gene.count > 2 && Random_1.Random.next(gene.count) != 0) {
+                                        var startIndex_1 = Random_1.Random.next(gene.count - 1);
+                                        var endIndex_1 = startIndex_1 == 0
+                                            ? Random_1.Random.next.inRange(1, gene.count - 1)
+                                            : Random_1.Random.next.inRange(startIndex_1 + 1, gene.count);
+                                        gene.modifyChildren(function (v) {
+                                            var contents = Linq_1.default(v)
+                                                .skip(startIndex_1)
+                                                .take(endIndex_1 - startIndex_1)
+                                                .toArray();
+                                            for (var _i = 0, contents_1 = contents; _i < contents_1.length; _i++) {
+                                                var o = contents_1[_i];
+                                                v.remove(o);
+                                            }
+                                            var O = Operator_1.default.getRandomOperation();
+                                            O.importEntries(contents);
+                                            v.insert(startIndex_1, O);
+                                            return true;
+                                        });
+                                    }
+                                    else
+                                        gene.operator = Operator.Available.Operators[newOperatorIndex];
+                                    invalidOptions = null;
+                                    break;
+                                }
+                            case 2:
+                                {
+                                    if (gene.operator == Operator.SQUARE_ROOT
+                                        || gene.operator == Operator.DIVIDE && gene.count > 1)
+                                        break;
+                                    gene.add(new ParameterGene_1.default(Random_1.Random.next(inputParamCount)));
+                                    invalidOptions = null;
+                                    break;
+                                }
+                            case 3:
+                                {
+                                    var n = new ParameterGene_1.default(Random_1.Random.next(inputParamCount));
+                                    var newOp = inputParamCount <= 1
+                                        ? Operator_1.default.getRandomOperation('/')
+                                        : Operator_1.default.getRandomOperation();
+                                    if (isFn || Random_1.Random.next(4) == 0) {
+                                        var index = Random_1.Random.next(2);
+                                        if (index) {
+                                            newOp.add(n);
+                                            newOp.add(newGenome.root);
+                                        }
+                                        else {
+                                            newOp.add(newGenome.root);
+                                            newOp.add(n);
+                                        }
+                                        newGenome.root = newOp;
+                                    }
+                                    else {
+                                        newOp.add(n);
+                                        if (newOp.operator == Operator.DIVIDE)
+                                            newOp.add(new ParameterGene_1.default(nextRandomIntegerExcluding_1.default(inputParamCount, n.id)));
+                                        else
+                                            newOp.add(new ParameterGene_1.default(Random_1.Random.next(inputParamCount)));
+                                        gene.add(newOp);
+                                        invalidOptions = null;
                                     }
                                     break;
                                 }
-                                var newOperatorIndex = nextRandomIntegerExcluding_1.default(Operator.Available.Operators.length, currentOperatorIndex);
-                                if (gene.count > 2 && Random_1.Random.next(gene.count) != 0) {
-                                    var startIndex_1 = Random_1.Random.next(gene.count - 1);
-                                    var endIndex_1 = startIndex_1 == 0
-                                        ? Random_1.Random.next.inRange(1, gene.count - 1)
-                                        : Random_1.Random.next.inRange(startIndex_1 + 1, gene.count);
-                                    gene.modifyChildren(function (v) {
-                                        var contents = Linq_1.default(v)
-                                            .skip(startIndex_1)
-                                            .take(endIndex_1 - startIndex_1)
-                                            .toArray();
-                                        for (var _i = 0, contents_1 = contents; _i < contents_1.length; _i++) {
-                                            var o = contents_1[_i];
-                                            v.remove(o);
-                                        }
-                                        var O = Operator_1.default.getRandomOperation();
-                                        O.importEntries(contents);
-                                        v.insert(startIndex_1, O);
-                                        return true;
-                                    });
-                                }
-                                else
-                                    gene.operator = Operator.Available.Operators[newOperatorIndex];
-                                invalidOptions = null;
-                                break;
-                            case 2:
-                                if (gene.operator == Operator.SQUARE_ROOT
-                                    || gene.operator == Operator.DIVIDE && gene.count > 1)
-                                    break;
-                                gene.add(new ParameterGene_1.default(Random_1.Random.next(inputParamCount)));
-                                invalidOptions = null;
-                                break;
-                            case 3:
-                                var first = new ParameterGene_1.default(Random_1.Random.next(inputParamCount));
-                                var newOp = inputParamCount <= 1
-                                    ? Operator_1.default.getRandomOperation('/')
-                                    : Operator_1.default.getRandomOperation();
-                                newOp.add(first);
-                                if (newOp.operator == Operator.DIVIDE)
-                                    newOp.add(new ParameterGene_1.default(nextRandomIntegerExcluding_1.default(inputParamCount, first.id)));
-                                else
-                                    newOp.add(new ParameterGene_1.default(Random_1.Random.next(inputParamCount)));
-                                gene.add(newOp);
-                                invalidOptions = null;
-                                break;
                             case 4:
                                 {
                                     if (Operator.Available.Functions.indexOf(gene.operator) != -1 && Random_1.Random.next(4) != 1) {
@@ -391,57 +415,61 @@ var __extends = (this && this.__extends) || function (d, b) {
                                     break;
                                 }
                             case 5:
-                                if (gene.reduce())
-                                    invalidOptions = null;
-                                break;
+                                {
+                                    if (gene.reduce())
+                                        invalidOptions = null;
+                                    break;
+                                }
                             default:
-                                if (Operator.Available.Functions.indexOf(gene.operator) != -1) {
-                                    if (isRoot) {
-                                        if (gene.count)
-                                            newGenome.root = gene.linq.first();
-                                        else {
-                                            doNotRemove = true;
-                                            break;
-                                        }
-                                    }
-                                    else {
-                                        parentOp.modifyChildren(function (v) {
-                                            var index = v.indexOf(gene);
-                                            if (index != -1) {
-                                                for (var _i = 0, _a = gene.toArray().reverse(); _i < _a.length; _i++) {
-                                                    var o = _a[_i];
-                                                    v.insert(index, o);
-                                                }
-                                                v.remove(gene);
-                                                invalidOptions = null;
-                                                return true;
+                                {
+                                    if (Operator.Available.Functions.indexOf(gene.operator) != -1) {
+                                        if (isRoot) {
+                                            if (gene.count)
+                                                newGenome.root = gene.linq.first();
+                                            else {
+                                                doNotRemove = true;
+                                                break;
                                             }
-                                            return false;
-                                        });
+                                        }
+                                        else {
+                                            parentOp.modifyChildren(function (v) {
+                                                var index = v.indexOf(gene);
+                                                if (index != -1) {
+                                                    for (var _i = 0, _a = gene.toArray().reverse(); _i < _a.length; _i++) {
+                                                        var o = _a[_i];
+                                                        v.insert(index, o);
+                                                    }
+                                                    v.remove(gene);
+                                                    invalidOptions = null;
+                                                    return true;
+                                                }
+                                                return false;
+                                            });
+                                        }
+                                        break;
                                     }
-                                    break;
-                                }
-                                if (isRoot && gene.count > 2) {
-                                    gene.removeAt(Random_1.Random.next(gene.count));
-                                }
-                                else if (gene.count == 2
-                                    && gene.linq.any(function (o) { return o instanceof Operator_1.default; })
-                                    && gene.linq.any(function (o) { return o instanceof ParameterGene_1.default; })) {
-                                    var childOpGene = gene.linq.ofType(Operator_1.default).single();
-                                    gene.remove(childOpGene);
-                                    if (isRoot)
-                                        newGenome.root = childOpGene;
+                                    if (isRoot && gene.count > 2) {
+                                        gene.removeAt(Random_1.Random.next(gene.count));
+                                    }
+                                    else if (gene.count == 2
+                                        && gene.linq.any(function (o) { return o instanceof Operator_1.default; })
+                                        && gene.linq.any(function (o) { return o instanceof ParameterGene_1.default; })) {
+                                        var childOpGene = gene.linq.ofType(Operator_1.default).single();
+                                        gene.remove(childOpGene);
+                                        if (isRoot)
+                                            newGenome.root = childOpGene;
+                                        else
+                                            parentOp.replace(gene, childOpGene);
+                                    }
+                                    else if (shouldNotRemove() || gene.count > 2) {
+                                        doNotRemove = true;
+                                        break;
+                                    }
                                     else
-                                        parentOp.replace(gene, childOpGene);
-                                }
-                                else if (shouldNotRemove() || gene.count > 2) {
-                                    doNotRemove = true;
+                                        parentOp.remove(gene);
+                                    invalidOptions = null;
                                     break;
                                 }
-                                else
-                                    parentOp.remove(gene);
-                                invalidOptions = null;
-                                break;
                         }
                     }
                 };
