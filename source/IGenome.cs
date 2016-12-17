@@ -10,7 +10,7 @@ namespace GeneticAlgorithmPlatform
     public interface IGenome /* : ISerializable, IEquatable<IGenome> */
     {
         // This allows for variation testing without constantly overloading.
-        uint VariationCountdown { get; set; }
+        int VariationCountdown { get; set; }
 
         IGene Root { get; }
         string Hash { get; }
