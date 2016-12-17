@@ -21,7 +21,8 @@ namespace GeneticAlgorithmPlatform
 
         public Population(IGenomeFactory<TGenome> genomeFactory)
         {
-            this._population = new ConcurrentDictionary<string, TGenome>();
+            _population = new ConcurrentDictionary<string, TGenome>();
+            _genomeFactory = genomeFactory;
         }
 
 
