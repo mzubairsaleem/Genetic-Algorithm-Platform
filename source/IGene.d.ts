@@ -5,15 +5,14 @@
 import {ISerializable} from "typescript-dotnet-umd/System/Serialization/ISerializable";
 import {ICollection} from "typescript-dotnet-umd/System/Collections/ICollection";
 import {ICloneable} from "typescript-dotnet-umd/System/ICloneable";
-import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/IEnumerable";
+import {ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
 
-interface IGene extends ISerializable, ICollection<IGene>, ICloneable<IGene>
+interface IGene<T extends IGene<T>> extends ISerializable, ICollection<IGene<T>>, ICloneable<IGene<T>>
 {
 	//children:IGene[]; Just use .toArray();
-	descendants:IEnumerable<IGene>;
-	findParent(child:IGene):IGene|null;
-
-	replace(target:IGene, replacement:IGene):boolean;
-
+	descendants:ILinqEnumerable<T>;
+	findParent(child:T):IGene<T>|null;
+	replace(target:T, replacement:T):boolean;
 	resetToString():void;
+	setAsReadOnly():this;
 }

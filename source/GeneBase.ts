@@ -11,26 +11,51 @@ import {IEquatable} from "typescript-dotnet-umd/System/IEquatable";
 import {IGene} from "./IGene";
 import {ILinqEnumerable} from "typescript-dotnet-umd/System.Linq/Enumerable";
 
-abstract class GeneBase<T extends IGene>
-extends List<T> implements IGene, IEquatable<GeneBase<T>>
+abstract class GeneBase<T extends IGene<T>>
+extends List<T> implements IGene<T>, IEquatable<GeneBase<T>>
 {
 	constructor()
 	{
 		super();
-		this.resetToString();
+		this._onModified();
 	}
 
 	abstract serialize():string;
 
 	abstract clone():GeneBase<T>;
 
-	get descendants():ILinqEnumerable<IGene>
+	private _descendants:ILinqEnumerable<T>|undefined;
+	get descendants():ILinqEnumerable<T>
 	{
-		const e:ILinqEnumerable<IGene> = this.linq;
-		return e.concat(e.selectMany(s=>s.descendants));
+		let d = this._descendants;
+		if(!d)
+		{
+			const e = this.linq;
+			d = e.concat(e.selectMany(s => s.descendants));
+			if(this.isReadOnly)
+				this._descendants = d;
+		}
+		return d;
 	}
 
-	findParent(child:T):IGene|null
+	private _readOnly:boolean = false;
+
+	protected getIsReadOnly():boolean
+	{
+		return this._readOnly;
+	}
+
+	setAsReadOnly():this
+		{
+		if(!this._readOnly) {
+			this._readOnly = true;
+			this.forEach(c=>c.setAsReadOnly());
+		}
+		return this;
+	}
+
+
+	findParent(child:T):IGene<T>|null
 	{
 		let children = this._source;
 		if(!children || !children.length) return null;
@@ -62,6 +87,8 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 
 	replace(target:T, replacement:T, throwIfNotFound?:boolean):boolean
 	{
+		this.throwIfDisposed();
+		this.assertModifiable();
 		const m = this._replaceInternal(target, replacement, throwIfNotFound);
 		if(m) this._onModified();
 		return m;
@@ -73,15 +100,16 @@ extends List<T> implements IGene, IEquatable<GeneBase<T>>
 	{
 		const ts = this._toString;
 		if(ts) ts.tryReset();
-		else this._toString = new Lazy<string>(()=>this.toStringInternal(), false, true);
-		
-		this.forEach(c=>c.resetToString());
+		else this._toString = new Lazy<string>(() => this.toStringInternal(), false, true);
+
+		this.forEach(c => c.resetToString());
 	}
 
 	protected _onModified()
 	{
 		super._onModified();
 		this.resetToString();
+		this._descendants = void 0;
 	}
 
 	protected abstract toStringInternal():string;

@@ -79,9 +79,9 @@ export default class AlgebraEnvironmentSample extends Environment<AlgebraGenome>
 					.where(g=>g.root.isReducible() && g.root.asReduced()!=g.root)
 					.select(g=>
 					{
-						let n = g.clone();
-						n.root = g.root.asReduced();
-						return n;
+						let m = g.clone();
+						m.root = g.root.asReduced();
+						return m.setAsReadOnly();
 					}));
 
 				this.start();

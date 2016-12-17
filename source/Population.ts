@@ -20,7 +20,7 @@ import {IPopulation} from "./IPopulation";
 import {IGenomeFactory} from "./IGenomeFactory";
 import {Integer} from "typescript-dotnet-umd/System/Integer";
 
-export class Population<TGenome extends IGenome>
+export class Population<TGenome extends IGenome<any>>
 implements IPopulation<TGenome>, IEnumerateEach<TGenome>
 {
 	private _population:StringKeyDictionary<TGenome>;

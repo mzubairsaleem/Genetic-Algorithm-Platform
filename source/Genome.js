@@ -32,11 +32,11 @@
             configurable: true
         });
         Genome.prototype.findParent = function (child) {
-            return this.root.findParent(child);
+            return this._root.findParent(child);
         };
         Object.defineProperty(Genome.prototype, "genes", {
             get: function () {
-                var root = this.root;
+                var root = this._root;
                 return Linq_1.Enumerable
                     .make(root)
                     .concat(root.descendants);
@@ -44,6 +44,10 @@
             enumerable: true,
             configurable: true
         });
+        Genome.prototype.setAsReadOnly = function () {
+            this.root.setAsReadOnly();
+            return this;
+        };
         Object.defineProperty(Genome.prototype, "hash", {
             get: function () {
                 return this._hash || (this._hash = this.serialize());

@@ -37,7 +37,7 @@ var __extends = (this && this.__extends) || function (d, b) {
         };
         AlgebraGenome.prototype.asReduced = function () {
             var root = this.root;
-            return root.isReducible() ? new AlgebraGenome(root.asReduced()) : this;
+            return root.isReducible() ? new AlgebraGenome(root.asReduced().setAsReadOnly()) : this;
         };
         AlgebraGenome.prototype.toAlphaParameters = function (reduced) {
             if (reduced)

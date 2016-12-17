@@ -110,9 +110,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
                                     .select(function (g) { return g.gene; })
                                     .where(function (g) { return g.root.isReducible() && g.root.asReduced() != g.root; })
                                     .select(function (g) {
-                                    var n = g.clone();
-                                    n.root = g.root.asReduced();
-                                    return n;
+                                    var m = g.clone();
+                                    m.root = g.root.asReduced();
+                                    return m.setAsReadOnly();
                                 }));
                                 this.start();
                             }

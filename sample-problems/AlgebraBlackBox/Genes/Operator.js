@@ -119,6 +119,8 @@ var __extends = (this && this.__extends) || function (d, b) {
         });
         OperatorGene.prototype.reduce = function (reduceGroupings) {
             if (reduceGroupings === void 0) { reduceGroupings = false; }
+            this.throwIfDisposed();
+            this.assertModifiable();
             var somethingDone = false;
             while (this._reduceLoop(reduceGroupings)) {
                 somethingDone = true;

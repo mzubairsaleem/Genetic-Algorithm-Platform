@@ -159,6 +159,8 @@ class OperatorGene extends AlgebraGene
 
 	reduce(reduceGroupings:boolean = false):boolean|AlgebraGene
 	{
+		this.throwIfDisposed();
+		this.assertModifiable();
 		let somethingDone = false;
 		while(this._reduceLoop(reduceGroupings))
 		{ somethingDone = true; }
@@ -877,7 +879,7 @@ class OperatorGene extends AlgebraGene
 			gene.reduce(true);
 			this._reduced = r = gene.toString()===this.toString() ? this : gene;
 		}
-		return r;
+		return r;//.setAsReadOnly();
 	}
 
 

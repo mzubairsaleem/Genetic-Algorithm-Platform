@@ -16,7 +16,7 @@ import {IGenomeFactory} from "./IGenomeFactory";
 import {Promise as NETPromise} from "typescript-dotnet-umd/System/Promises/Promise";
 import Stopwatch from "typescript-dotnet-umd/System/Diagnostics/Stopwatch";
 
-export class Environment<TGenome extends IGenome>
+export class Environment<TGenome extends IGenome<any>>
 extends TaskHandlerBase implements IEnvironment<TGenome>
 {
 

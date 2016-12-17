@@ -35,7 +35,7 @@ export default class AlgebraGenome extends Genome<AlgebraGene>
 	asReduced():AlgebraGenome
 	{
 		const root = this.root;
-		return root.isReducible() ? new AlgebraGenome(root.asReduced()) : this;
+		return root.isReducible() ? new AlgebraGenome(root.asReduced().setAsReadOnly()) : this;
 	}
 
 	toAlphaParameters(reduced?:boolean):string

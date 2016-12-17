@@ -9,7 +9,7 @@ import {IEnumerable} from "typescript-dotnet-umd/System/Collections/Enumeration/
 import {IPopulation} from "./IPopulation";
 import {IGenome} from "./IGenome";
 
-export interface IProblem<TGenome extends IGenome, TFitness>
+export interface IProblem<TGenome extends IGenome<any>, TFitness>
 {
 	convergent:TGenome[];
 

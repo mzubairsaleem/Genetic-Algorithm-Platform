@@ -23,17 +23,34 @@ var __extends = (this && this.__extends) || function (d, b) {
         __extends(GeneBase, _super);
         function GeneBase() {
             var _this = _super.call(this) || this;
-            _this.resetToString();
+            _this._readOnly = false;
+            _this._onModified();
             return _this;
         }
         Object.defineProperty(GeneBase.prototype, "descendants", {
             get: function () {
-                var e = this.linq;
-                return e.concat(e.selectMany(function (s) { return s.descendants; }));
+                var d = this._descendants;
+                if (!d) {
+                    var e = this.linq;
+                    d = e.concat(e.selectMany(function (s) { return s.descendants; }));
+                    if (this.isReadOnly)
+                        this._descendants = d;
+                }
+                return d;
             },
             enumerable: true,
             configurable: true
         });
+        GeneBase.prototype.getIsReadOnly = function () {
+            return this._readOnly;
+        };
+        GeneBase.prototype.setAsReadOnly = function () {
+            if (!this._readOnly) {
+                this._readOnly = true;
+                this.forEach(function (c) { return c.setAsReadOnly(); });
+            }
+            return this;
+        };
         GeneBase.prototype.findParent = function (child) {
             var children = this._source;
             if (!children || !children.length)
@@ -60,6 +77,8 @@ var __extends = (this && this.__extends) || function (d, b) {
             return true;
         };
         GeneBase.prototype.replace = function (target, replacement, throwIfNotFound) {
+            this.throwIfDisposed();
+            this.assertModifiable();
             var m = this._replaceInternal(target, replacement, throwIfNotFound);
             if (m)
                 this._onModified();
@@ -77,6 +96,7 @@ var __extends = (this && this.__extends) || function (d, b) {
         GeneBase.prototype._onModified = function () {
             _super.prototype._onModified.call(this);
             this.resetToString();
+            this._descendants = void 0;
         };
         GeneBase.prototype.toString = function () {
             return this._toString.value;

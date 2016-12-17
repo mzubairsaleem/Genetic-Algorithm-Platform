@@ -8,7 +8,7 @@ import {OrderedStringKeyDictionary} from "typescript-dotnet-umd/System/Collectio
 import {IGenome} from "./IGenome";
 import {IGenomeFactory} from "./IGenomeFactory";
 
-export abstract class GenomeFactoryBase<TGenome extends IGenome>
+export abstract class GenomeFactoryBase<TGenome extends IGenome<any>>
 implements IGenomeFactory<TGenome>
 {
 	protected _previousGenomes:OrderedStringKeyDictionary<TGenome>; // Track by hash...

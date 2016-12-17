@@ -6,7 +6,7 @@
 
 import {IGenome} from "./IGenome";
 
-export interface IGenomeFactory<TGenome extends IGenome>
+export interface IGenomeFactory<TGenome extends IGenome<any>>
 {
 	generateVariations(source:TGenome):TGenome[];
 	generate(source?:TGenome[]):TGenome|null;

@@ -9,8 +9,8 @@ import {ICloneable} from "typescript-dotnet-umd/System/ICloneable";
 import {IGene} from "./IGene";
 import {IGenome} from "./IGenome";
 
-export abstract class Genome<T extends IGene>
-implements IGenome, ICloneable<Genome<T>>
+export abstract class Genome<T extends IGene<T>>
+implements IGenome<T>, ICloneable<Genome<T>>
 {
 
 	constructor(private _root:T)
@@ -18,6 +18,7 @@ implements IGenome, ICloneable<Genome<T>>
 		this._hash = null;
 	}
 
+	//noinspection JSUnusedGlobalSymbols
 	variationCountdown:number = 0;
 
 	get root():T
@@ -34,18 +35,23 @@ implements IGenome, ICloneable<Genome<T>>
 		}
 	}
 
-	findParent(child:IGene):IGene|null
+	findParent(child:T):IGene<T>|null
 	{
-		return this.root.findParent(child);
+		return this._root.findParent(child);
 	}
 
-	get genes():LinqEnumerable<IGene>
+	get genes():LinqEnumerable<T>
 	{
-		const root = this.root;
+		const root = this._root;
 
 		return Enumerable
-			.make<IGene>(root)
+			.make(root)
 			.concat(root.descendants);
+	}
+
+	setAsReadOnly():this {
+		this.root.setAsReadOnly();
+		return this;
 	}
 
 	abstract serialize():string;

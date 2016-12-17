@@ -122,7 +122,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 				return p.getAssuredValue(hash);
 
 			if(genome)
-				p.addByKeyValue(hash, genome);
+				p.addByKeyValue(hash, genome.setAsReadOnly());
 		}
 
 
@@ -150,15 +150,15 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 			{
 				const newGenome = source.clone();
 				if(handler(<AlgebraGene>newGenome.genes.elementAt(i), newGenome)!==false)
-					result.push(newGenome);
+					result.push(newGenome.setAsReadOnly());
 			};
 
 			const absMultiple = Math.abs(gene.multiple);
 			if(absMultiple>1)
 			{
-				applyClone((gene) =>
+				applyClone(g =>
 				{
-					gene.multiple -= gene.multiple/absMultiple;
+					g.multiple -= g.multiple/absMultiple;
 				});
 			}
 
@@ -167,10 +167,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 			{
 				if(parentOp.count>1)
 				{
-					applyClone((gene, newGenome) =>
+					applyClone((g, newGenome) =>
 					{
-						let parentOp = <OperatorGene>newGenome.findParent(gene);
-						parentOp.remove(gene);
+						let parentOp = <OperatorGene>newGenome.findParent(g);
+						parentOp.remove(g);
 
 						// Reduce to avoid NaN.
 						if(parentOp.count==1 && Operator.Available.Operators.indexOf(parentOp.operator)!= -1)
@@ -193,11 +193,11 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 			if(gene instanceof OperatorGene && gene.count==1)
 			{
-				applyClone((gene, newGenome) =>
+				applyClone((ng, newGenome) =>
 				{
 
-					const child = gene.get(0);
-					const parentOp = (<OperatorGene>newGenome.findParent(gene));
+					const child = ng.get(0);
+					const parentOp = (<OperatorGene>newGenome.findParent(ng));
 
 					if(isRoot)
 					{
@@ -213,7 +213,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 							p.clear();
 							for(let g of pGenes)
 							{
-								p.add(g==gene ? child! : g);
+								p.add(g==ng ? child! : g);
 							}
 							return true;
 						});
@@ -223,10 +223,10 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 
 				if(Operator.Available.Functions.indexOf(gene.operator))
 				{
-					applyClone((gene:OperatorGene) =>
+					applyClone((g:OperatorGene) =>
 					{
 
-						gene.operator = "+";
+						g.operator = "+";
 
 					});
 				}
@@ -717,7 +717,7 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 		}
 
 		newGenome.resetHash();
-		return newGenome;
+		return newGenome.setAsReadOnly();
 
 
 	}

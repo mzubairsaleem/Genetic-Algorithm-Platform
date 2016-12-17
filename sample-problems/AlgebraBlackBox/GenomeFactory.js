@@ -92,7 +92,7 @@ var __extends = (this && this.__extends) || function (d, b) {
                 if (p.containsKey(hash))
                     return p.getAssuredValue(hash);
                 if (genome)
-                    p.addByKeyValue(hash, genome);
+                    p.addByKeyValue(hash, genome.setAsReadOnly());
             }
             return genome;
         };
@@ -106,20 +106,20 @@ var __extends = (this && this.__extends) || function (d, b) {
                 var applyClone = function (handler) {
                     var newGenome = source.clone();
                     if (handler(newGenome.genes.elementAt(i), newGenome) !== false)
-                        result.push(newGenome);
+                        result.push(newGenome.setAsReadOnly());
                 };
                 var absMultiple = Math.abs(gene.multiple);
                 if (absMultiple > 1) {
-                    applyClone(function (gene) {
-                        gene.multiple -= gene.multiple / absMultiple;
+                    applyClone(function (g) {
+                        g.multiple -= g.multiple / absMultiple;
                     });
                 }
                 var parentOp = Types_1.Type.as(source.findParent(gene), Operator_1.default);
                 if (parentOp) {
                     if (parentOp.count > 1) {
-                        applyClone(function (gene, newGenome) {
-                            var parentOp = newGenome.findParent(gene);
-                            parentOp.remove(gene);
+                        applyClone(function (g, newGenome) {
+                            var parentOp = newGenome.findParent(g);
+                            parentOp.remove(g);
                             if (parentOp.count == 1 && Operator.Available.Operators.indexOf(parentOp.operator) != -1) {
                                 if (parentOp) {
                                     var grandParent = newGenome.findParent(parentOp);
@@ -135,9 +135,9 @@ var __extends = (this && this.__extends) || function (d, b) {
                     }
                 }
                 if (gene instanceof Operator_1.default && gene.count == 1) {
-                    applyClone(function (gene, newGenome) {
-                        var child = gene.get(0);
-                        var parentOp = newGenome.findParent(gene);
+                    applyClone(function (ng, newGenome) {
+                        var child = ng.get(0);
+                        var parentOp = newGenome.findParent(ng);
                         if (isRoot) {
                             newGenome.root = child;
                         }
@@ -147,15 +147,15 @@ var __extends = (this && this.__extends) || function (d, b) {
                                 p.clear();
                                 for (var _i = 0, pGenes_1 = pGenes; _i < pGenes_1.length; _i++) {
                                     var g = pGenes_1[_i];
-                                    p.add(g == gene ? child : g);
+                                    p.add(g == ng ? child : g);
                                 }
                                 return true;
                             });
                         }
                     });
                     if (Operator.Available.Functions.indexOf(gene.operator)) {
-                        applyClone(function (gene) {
-                            gene.operator = "+";
+                        applyClone(function (g) {
+                            g.operator = "+";
                         });
                     }
                 }
@@ -481,7 +481,7 @@ var __extends = (this && this.__extends) || function (d, b) {
                 _loop_2(i);
             }
             newGenome.resetHash();
-            return newGenome;
+            return newGenome.setAsReadOnly();
         };
         return AlgebraGenomeFactory;
     }(GenomeFactoryBase_1.default));
