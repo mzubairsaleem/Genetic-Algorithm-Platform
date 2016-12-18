@@ -12,10 +12,10 @@ export class SingularFitness extends List<number>
 	}
 
 
-	add(entry:number):void
+	protected _onModified():void
 	{
+		super._onModified();
 		this._average = null;
-		super.add(entry);
 	}
 
 	private _average:number|null;

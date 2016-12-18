@@ -20,9 +20,9 @@ var __extends = (this && this.__extends) || function (d, b) {
         function SingularFitness() {
             return _super.call(this) || this;
         }
-        SingularFitness.prototype.add = function (entry) {
+        SingularFitness.prototype._onModified = function () {
+            _super.prototype._onModified.call(this);
             this._average = null;
-            _super.prototype.add.call(this, entry);
         };
         Object.defineProperty(SingularFitness.prototype, "average", {
             get: function () {
