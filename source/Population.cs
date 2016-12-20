@@ -4,7 +4,6 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,16 +11,14 @@ using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
 {
-    public class Population<TGenome> : IPopulation<TGenome>
+    public class Population<TGenome> : ConcurrentDictionary<string, TGenome>
     where TGenome : IGenome
 
     {
-        private ConcurrentDictionary<string, TGenome> _population;
         private IGenomeFactory<TGenome> _genomeFactory;
 
         public Population(IGenomeFactory<TGenome> genomeFactory)
         {
-            _population = new ConcurrentDictionary<string, TGenome>();
             _genomeFactory = genomeFactory;
         }
 
@@ -34,75 +31,13 @@ namespace GeneticAlgorithmPlatform
             }
         }
 
-        int Count
-        {
-            get
-            {
-                return _population.Count;
-            }
-        }
-
-        int ICollection<TGenome>.Count
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public bool Remove(TGenome item)
-        {
-            if (item != null)
-            {
-                TGenome r;
-                return _population.TryRemove(item.Hash, out r);
-            }
-            return false;
-        }
-
-        public void Clear()
-        {
-            _population.Clear();
-        }
-
-        public bool Contains(TGenome item)
-        {
-            return item != null && _population.ContainsKey(item.Hash);
-        }
-
-        public void CopyTo(TGenome[] target, int index = 0)
-        {
-            if (target == null) throw new ArgumentNullException("target");
-            if (index < 0) throw new ArgumentOutOfRangeException("index");
-
-            // This is a generic implementation that will work for all derived classes.
-            // It can be overridden and optimized.
-            var e = _population.GetEnumerator();
-            while (e.MoveNext()) // Disposes when finished.
-            {
-                target[index++] = e.Current.Value;
-            }
-        }
-
-
-        IEnumerator<TGenome> GetEnumeratorInternal()
-        {
-            return _population
-                .Select(o => o.Value)
-                .GetEnumerator();
-        }
-
-        public IEnumerator<TGenome> GetEnumerator()
-        {
-            return GetEnumeratorInternal();
-        }
 
         public void Add(TGenome potential)
         {
             string ts;
-            if (potential != null && !_population.ContainsKey(ts = potential.Hash))
+            if (potential != null && !ContainsKey(ts = potential.Hash))
             {
-                _population.TryAdd(ts, potential);
+                TryAdd(ts, potential);
             }
         }
         public async void Add()
@@ -119,21 +54,28 @@ namespace GeneticAlgorithmPlatform
         }
 
 
-        public async Task Populate(uint count, TGenome[] rankedGenomes = null)
+        public async Task Populate(int count, IEnumerable<TGenome> rankedGenomes = null)
         {
-            if (rankedGenomes != null && rankedGenomes.Length != 0)
+            if (rankedGenomes != null)
             {
-                var top = rankedGenomes[0];
-                if (top.VariationCountdown == 0)
+                // Ensure only 1 enumerator created to peek into collection.
+                using (var e = rankedGenomes.GetEnumerator())
                 {
-                    top.VariationCountdown = 20;
-                    var v = await _genomeFactory.GenerateVariations(top);
-                    Console.WriteLine("Top Variations:", v.Length);
-                    Add(v);
-                }
-                else
-                {
-                    top.VariationCountdown--;
+                    if (e.MoveNext())
+                    {
+                        var top = e.Current;
+                        if (top.VariationCountdown == 0)
+                        {
+                            top.VariationCountdown = 20;
+                            var v = await _genomeFactory.GenerateVariations(top);
+                            Console.WriteLine("Top Variations:", v.Length);
+                            Add(v);
+                        }
+                        else
+                        {
+                            top.VariationCountdown--;
+                        }
+                    }
                 }
             }
 
@@ -148,19 +90,13 @@ namespace GeneticAlgorithmPlatform
         public void KeepOnly(IEnumerable<TGenome> selected)
         {
             var hashed = new HashSet<string>(selected.Select(o => o.Hash));
-            foreach (var o in _population.ToArray())
+            foreach (var o in this.ToArray()) // Make a copy first...
             {
                 TGenome g;
                 var key = o.Key;
                 if (!hashed.Contains(key))
-                    _population.TryRemove(key, out g);
+                    TryRemove(key, out g);
             }
-        }
-
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return this.GetEnumeratorInternal();
         }
 
     }

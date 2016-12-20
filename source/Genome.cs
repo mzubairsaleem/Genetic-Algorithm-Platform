@@ -3,17 +3,18 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public abstract class Genome<T> : IGenome
+    public abstract class Genome<T> : IGenome<T>
     where T : IGene
     {
         private T _root;
-        Genome()
+        public Genome()
         {
             _hash = null;
             VariationCountdown = 0;
@@ -37,21 +38,26 @@ namespace GeneticAlgorithmPlatform
             }
         }
 
-        public IGene FindParent(IGene child)
+        public IGeneNode<T> FindParent(T child)
         {
-            return _root.FindParent(child);
+            if(this._root is IGeneNode<T>)
+                return ((IGeneNode<T>)_root).FindParent(child);
+            return null;
         }
 
-        public IEnumerable<IGene> Genes
+        public IEnumerable<T> Genes
         {
             get
             {
-                return Enumerable.Repeat<IGene>(_root, 1)
-                    .Concat(_root.Descendants);
+                var r = Enumerable.Repeat(_root, 1);
+                return this._root is IGeneNode<T> ? r.Concat(((IGeneNode<T>)_root).Descendants) : r;
             }
         }
 
-        public abstract string Serialize();
+        public virtual string Serialize()
+        {
+            return this.ToString();
+        }
 
         private string _hash;
         public string Hash
@@ -62,19 +68,11 @@ namespace GeneticAlgorithmPlatform
             }
         }
 
-        IGene IGenome.Root
-        {
-            get
-            {
-                return this.Root;
-            }
-        }
-
         public void ResetHash()
         {
             _hash = null;
             if (_root != null)
-                this._root.resetToString();
+                this._root.ResetToString();
         }
 
         override public string ToString()
@@ -82,13 +80,16 @@ namespace GeneticAlgorithmPlatform
             return Hash;
         }
 
-        public abstract Genome<T> Clone();
-
-        public bool Equals(Genome<T> other)
+        public virtual Genome<T> Clone()
         {
-            return this == other || _root != null && _root.Equals(other._root) || Hash == other.Hash;
-
+            throw new NotImplementedException();
         }
+
+        public bool Equals(IGenome<T> other)
+        {
+            return this == other || _root != null && _root.Equals(other.Root) || Hash == other.Hash;
+        }
+
     }
 
 }

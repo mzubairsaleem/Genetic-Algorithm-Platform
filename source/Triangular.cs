@@ -13,13 +13,13 @@ namespace GeneticAlgorithmPlatform
     public static class Triangular
     {
 
-        public static uint forward(uint n)
+        public static uint Forward(uint n)
         {
             return n * (n + 1) / 2;
         }
 
 
-        public static uint reverse(uint n)
+        public static uint Reverse(uint n)
         {
             return (uint)(Math.Sqrt(8 * n + 1) - 1) / 2;
         }

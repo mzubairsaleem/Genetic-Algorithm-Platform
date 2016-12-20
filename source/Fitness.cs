@@ -1,6 +1,5 @@
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -8,61 +7,30 @@ using System.Threading;
 namespace GeneticAlgorithmPlatform
 {
 
-
-    public class SingleFitness : IReadOnlyList<double>, IComparable
+    public class SingleFitness : ThreadSafeTrackedList<double>
     {
-        private List<double> _source;
         private Lazy<double> _average;
 
         public SingleFitness(IEnumerable<double> scores = null)
         {
-            _source = new List<double>();
-            Reset();
             if (scores != null)
                 Add(scores);
+            else
+                OnModified();
         }
 
-        public int Count
-        {
-            get
-            {
-                return _source.Count;
-            }
-        }
 
-        internal void Reset(IEnumerable<double> scores = null)
+        override protected void OnModified()
         {
-            lock (_source)
-            {
+            base.OnModified();
+            if(_average==null || _average.IsValueCreated)
                 _average = new Lazy<double>(GetAverage, LazyThreadSafetyMode.ExecutionAndPublication);
-            }
         }
 
-        internal void Add(double score)
-        {
-            lock (_source)
-            {
-                if (_average.IsValueCreated)
-                    throw new InvalidOperationException("Attempting to add a fitness value after the average score was rendered.");
-                _source.Add(score);
-            }
-        }
-
-        internal void Add(IEnumerable<double> scores)
-        {
-            lock (_source)
-            {
-                foreach (var s in scores)
-                    Add(s);
-            }
-        }
 
         private double GetAverage()
         {
-            lock (_source)
-            {
-                return _source.Average();
-            }
+            return this.Average();
         }
 
         public int CompareTo(object obj)
@@ -75,16 +43,6 @@ namespace GeneticAlgorithmPlatform
             return 0;
         }
 
-        public IEnumerator<double> GetEnumerator()
-        {
-            return ((IReadOnlyList<double>)_source).GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IReadOnlyList<double>)_source).GetEnumerator();
-        }
-
         public double Average
         {
             get
@@ -93,33 +51,17 @@ namespace GeneticAlgorithmPlatform
                 return _average.Value;
             }
         }
-
-
-        public double this[int index]
-        {
-            get
-            {
-                return ((IReadOnlyList<double>)_source)[index];
-            }
-        }
     }
 
-    public class Fitness : IList<SingleFitness>, IComparable
+    public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable
     {
-
-        List<SingleFitness> _source;
-
-        public Fitness()
-        {
-            _source = new List<SingleFitness>();
-        }
 
         int SampleCount
         {
             get
             {
-                if (_source.Count == 0) return 0;
-                return _source.Min(s => s.Count);
+                if (Count == 0) return 0;
+                return this.Min(s => s.Count);
             }
         }
 
@@ -127,7 +69,7 @@ namespace GeneticAlgorithmPlatform
         {
             if (minSamples > SampleCount) return false;
 
-            foreach (var s in _source)
+            foreach (var s in this)
             {
                 var score = s.Average;
                 if (score > convergence)
@@ -143,88 +85,27 @@ namespace GeneticAlgorithmPlatform
         {
             get
             {
-                return _source.Select(s => s.Average);
+                return this.Select(s => s.Average);
             }
         }
 
-
-
-        public int Count
-        {
-            get
-            {
-                return _source.Count;
-            }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        public SingleFitness this[int index]
-        {
-            get
-            {
-                return _source[index];
-            }
-
-            set
-            {
-                lock(_source) _source[index] = value;
-            }
-        }
-
-
-
-        public int IndexOf(SingleFitness item)
-        {
-            return _source.IndexOf(item);
-        }
-
-        public void Insert(int index, SingleFitness item)
-        {
-            lock(_source) _source.Insert(index, item);
-        }
-
-
-        public void RemoveAt(int index)
-        {
-           lock(_source) _source.RemoveAt(index);
-        }
-
-        public void Add(SingleFitness item)
-        {
-            lock(_source) _source.Add(item);
-        }
-
-        public void Add(IEnumerable<double> sample)
-        {
-
-            lock(_source) _source.Add(new SingleFitness(sample));
-        }
 
         public void AddScores(IEnumerable<double> scores)
         {
-            lock(_source)
+            var i = 0;
+            var count = Count;
+            foreach (var n in scores)
             {
-                var i = 0;
-                var count = _source.Count;
-                foreach (var n in scores)
+                SingleFitness f;
+                if (i >= count)
                 {
-                    SingleFitness f;
-                    if (i >= count)
-                        _source[i] = f = new SingleFitness();
-                    else
-                        f = this[i];
-                    f.Add(n);
-                    i++;
+                    this[i] = f = new SingleFitness();                        
                 }
+                else
+                    f = this[i];
+                f.Add(n);
+                i++;
             }
-
         }
 
         public void AddScores(params double[] scores)
@@ -234,44 +115,9 @@ namespace GeneticAlgorithmPlatform
 
 
 
-        public void Clear()
-        {
-            lock(_source) _source.Clear();
-        }
-
-        public bool Contains(SingleFitness item)
-        {
-            return _source.Contains(item);
-        }
-
-        public void CopyTo(SingleFitness[] array, int arrayIndex)
-        {
-            _source.CopyTo(array, arrayIndex);
-        }
-
-        public bool Remove(SingleFitness item)
-        {
-            lock(_source) return  _source.Remove(item);
-        }
-
-        public IEnumerator<SingleFitness> GetEnumerator()
-        {
-            return _source.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _source.GetEnumerator();
-        }
-
-        int IComparable.CompareTo(object obj)
-        {
-            return this.CompareTo((Fitness)obj);
-        }
-
         public int CompareTo(Fitness other)
         {
-            var len = _source.Count;
+            var len = Count;
             for (var i = 0; i < len; i++)
             {
                 var a = this[i];
@@ -288,5 +134,9 @@ namespace GeneticAlgorithmPlatform
             return 0;
         }
 
+        int IComparable.CompareTo(object obj)
+        {
+            return this.CompareTo((Fitness)obj);
+        }
     }
 }

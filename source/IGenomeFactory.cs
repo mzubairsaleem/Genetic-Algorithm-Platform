@@ -3,6 +3,7 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
@@ -11,7 +12,7 @@ namespace GeneticAlgorithmPlatform
      where TGenome : IGenome
     {
         Task<TGenome[]> GenerateVariations(TGenome source);
-        Task<TGenome> Generate(TGenome[] source = null);
+        Task<TGenome> Generate(IEnumerable<TGenome> source = null);
         Task<TGenome> Mutate(TGenome source, uint mutations = 1);
         uint MaxGenomeTracking { get; set; }
         string[] PreviousGenomes { get; }

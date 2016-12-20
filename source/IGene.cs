@@ -3,24 +3,31 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
+using System;
 using System.Collections.Generic;
 // using System.Runtime.Serialization;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public interface IGene :  ICollection<IGene> /*, ISerializable, ICloneable<IGene>*/
+    public interface IGene : ICloneable<IGene>, IEquatable<IGene>
     {
-        //children:IGene[]; Just use .toArray();
-        IEnumerable<IGene> Descendants {
-            get;
-        }
+         void ResetToString();
+    }
 
-        IGene FindParent(IGene child);
+    public interface IGeneNode<T> : IGene, ICollection<T>, ICloneable<IGeneNode<T>> /*,ISerializable*/
+    where T : IGene
+    {
+        IEnumerable<T> Children { get; }
+        IEnumerable<T> Descendants { get; }
+        IGeneNode<T> FindParent(T child);
 
-        bool replace(IGene target, IGene replacement);
+        void SetAsReadOnly();
+    }
 
-        void resetToString();
+    public interface IGeneNode : IGeneNode<IGeneNode>
+    {
+        new IGeneNode FindParent(IGeneNode child);
     }
 
 }
