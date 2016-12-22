@@ -9,5 +9,7 @@
 				n += i;
 			}
 		}
+
+		console.log("Result: "+n);
 	}).total.milliseconds);
 	// Latest: 10M loops per second.

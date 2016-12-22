@@ -37,8 +37,10 @@ var __extends = (this && this.__extends) || function (d, b) {
                 return this._multiple;
             },
             set: function (value) {
-                this._multiple = value;
-                this._onModified();
+                if (this._multiple != value) {
+                    this._multiple = value;
+                    this._onModified();
+                }
             },
             enumerable: true,
             configurable: true

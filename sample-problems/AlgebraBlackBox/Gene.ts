@@ -37,8 +37,10 @@ abstract class AlgebraGene extends GeneBase<AlgebraGene>
 
 	set multiple(value:number)
 	{
-		this._multiple = value;
-		this._onModified();
+		if(this._multiple != value) {
+			this._multiple = value;
+			this._onModified();
+		}
 	}
 
 	protected get multiplePrefix():string

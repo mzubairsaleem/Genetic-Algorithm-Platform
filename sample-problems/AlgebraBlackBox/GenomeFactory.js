@@ -121,14 +121,12 @@ var __extends = (this && this.__extends) || function (d, b) {
                             var parentOp = newGenome.findParent(g);
                             parentOp.remove(g);
                             if (parentOp.count == 1 && Operator.Available.Operators.indexOf(parentOp.operator) != -1) {
-                                if (parentOp) {
-                                    var grandParent = newGenome.findParent(parentOp);
-                                    if (grandParent) {
-                                        var grandChild = parentOp.linq.single();
-                                        grandChild.multiple *= parentOp.multiple;
-                                        parentOp.remove(grandChild);
-                                        grandParent.replace(parentOp, grandChild);
-                                    }
+                                var grandParent = newGenome.findParent(parentOp);
+                                if (grandParent) {
+                                    var grandChild = parentOp.linq.single();
+                                    grandChild.multiple *= parentOp.multiple;
+                                    parentOp.remove(grandChild);
+                                    grandParent.replace(parentOp, grandChild);
                                 }
                             }
                         });

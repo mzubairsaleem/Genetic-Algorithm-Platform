@@ -36,13 +36,12 @@ function arrange(a:AlgebraGene, b:AlgebraGene):CompareResult
 
 	let ats = a.toString();
 	let bts = b.toString();
-	if(ats==bts)
-		return 0;
+	if(ats<bts)
+		return -1;
+	if(ats>bts)
+		return +1;
 
-	let ts = [ats, bts];
-	ts.sort();
-
-	return ts[0]==ats ? -1 : +1;
+	return 0;
 
 }
 

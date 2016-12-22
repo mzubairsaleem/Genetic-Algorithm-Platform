@@ -14,7 +14,7 @@ abstract class UnreducibleGene extends AlgebraGene
 		return false;
 	}
 
-	asReduced():AlgebraGene
+	asReduced():UnreducibleGene
 	{
 		return this;
 	}

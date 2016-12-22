@@ -34,11 +34,11 @@ var __extends = (this && this.__extends) || function (d, b) {
             return -1;
         var ats = a.toString();
         var bts = b.toString();
-        if (ats == bts)
-            return 0;
-        var ts = [ats, bts];
-        ts.sort();
-        return ts[0] == ats ? -1 : +1;
+        if (ats < bts)
+            return -1;
+        if (ats > bts)
+            return +1;
+        return 0;
     }
     function parenGroup(contents) {
         return "(" + contents + ")";

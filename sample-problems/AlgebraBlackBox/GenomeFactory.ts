@@ -175,16 +175,13 @@ export default class AlgebraGenomeFactory extends GenomeFactoryBase<AlgebraGenom
 						// Reduce to avoid NaN.
 						if(parentOp.count==1 && Operator.Available.Operators.indexOf(parentOp.operator)!= -1)
 						{
-							if(parentOp)
+							let grandParent = <OperatorGene>newGenome.findParent(parentOp);
+							if(grandParent)
 							{
-								let grandParent = <OperatorGene>newGenome.findParent(parentOp);
-								if(grandParent)
-								{
-									let grandChild = parentOp.linq.single();
-									grandChild.multiple *= parentOp.multiple;
-									parentOp.remove(grandChild);
-									grandParent.replace(parentOp, grandChild);
-								}
+								let grandChild = parentOp.linq.single();
+								grandChild.multiple *= parentOp.multiple;
+								parentOp.remove(grandChild);
+								grandParent.replace(parentOp, grandChild);
 							}
 						}
 					});

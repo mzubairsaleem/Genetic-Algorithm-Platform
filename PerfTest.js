@@ -15,6 +15,7 @@
                 n += i;
             }
         }
+        console.log("Result: " + n);
     }).total.milliseconds);
 });
 //# sourceMappingURL=PerfTest.js.map
