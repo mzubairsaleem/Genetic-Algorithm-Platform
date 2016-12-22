@@ -137,6 +137,180 @@ namespace AlgebraBlackBox
 
         }
 
+
+        public static Genome ApplyClone(Genome source, int geneIndex, Action<IGene, Genome> handler)
+        {
+            if (geneIndex == -1)
+                throw new ArgumentOutOfRangeException("geneIndex", "Can't be -1.");
+            var newGenome = source.Clone();
+            var gene = newGenome.Genes.ElementAt(geneIndex);
+            handler(gene, newGenome);
+            return newGenome.AsReduced();
+        }
+
+        public static Genome ApplyClone(Genome source, int geneIndex, Action<IGene> handler)
+        {
+            if (geneIndex == -1)
+                throw new ArgumentOutOfRangeException("geneIndex", "Can't be -1.");
+            var newGenome = source.Clone();
+            var gene = newGenome.Genes.ElementAt(geneIndex);
+            handler(gene);
+            return newGenome;
+        }
+
+        public static Genome ApplyClone(Genome source, IGene gene, Action<IGene, Genome> handler)
+        {
+            return ApplyClone(source, source.Genes.Memoize().IndexOf(gene), handler);
+        }
+
+        public static Genome ApplyClone(Genome source, IGene gene, Action<IGene> handler)
+        {
+            return ApplyClone(source, source.Genes.Memoize().IndexOf(gene), handler);
+        }
+
+        public static class VariationCatalog
+        {
+
+            public static Genome ReduceMultipleMagnitude(Genome source, int geneIndex)
+            {
+                return ApplyClone(source, geneIndex, (gene) =>
+                {
+                    var absMultiple = Math.Abs(gene.Multiple);
+                    gene.Multiple -= gene.Multiple / absMultiple;
+                });
+            }
+
+            public static bool CheckRemovalValidity(Genome source, IGene gene)
+            {
+                // Validate worthyness.
+                var parent = source.FindParent(gene);
+
+                // Search for potential futility...
+                // Basically, if there is no dynamic genes left after reduction then it's not worth removing.
+                if (parent != source.Root && parent.Count(g => g != gene && !(g is ConstantGene)) == 0)
+                {
+                    return CheckRemovalValidity(source, parent);
+                }
+
+                return false;
+            }
+
+            public static Genome RemoveGene(Genome source, int geneIndex)
+            {
+                // Validate worthyness.
+                var gene = source.Genes.ElementAt(geneIndex);
+
+                if (CheckRemovalValidity(source, gene))
+                {
+                    return ApplyClone(source, geneIndex, (g, newGenome) =>
+                    {
+                        var parent = source.FindParent(g);
+                        parent.Remove(g);
+                    });
+                }
+                return null;
+
+            }
+            public static Genome RemoveGene(Genome source, IGene gene)
+            {
+                return RemoveGene(source, source.Genes.Memoize().IndexOf(gene));
+            }
+
+            public static bool CheckPromoteChildrenValidity(Genome source, IGene gene)
+            {
+                // Validate worthyness.
+                var op = gene as GeneNode;
+                return op != null && op.Count == 1;
+            }
+
+            public static Genome PromoteChildren(Genome source, int geneIndex)
+            {
+                // Validate worthyness.
+                var gene = source.Genes.ElementAt(geneIndex);
+
+                if (CheckPromoteChildrenValidity(source, gene))
+                {
+                    return ApplyClone(source, geneIndex, (g, newGenome) =>
+                    {
+                        var op = (GeneNode)g;
+                        var child = op.Children.Single();
+                        op.Remove(child);
+                        newGenome.Replace(g, child);
+                    });
+                }
+                return null;
+
+            }
+
+            public static Genome ApplyFunction(Genome source, int geneIndex, char fn)
+            {
+                if (!Operators.Available.Functions.Contains(fn))
+                    throw new ArgumentException("Invalid function operator.", "fn");
+
+                // Validate worthyness.
+                return ApplyClone(source, geneIndex, (g, newGenome) =>
+                {
+                    var newFn = Operators.New(fn);
+                    newGenome.Replace(g, newFn);
+                    newFn.Add(g);
+                });
+
+            }
+
+            public static Genome ApplyFunction(Genome source, IGene gene, char fn)
+            {
+                return ApplyFunction(source, source.Genes.Memoize().IndexOf(gene), fn);
+            }
+        }
+
+        public static class MutationCatalog
+        {
+            public static Genome MutateSign(Genome source, IGene gene)
+            {
+                return ApplyClone(source, gene, g =>
+                {
+                    switch (RandomUtil.Random.Next(3))
+                    {
+                        case 0:
+                            // Alter Sign
+                            gene.Multiple *= -1;
+                            break;
+                        case 1:
+                            // Increase multiple.
+                            gene.Multiple += 1;
+                            break;
+                        case 2:
+                            // Decrease multiple.
+                            gene.Multiple -= 1;
+                            break;
+                    }
+                });
+            }
+
+            public static Genome MutateParameter(Genome source, ParameterGene gene)
+            {
+                return ApplyClone(source, gene, (g, newGenome) =>
+                {
+                    var parameter = (ParameterGene)g;
+                    var inputParamCount = newGenome.Genes.OfType<ParameterGene>().Count();
+                    var nextParameter = RandomUtil.NextRandomIntegerExcluding(inputParamCount + 1, parameter.ID);
+                    newGenome.Replace(g, new ParameterGene(nextParameter, parameter.Multiple));
+                });
+            }
+
+            public static Genome Split(Genome source, IGene gene)
+            {
+                return ApplyClone(source, gene, (g, newGenome) =>
+                {
+                    var newFn = Operators.GetRandomOperationGene(Operators.DIVIDE); // excluding divide
+                    newGenome.Replace(g, newFn);
+                    newFn.Add(gene);
+                    newFn.Add(gene.Clone());
+                });
+            }
+
+        }
+
         public override Task<IEnumerable<Genome>> GenerateVariations(Genome source)
         {
             return new Task<IEnumerable<Genome>>(() =>
@@ -144,143 +318,35 @@ namespace AlgebraBlackBox
                 var result = new List<Genome>();
                 var sourceGenes = source.Genes.ToArray();
                 var count = sourceGenes.Length;
-                // for (var i = 0; i < count; i++)
-                // {
-                //     var gene = sourceGenes[i];
-                //     var isRoot = gene == source.Root;
+                for (var i = 0; i < count; i++)
+                {
+                    var gene = sourceGenes[i];
+                    var isRoot = gene == source.Root;
 
-                //     Action<GeneHandler> applyClone = (GeneHandler handler) =>
-                //     {
-                //         var newGenome = source.Clone();
-                //         if (handler(newGenome.Genes.ElementAt(i), newGenome) != false)
-                //             result.Add(newGenome);
-                //     };
+                    result.Add(VariationCatalog.ReduceMultipleMagnitude(source, i));
+                    result.Add(VariationCatalog.RemoveGene(source, i));
+                    result.Add(VariationCatalog.PromoteChildren(source, i));
 
-                //     var absMultiple = Math.Abs(gene.Multiple);
-                //     if (absMultiple > 1)
-                //     {
-                //         applyClone((g, newGenome) =>
-                //                     {
-                //                         g.Multiple -= g.Multiple / absMultiple;
-                //                         return true;
-                //                     });
-                //     }
-
-                //     var parentOp = source.FindParent(gene) as OperatorGeneBase;
-                //     if (parentOp != null)
-                //     {
-                //         if (parentOp.Count > 1)
-                //         {
-                //             applyClone((g, newGenome) =>
-                //                         {
-                //                             var parentOp2 = newGenome.FindParent(g) as OperatorGeneBase;
-                //                             parentOp2.Remove(g);
-
-                //                 // Reduce to avoid NaN.
-                //                 if (parentOp2.Count == 1 && Operators.Available.Operators.Contains(parentOp2.Operator))
-                //                             {
-                //                                 var grandParent = newGenome.FindParent(parentOp);
-                //                                 if (grandParent != null)
-                //                                 {
-                //                                     var grandChild = parentOp.Children.Single();
-                //                                     grandChild.Multiple *= parentOp.Multiple;
-                //                                     parentOp.Remove(grandChild);
-                //                                     grandParent.Replace(parentOp, grandChild);
-                //                                 }
-                //                             }
-                //                             return true;
-                //                         });
-                //         }
-                //     }
-
-                //     var opGene = gene as OperatorGeneBase;
-                //     if (opGene != null && opGene.Count == 1)
-                //     {
-                //         applyClone((ng, newGenome) =>
-				// 		{
-
-				// 			var child = ((GeneNode)ng).First();
-				// 			var parentOp2 = newGenome.FindParent(ng);
-
-				// 			if (isRoot)
-				// 			{
-				// 				// If the root operator is a function, swap it's contents for the root.
-				// 				newGenome.Root = child;
-				// 			}
-				// 			else
-				// 			{
-				// 				var pGenes = parentOp2.ToArray();
-				// 				parentOp2.Clear();
-				// 				foreach(var g in pGenes)
-				// 				{
-				// 					parentOp2.Add(g == ng ? child : g);
-				// 				}
-				// 			}
-
-				// 			return true;
-				// 		});
-
-                //         if (Operators.Available.Functions.Contains(opGene.Operator))
-                //         {
-                //             applyClone((g, newGenome) =>
-				// 			{
-
-				// 				((OperatorGeneBase)g).Operator = Operators.ADD;
-				// 				return true;
-				// 			});
-                //         }
-
-
-                //     }
-                // }
-
-				// if (source.Root is OperatorGene && Operators.Available.Functions.Contains(source.Root.Operator))
-                // {
-                //     // Try it without a function!
-
-                //     var newGenome = source.Clone();
-                //     var first = newGenome.Root.get(0);
-                //     newGenome.Root.Remove(first);
-                //     newGenome.Root = first;
-                //     result.Add(newGenome);
-                // }
-                // else
-                // {
-                //     // Try it with a function!
-
-                //     foreach (var op in Operators.Available.Functions)
-                //     {
-                //         var newGenome = source.Clone();
-                //         var newFn = Operators.New(op);
-                //         newFn.Add(newGenome.Root);
-                //         newGenome.Root = newFn;
-                //         result.Add(newGenome);
-                //     }
-                // }
+                    foreach (var fn in Operators.Available.Functions)
+                    {
+                        result.Add(VariationCatalog.ApplyFunction(source, i, fn));
+                    }
+                }
 
                 return result
-                            //.filter(genome => !_previousGenomes.ContainsKey(genome.hash))
-                            .Select(genome =>
-                            {
-                                Genome temp;
-                                if (_previousGenomes.TryGetValue(genome.Hash, out temp))
-                                    genome = temp;
-                                genome = genome.AsReduced();
-                                if (_previousGenomes.TryGetValue(genome.Hash, out temp))
-                                    genome = temp;
-                                return genome;
-                            })
-                            // //.filter(genome => !_previousGenomes.ContainsKey(genome.hash))
-                            ;
+                    .Where(genome => genome != null)
+                    .Select(genome =>
+                    {
+                        Genome temp;
+                        return _previousGenomes.TryGetValue(genome.Hash, out temp) ? temp : genome;
+                    });
             });
         }
 
-        public override Task<Genome> Mutate(Genome source, uint mutations = 1)
+        public Task<Genome> Mutate(Genome source)
         {
             return new Task<Genome>(() =>
             {
-                var inputParamCount = source.Genes.OfType<ParameterGene>().Count();
-
                 /* Possible mutations:
                  * 1) Adding a parameter node to an operation.
                  * 2) Apply a function to node.
@@ -289,444 +355,342 @@ namespace AlgebraBlackBox
                  * 5) Removing an operation.
                  * 6) Removing a function. */
 
-                var newGenome = source.Clone();
-
-                // for (var i = 0; i < mutations; i++)
-                // {
-                //     // First randomly select the gene to mutate.
-                //     var genes = newGenome.Genes.ToArray();
-                //     var gene = genes.RandomSelectOne();
-                //     var isRoot = gene == newGenome.Root;
-                //     var parent = newGenome.FindParent(gene);
-                //     var parentOp = parent as OperatorGeneBase;
-
-                //     var invalidOptions = new HashSet<int>();
-                //     Func<bool> shouldNotRemove = () => isRoot || parent == null || parentOp == null;
-                //     var doNotRemove = gene is ParameterGene && shouldNotRemove();
-
-                //     var lastOption = -1;
-
-                //     while (invalidOptions != null)
-                //     {
-
-                //         if (parent != null && !parent.Contains(gene))
-                //             throw new Exception("Parent changed?");
-
-                //         if (gene is ConstantGene)
-                //         {
-                //             var cg = gene;
-                //             switch (lastOption = RandomUtil.NextRandomIntegerExcluding(2, invalidOptions))
-                //             {
-                //                 // Simply alter the sign
-                //                 case 0:
-                //                     var abs = Math.Abs(cg.Multiple);
-
-                //                     if (abs > 1 && RandomUtil.Random.Next(2) == 0)
-                //                     {
-                //                         if (abs != Math.Floor(abs) || RandomUtil.Random.Next(2) == 0)
-                //                             cg.Multiple /= abs;
-                //                         else
-                //                             cg.Multiple -= (cg.Multiple / abs);
-                //                     }
-                //                     else
-                //                         cg.Multiple *= -1;
-
-                //                     invalidOptions = null;
-                //                     break;
-
-
-
-                //                 // Remove it!
-                //                 default:
-
-                //                     if (parentOp != null)
-                //                     {
-                //                         parentOp.Remove(gene);
-                //                         invalidOptions = null;
-                //                     }
-                //                     break;
-
-                //             }
-                //         }
-
-                //         else if (gene is ParameterGene)
-                //         {
-                //             var pg = gene as ParameterGene;
-                //             switch (lastOption = RandomUtil.NextRandomIntegerExcluding(doNotRemove
-                //                 ? 4
-                //                 : 6, invalidOptions))
-                //             {
-                //                 // Simply alter the sign
-                //                 case 0:
-                //                     {
-                //                         var abs = Math.Abs(pg.Multiple);
-
-                //                         if (abs > 1 && RandomUtil.Random.Next(2) == 0)
-                //                             pg.Multiple /= abs;
-                //                         else
-                //                             pg.Multiple *= -1;
-
-                //                         invalidOptions = null;
-                //                         break;
-                //                     }
-
-                //                 // Simply change parameters
-                //                 case 1:
-                //                     var nextParameter = RandomUtil.NextRandomIntegerExcluding(inputParamCount + 1, pg.ID);
-
-                //                     var newPG = new ParameterGene(nextParameter);
-                //                     if (isRoot)
-                //                         newGenome.Root = newPG;
-                //                     else
-                //                         parent.Replace(gene, newPG);
-
-                //                     invalidOptions = null;
-                //                     break;
-
-                //                 // Split it...
-                //                 case 2:
-                //                     {
-                //                         var newFn = Operators.GetRandomOperationGene(Operators.DIVIDE); // excluding divide
-
-                //                         if (isRoot)
-                //                             newGenome.Root = newFn;
-                //                         else
-                //                             parent.Replace(gene, newFn);
-
-                //                         newFn.Add(gene);
-                //                         newFn.Add(gene.Clone());
-
-                //                         invalidOptions = null;
-                //                         break;
-                //                     }
-
-                //                 // Apply a function
-                //                 case 3:
-                //                     {
-                //                         // Reduce the pollution of functions...
-                //                         if (RandomUtil.Random.Next(0, 4) != 0)
-                //                         {
-                //                             invalidOptions.Add(4);
-                //                             break;
-                //                         }
-
-                //                         var newFn = Operators.GetRandomFunctionGene();
-
-                //                         if (isRoot)
-                //                             newGenome.Root = newFn;
-                //                         else
-                //                             parent.Replace(gene, newFn);
-
-                //                         newFn.Add(gene);
-                //                         invalidOptions = null;
-                //                         break;
-                //                     }
-
-                //                 // Remove it!
-                //                 default:
-                //                     if (parentOp == null)
-                //                         throw new Exception("Missing parent operator");
-
-                //                     if (parentOp.Count < 3)
-                //                     {
-                //                         if (parentOp.All(
-                //                                 o => o is ParameterGene || o is ConstantGene))
-                //                             doNotRemove = true;
-                //                         else
-                //                         {
-                //                             var replacement = parentOp
-                //                                 .OfType<OperatorGeneBase>()
-                //                                 .Single();
-
-                //                             if (parentOp == newGenome.Root)
-                //                                 newGenome.Root = replacement;
-                //                             else
-                //                                 newGenome
-                //                                     .FindParent(parentOp)
-                //                                     .Replace(parentOp, replacement);
-
-                //                         }
-                //                     }
-
-                //                     if (!doNotRemove)
-                //                     {
-                //                         parentOp.Remove(gene);
-                //                         invalidOptions = null;
-
-                //                         // console.log(
-                //                         // 	convertParameterToAlphabet(source.toString()),
-                //                         // 	convertParameterToAlphabet(gene.toString()),
-                //                         // 	convertParameterToAlphabet(newGenome.toString())
-                //                         // );
-
-                //                     }
-                //                     break;
-
-
-                //             }
-                //         }
-                //         else if (gene is OperatorGeneBase)
-                //         {
-                //             var og = gene as OperatorGeneBase;
-                //             var isFn = gene is FunctionGene;
-                //             if (isFn)
-                //             {
-                //                 if (!isRoot) // Might need to break it out.
-                //                     invalidOptions.Add(3);
-                //                 invalidOptions.Add(4);
-                //             }
-
-                //             switch (lastOption = RandomUtil.NextRandomIntegerExcluding(doNotRemove
-                //                 ? 6
-                //                 : 10, invalidOptions))
-                //             {
-                //                 // Simply invert the sign
-                //                 case 0:
-                //                     {
-                //                         gene.Multiple *= -1;
-                //                         invalidOptions = null;
-                //                         break;
-                //                     }
-
-                //                 // Simply change operations
-                //                 case 1:
-                //                     {
-                //                         var currentOperatorIndex
-                //                                 = Operators.Available.Operators.IndexOf(og.Operator);
-                //                         if (currentOperatorIndex == -1)
-                //                         {
-                //                             currentOperatorIndex
-                //                                 = Operators.Available.Functions.IndexOf(og.Operator);
-                //                             if (currentOperatorIndex != -1)
-                //                             {
-                //                                 if (Operators.Available.Functions.Count == 1)
-                //                                 {
-                //                                     invalidOptions.Add(1);
-                //                                     break;
-                //                                 }
-
-                //                                 gene.Operator = Operators.Available.Functions[
-                //                                     RandomUtil.NextRandomIntegerExcluding(Operators.Available.Functions.Count, currentOperatorIndex)];
-                //                             }
-
-
-                //                             break;
-                //                         }
-
-                //                         var newOperatorIndex = RandomUtil.NextRandomIntegerExcluding(Operators.Available.Operators.Count, currentOperatorIndex);
-
-                //                         // Decide if we will also change the grouping.
-                //                         if (gene.Count > 2 && RandomUtil.Random.Next(gene.Count) != 0)
-                //                         {
-                //                             var startIndex = RandomUtil.Random.Next(gene.Count - 1);
-                //                             var endIndex = startIndex == 0
-                //                                 ? RandomUtil.Random.Next.inRange(1, gene.Count - 1)
-                //                                 : RandomUtil.Random.Next.inRange(startIndex + 1, gene.Count);
-
-                //                             gene.Sync.Modifying(() =>
-                //                             {
-                //                                 var contents = gene
-                //                                     .Skip(startIndex)
-                //                                     .Take(endIndex - startIndex)
-                //                                     .ToArray();
-
-                //                                 foreach (var o in contents)
-                //                                 {
-                //                                     gene.Remove(o);
-                //                                 }
-
-                //                                 var O = OperatorGene.GetRandomOperationGene();
-                //                                 O.Add(contents);
-                //                                 gene.Insert(startIndex, O);
-
-                //                                 return true;
-                //                             });
-                //                         }
-                //                         else // Grouping remains... Only operator changes.
-                //                             gene.Operator = Operators.Available.Operators[newOperatorIndex];
-
-                //                         invalidOptions = null;
-                //                         break;
-                //                     }
-
-                //                 // Add random parameter.
-                //                 case 2:
-                //                     {
-                //                         if (gene.Operator == Operator.SQUARE_ROOT
-                //                             // In order to avoid unnecessary reduction, avoid adding subsequent divisors.
-                //                             || gene.Operator == Operator.DIVIDE && gene.Count > 1)
-                //                             break;
-
-                //                         gene.add(new ParameterGene(RandomUtil.Random.Next(inputParamCount)));
-                //                         invalidOptions = null;
-                //                         break;
-                //                     }
-
-                //                 // Add random operator branch.
-                //                 case 3:
-                //                     {
-                //                         var n = new ParameterGene(RandomUtil.Random.Next(inputParamCount));
-
-                //                         var newOp = inputParamCount <= 1
-                //                             ? OperatorGene.getRandomOperation('/')
-                //                             : OperatorGene.getRandomOperation();
-
-                //                         if (isFn || RandomUtil.Random.Next(4) == 0)
-                //                         {
-                //                             // logic states that this MUST be the root node.
-                //                             var index = RandomUtil.Random.Next(2);
-                //                             if (index)
-                //                             {
-                //                                 newOp.add(n);
-                //                                 newOp.add(newGenome.root);
-                //                             }
-                //                             else
-                //                             {
-                //                                 newOp.add(newGenome.root);
-                //                                 newOp.add(n);
-                //                             }
-
-                //                             newGenome.root = newOp;
-                //                         }
-                //                         else
-                //                         {
-
-                //                             newOp.add(n);
-
-                //                             // Useless to divide a param by itself, avoid...
-                //                             if (newOp.Operator == Operators.DIVIDE)
-                //                                 newOp.Add(new ParameterGene(RandomUtil.NextRandomIntegerExcluding(inputParamCount, n.id)));
-                //                             else
-                //                                 newOp.Add(new ParameterGene(RandomUtil.Random.Next(inputParamCount)));
-
-                //                             gene.add(newOp);
-                //                             invalidOptions = null;
-
-                //                         }
-
-                //                         break;
-                //                     }
-
-                //                 // Apply a function
-                //                 case 4:
-                //                     {
-                //                         // // Reduce the pollution of functions...
-                //                         // if(RandomUtil.Random.Next(4)!=1)
-                //                         // {
-                //                         // 	break;
-                //                         // }
-                //                         //
-                //                         // Reduce the pollution of functions...
-                //                         if (Operators.Available.Functions.indexOf(gene.Operator) != -1 && RandomUtil.Random.Next(4) != 1)
-                //                         {
-                //                             break;
-                //                         }
-
-                //                         var newFn = Operators.GetRandomFunctionGene();
-
-                //                         //
-                //                         // // Reduce the pollution of functions...
-                //                         // if(newFn.operator==og.operator)
-                //                         // {
-                //                         // 	if(RandomUtil.Random.Next(7)!=1)
-                //                         // 	{
-                //                         // 		invalidOptions.push(5);
-                //                         // 		break;
-                //                         // 	}
-                //                         // }
-
-                //                         if (isRoot)
-                //                             newGenome.root = newFn;
-                //                         else
-                //                             parent.replace(gene, newFn);
-
-                //                         newFn.add(gene);
-                //                         invalidOptions = null;
-                //                         break;
-                //                     }
-                //                 case 5:
-                //                     {
-                //                         if (gene.reduce())
-                //                             invalidOptions = null;
-                //                         break;
-                //                     }
-                //                 // Remove it!
-                //                 default:
-                //                     {
-
-                //                         if (Operators.Available.Functions.indexOf(gene.Operator) != -1)
-                //                         {
-                //                             if (isRoot)
-                //                             {
-                //                                 if (gene.Count)
-                //                                     newGenome.root = gene.linq.first();
-                //                                 else
-                //                                 {
-                //                                     doNotRemove = true;
-                //                                     break;
-                //                                 }
-
-                //                             }
-                //                             else
-                //                             {
-
-                //                                 parentOp.modifyChildren(v =>
-                //                                 {
-                //                                     var index = v.IndexOf(gene);
-                //                                     if (index != -1)
-                //                                     {
-                //                                         foreach (var o in gene.Reverse())
-                //                                         {
-                //                                             v.insert(index, o);
-                //                                         }
-                //                                         v.remove(gene);
-                //                                         invalidOptions = null;
-                //                                         return true;
-                //                                     }
-                //                                     return false;
-                //                                 });
-
-                //                             }
-                //                             break;
-                //                         }
-
-                //                         // Just like above, consider reduction instead of trimming...
-                //                         if (isRoot && gene.Count > 2)
-                //                         {
-                //                             gene.removeAt(RandomUtil.Random.Next(gene.Count));
-                //                         }
-                //                         else if (gene.Count == 2
-                //                             && gene.linq.any(o => o is OperatorGene)
-                //                             && gene.linq.any(o => o is ParameterGene))
-                //                         {
-                //                             var childOpGene = gene.linq.ofType(OperatorGene).single();
-                //                             gene.remove(childOpGene);
-                //                             if (isRoot)
-                //                                 newGenome.root = childOpGene;
-                //                             else
-                //                                 parentOp.Replace(gene, childOpGene);
-                //                         }
-                //                         else if (shouldNotRemove() || gene.Count > 2)
-                //                         {
-                //                             doNotRemove = true;
-                //                             break;
-                //                         }
-                //                         else
-                //                             parentOp.Remove(gene);
-
-                //                         invalidOptions = null;
-                //                         break;
-
-                //                     }
-                //             }
-                //         }
-                //     }
-
-                // }
-
-                // newGenome.resetHash();
-                return newGenome;//.setAsReadOnly();
-
+                var genes = source.Genes.ToList();
+
+                while (genes.Any())
+                {
+                    var gene = genes.RandomSelectOne();
+                    if (gene is ConstantGene)
+                    {
+                        return MutationCatalog.MutateSign(source, gene);
+                    }
+                    else if (gene is ParameterGene)
+                    {
+
+                        var options = Enumerable.Range(1, 4).ToList();
+                        while (options.Any())
+                        {
+                            switch (options.RandomPluck())
+                            {
+                                case 0:
+                                    return MutationCatalog
+                                    .MutateSign(source, gene);
+
+                                // Simply change parameters
+                                case 1:
+                                    return MutationCatalog
+                                    .MutateParameter(source, (ParameterGene)gene);
+
+                                // Split it...
+                                case 2:
+                                    return MutationCatalog
+                                    .Split(source, gene);
+
+                                // Apply a function
+                                case 3:
+                                    // Reduce the pollution of functions...
+                                    if (RandomUtil.Random.Next(0, 4) == 0)
+                                    {
+                                        return VariationCatalog
+                                        .ApplyFunction(source, gene, Operators.GetRandomFunction());
+                                    }
+                                    break;
+
+                                // Remove it!
+                                case 4:
+                                    var attempt = VariationCatalog.RemoveGene(source, gene);
+                                    if (attempt != null)
+                                        return attempt;
+                                    break;
+
+
+                            }
+                        }
+
+
+                    }
+                    else if (gene is OperatorGeneBase)
+                    {
+                        var og = gene as OperatorGeneBase;
+                        var isFn = gene is FunctionGene;
+                        if (isFn)
+                        {
+                            if (!isRoot) // Might need to break it out.
+                                invalidOptions.Add(3);
+                            invalidOptions.Add(4);
+                        }
+
+                        switch (lastOption = RandomUtil.NextRandomIntegerExcluding(doNotRemove
+                            ? 6
+                            : 10, invalidOptions))
+                        {
+                            // Simply invert the sign
+                            case 0:
+                                {
+                                    gene.Multiple *= -1;
+                                    invalidOptions = null;
+                                    break;
+                                }
+
+                            // Simply change operations
+                            case 1:
+                                {
+                                    var currentOperatorIndex
+                                            = Operators.Available.Operators.IndexOf(og.Operator);
+                                    if (currentOperatorIndex == -1)
+                                    {
+                                        currentOperatorIndex
+                                            = Operators.Available.Functions.IndexOf(og.Operator);
+                                        if (currentOperatorIndex != -1)
+                                        {
+                                            if (Operators.Available.Functions.Count == 1)
+                                            {
+                                                invalidOptions.Add(1);
+                                                break;
+                                            }
+
+                                            gene.Operator = Operators.Available.Functions[
+                                                RandomUtil.NextRandomIntegerExcluding(Operators.Available.Functions.Count, currentOperatorIndex)];
+                                        }
+
+
+                                        break;
+                                    }
+
+                                    var newOperatorIndex = RandomUtil.NextRandomIntegerExcluding(Operators.Available.Operators.Count, currentOperatorIndex);
+
+                                    // Decide if we will also change the grouping.
+                                    if (gene.Count > 2 && RandomUtil.Random.Next(gene.Count) != 0)
+                                    {
+                                        var startIndex = RandomUtil.Random.Next(gene.Count - 1);
+                                        var endIndex = startIndex == 0
+                                            ? RandomUtil.Random.Next.inRange(1, gene.Count - 1)
+                                            : RandomUtil.Random.Next.inRange(startIndex + 1, gene.Count);
+
+                                        gene.Sync.Modifying(() =>
+                                        {
+                                            var contents = gene
+                                                .Skip(startIndex)
+                                                .Take(endIndex - startIndex)
+                                                .ToArray();
+
+                                            foreach (var o in contents)
+                                            {
+                                                gene.Remove(o);
+                                            }
+
+                                            var O = OperatorGene.GetRandomOperationGene();
+                                            O.Add(contents);
+                                            gene.Insert(startIndex, O);
+
+                                            return true;
+                                        });
+                                    }
+                                    else // Grouping remains... Only operator changes.
+                                        gene.Operator = Operators.Available.Operators[newOperatorIndex];
+
+                                    invalidOptions = null;
+                                    break;
+                                }
+
+                            // Add random parameter.
+                            case 2:
+                                {
+                                    if (gene.Operator == Operator.SQUARE_ROOT
+                                        // In order to avoid unnecessary reduction, avoid adding subsequent divisors.
+                                        || gene.Operator == Operator.DIVIDE && gene.Count > 1)
+                                        break;
+
+                                    gene.add(new ParameterGene(RandomUtil.Random.Next(inputParamCount)));
+                                    invalidOptions = null;
+                                    break;
+                                }
+
+                            // Add random operator branch.
+                            case 3:
+                                {
+                                    var n = new ParameterGene(RandomUtil.Random.Next(inputParamCount));
+
+                                    var newOp = inputParamCount <= 1
+                                        ? OperatorGene.getRandomOperation('/')
+                                        : OperatorGene.getRandomOperation();
+
+                                    if (isFn || RandomUtil.Random.Next(4) == 0)
+                                    {
+                                        // logic states that this MUST be the root node.
+                                        var index = RandomUtil.Random.Next(2);
+                                        if (index)
+                                        {
+                                            newOp.add(n);
+                                            newOp.add(newGenome.root);
+                                        }
+                                        else
+                                        {
+                                            newOp.add(newGenome.root);
+                                            newOp.add(n);
+                                        }
+
+                                        newGenome.root = newOp;
+                                    }
+                                    else
+                                    {
+
+                                        newOp.add(n);
+
+                                        // Useless to divide a param by itself, avoid...
+                                        if (newOp.Operator == Operators.DIVIDE)
+                                            newOp.Add(new ParameterGene(RandomUtil.NextRandomIntegerExcluding(inputParamCount, n.id)));
+                                        else
+                                            newOp.Add(new ParameterGene(RandomUtil.Random.Next(inputParamCount)));
+
+                                        gene.add(newOp);
+                                        invalidOptions = null;
+
+                                    }
+
+                                    break;
+                                }
+
+                            // Apply a function
+                            case 4:
+                                {
+                                    // // Reduce the pollution of functions...
+                                    // if(RandomUtil.Random.Next(4)!=1)
+                                    // {
+                                    // 	break;
+                                    // }
+                                    //
+                                    // Reduce the pollution of functions...
+                                    if (Operators.Available.Functions.indexOf(gene.Operator) != -1 && RandomUtil.Random.Next(4) != 1)
+                                    {
+                                        break;
+                                    }
+
+                                    var newFn = Operators.GetRandomFunctionGene();
+
+                                    //
+                                    // // Reduce the pollution of functions...
+                                    // if(newFn.operator==og.operator)
+                                    // {
+                                    // 	if(RandomUtil.Random.Next(7)!=1)
+                                    // 	{
+                                    // 		invalidOptions.push(5);
+                                    // 		break;
+                                    // 	}
+                                    // }
+
+                                    if (isRoot)
+                                        newGenome.root = newFn;
+                                    else
+                                        parent.replace(gene, newFn);
+
+                                    newFn.add(gene);
+                                    invalidOptions = null;
+                                    break;
+                                }
+                            case 5:
+                                {
+                                    if (gene.reduce())
+                                        invalidOptions = null;
+                                    break;
+                                }
+                            // Remove it!
+                            default:
+                                {
+
+                                    if (Operators.Available.Functions.indexOf(gene.Operator) != -1)
+                                    {
+                                        if (isRoot)
+                                        {
+                                            if (gene.Count)
+                                                newGenome.root = gene.linq.first();
+                                            else
+                                            {
+                                                doNotRemove = true;
+                                                break;
+                                            }
+
+                                        }
+                                        else
+                                        {
+
+                                            parentOp.modifyChildren(v =>
+                                            {
+                                                var index = v.IndexOf(gene);
+                                                if (index != -1)
+                                                {
+                                                    foreach (var o in gene.Reverse())
+                                                    {
+                                                        v.insert(index, o);
+                                                    }
+                                                    v.remove(gene);
+                                                    invalidOptions = null;
+                                                    return true;
+                                                }
+                                                return false;
+                                            });
+
+                                        }
+                                        break;
+                                    }
+
+                                    // Just like above, consider reduction instead of trimming...
+                                    if (isRoot && gene.Count > 2)
+                                    {
+                                        gene.removeAt(RandomUtil.Random.Next(gene.Count));
+                                    }
+                                    else if (gene.Count == 2
+                                        && gene.linq.any(o => o is OperatorGene)
+                                        && gene.linq.any(o => o is ParameterGene))
+                                    {
+                                        var childOpGene = gene.linq.ofType(OperatorGene).single();
+                                        gene.remove(childOpGene);
+                                        if (isRoot)
+                                            newGenome.root = childOpGene;
+                                        else
+                                            parentOp.Replace(gene, childOpGene);
+                                    }
+                                    else if (shouldNotRemove() || gene.Count > 2)
+                                    {
+                                        doNotRemove = true;
+                                        break;
+                                    }
+                                    else
+                                        parentOp.Remove(gene);
+
+                                    invalidOptions = null;
+                                    break;
+
+                                }
+                        }
+                    }
+
+                }
+
+                return null;
+            });
+        }
+
+        public override Task<Genome> Mutate(Genome source, uint mutations)
+        {
+            return new Task<Genome>(() =>
+            {
+                Genome genome = null;
+                for (uint i = 0; i < mutations; i++)
+                {
+                    uint tries = 3;
+                    do
+                    {
+                        var r = Mutate(source);
+                        r.Wait();
+                        genome = r.Result;
+                    }
+                    while (genome == null && --tries != 0);
+                    // Reuse the clone as the source 
+                    if (genome == null) break; // No mutation possible? :/
+                    source = genome;
+                }
+                return genome;
             });
 
         }

@@ -20,6 +20,13 @@ public static class RandomUtil
     {
         return source[R.Value.Next(source.Count)];
     }
+    public static T RandomPluck<T>(this IList<T> source)
+    {
+        var e = source[R.Value.Next(source.Count)];
+        source.Remove(e);
+        return e;
+    }
+
     public static T RandomSelectOne<T>(this T[] source)
     {
         return source[R.Value.Next(source.Length)];

@@ -38,7 +38,7 @@ namespace GeneticAlgorithmPlatform
             }
         }
 
-        public IGeneNode<T> FindParent(T child)
+        public virtual IGeneNode<T> FindParent(T child)
         {
             if (this._root is IGeneNode<T>)
                 return ((IGeneNode<T>)_root).FindParent(child);

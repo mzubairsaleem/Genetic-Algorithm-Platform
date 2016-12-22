@@ -15,6 +15,23 @@ namespace AlgebraBlackBox
 			Root = root;
 		}
 
+		public new IGeneNode FindParent(IGene child)
+        {
+			return (IGeneNode)base.FindParent(child);
+        }
+
+		public void Replace(IGene target, IGene replacment)
+		{
+ 			if (Root==target)
+                Root = replacment;
+            else 
+			{
+                var parent = FindParent(target);
+				if(parent==null)
+					throw new ArgumentException("'target' not found.");
+				parent.Replace(target, replacment);			
+			}
+		}
 
 		public override string ToString()
 		{
