@@ -1,95 +1,93 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace AlgebraBlackBox
 {
-	public delegate double Formula(params double[] p);
-	class Environment
-	{
-		Formula _formula;
-		public Environment(Formula formula)
-		{
-			_formula = formula;
-		}
-		public static Random Randomizer = new Random((int)DateTime.Now.Ticks);
 
-		public static int NextRandomIntegerExcluding(int range, IEnumerable<int> excluded)
-		{
-			var r = Enumerable.Range(0, range).ToList();
-			foreach(var x in excluded)
-				r.Remove(x);
+    // function actualFormula(a:number, b:number):number // Solve for 'c'.
+    // {
+    // 	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
+    // }
 
-			return r[Randomizer.Next(r.Count)];
-		}
+    public class Environment : GeneticAlgorithmPlatform.Environment<Genome>
+    {
 
-		public static int NextRandomIntegerExcluding(int range, int excluded)
-		{
-			var n = Randomizer.Next(range - 1);
-			if (n >= excluded)
-				n++;
-			return n == range ? -1 : n;
-		}
+        public Environment(Formula actualFormula) : base(new GenomeFactory())
+        {
+            this._problems
+                .Add(new Problem(actualFormula));
 
-		public void TrimEarlyPopulations(int maxPopulations)
-		{
-			while (Populations.Count > maxPopulations)
-				Populations.RemoveAt(0);
-		}
+            this.MaxPopulations = 20;
+            this.PopulationSize = 100;
+        }
 
-		public Environment(Problem problem)
-		{
-			Problem = problem;
-			Populations = new List<Population>();
-			GeneFactory = Problem.GetGeneFactory();
-		}
+        protected override async Task _onAsyncExecute()
+        {
+            await base._onAsyncExecute();
 
-		/// <summary>
-		/// Runs a test cycle on the current population using the specified problem.
-		/// </summary>
-		public Population Spawn(int populationSize)
-		{
-			var p = new Population(Problem, GeneFactory);
-			p.Populate(populationSize);
-			Populations.Add(p);
-			GeneFactory.TrimPreviousGenomes();
-			TrimEarlyPopulations(10);
-			return p;
-		}
+            var p = this._populations
+                .SelectMany(s => s.Values)
+                .OrderBy(g => g.Hash.Length)
+                .GroupBy(g => g.CachedToStringReduced)
+                .Select(g => g.First());
 
-		/// <summary>
-		/// Runs a test cycle on the current population using the specified problem.
-		/// </summary>
-		public Population SpawnFrom(IEnumerable<Organism> source, int populationSize)
-		{
-			var p = new Population(Problem, GeneFactory);
-			p.PopulateFrom(source, populationSize, 5);
-			Populations.Add(p);
-			GeneFactory.TrimPreviousGenomes();
-			TrimEarlyPopulations(10);
-			return p;
-		}
+            var top = _problems
+                .Select(r => r.Rank(p).Select(g =>
+                  {
+                      var red = g.Root.AsReduced();
+                      var alpha = g.ToAlphaParameters();
+                      var suffix = "";
+                      if (red != g.Root)
+                          suffix = " => " + g.ToAlphaParameters(true);
+                      var f = r.GetFitnessFor(g);
+                      return new
+                      {
+                          Label = String.Format(
+                              "{0}: ({1} samples) [{3}]",
+                              alpha + suffix,
+                              f.SampleCount,
+                              String.Join(", ", f.Scores.Select(v => v.ToString()).ToArray())),
+                          Gene = g
+                      };
+                  })
+                )
+                .Weave()
+                .Take(_problems.Count)
+                .Memoize();
 
-		public GeneFactory GeneFactory
-		{
-			get;
-			private set;
-		}
-
-		public Problem Problem
-		{
-			get;
-			private set;
-		}
-
-		public List<Population> Populations
-		{
-			get;
-			private set;
-		}
+            var c = _problems.SelectMany(pr => pr.Convergent).ToArray();
+            var topOutput = "\n\t" + String.Join("\n\t", top.Select(s => s.Label).ToArray());
+            // this.state = "Top Genome: "+topOutput.replace(": ",":\n\t"); // For display elsewhere.
+            Console.WriteLine("Top:", topOutput);
+            if (c.Length != 0) Console.WriteLine("\nConvergent:", c.Select(
+                   g => g.ToAlphaParameters(true)));
 
 
-	}
+            if (_problems.Count(pr => pr.Convergent.Any()) < this._problems.Count)
+            {
+                var n = this._populations.Last.Value;
+                n.Add(top
+                    .Select(g => g.Gene)
+                    .Where(g => g.Root.IsReducible() && g.Root.AsReduced() != g.Root)
+                    .Select(g =>
+                    {
+                        var m = g.Clone();
+                        m.Root = g.Root.AsReduced();
+                        return m;//.setAsReadOnly();
+                    }));
+
+                // this.start();
+            }
+
+            Console.WriteLine("");
+
+
+        }
+
+
+    }
+
+
+
 }

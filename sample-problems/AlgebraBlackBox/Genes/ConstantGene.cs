@@ -1,4 +1,6 @@
-﻿namespace AlgebraBlackBox.Genes
+﻿using System.Threading.Tasks;
+
+namespace AlgebraBlackBox.Genes
 {
     public class ConstantGene : UnreducibleGene
 	{
@@ -18,10 +20,11 @@
 			return new ConstantGene(Multiple);
 		}
 
-        public override double Calculate(double[] values)
+        protected override Task<double> CalculateWithoutMultiple(double[] values)
         {
-            return Multiple;
+			return new Task<double>(()=>Multiple);
         }
+
 
 		#region IEquatable<ConstantGene> Members
 

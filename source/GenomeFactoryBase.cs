@@ -4,6 +4,7 @@
  */
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
@@ -15,8 +16,8 @@ namespace GeneticAlgorithmPlatform
     {
         public uint MaxGenomeTracking { get; set; }
 
-        private ConcurrentDictionary<string, TGenome> _previousGenomes; // Track by hash...
-        private ConcurrentQueue<string> _previousGenomesOrder;
+        protected ConcurrentDictionary<string, TGenome> _previousGenomes; // Track by hash...
+        protected ConcurrentQueue<string> _previousGenomesOrder;
 
         public GenomeFactoryBase()
         {
@@ -63,9 +64,9 @@ namespace GeneticAlgorithmPlatform
             }
         }
 
-        public abstract Task<TGenome[]> GenerateVariations(TGenome source);
+        public abstract Task<IEnumerable<TGenome>> GenerateVariations(TGenome source);
 
-        public abstract Task<TGenome> Generate(TGenome[] source);
+        public abstract Task<TGenome> Generate(IEnumerable<TGenome> source);
 
         public abstract Task<TGenome> Mutate(TGenome source, uint mutations);
 

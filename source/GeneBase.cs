@@ -15,9 +15,29 @@ namespace GeneticAlgorithmPlatform
     public abstract class GeneBase : IGene
     {
 
+        public ModificationSynchronizer Sync
+        {
+            get;
+            private set;
+        }
+
+        public int Version
+        {
+            get
+            {
+                return Sync.Version;
+            }
+        }
+
+        protected virtual ModificationSynchronizer InitSync()
+        {
+            return new ModificationSynchronizer(OnModified);
+        }
+
         public GeneBase()
         {
             OnModified();
+            Sync = InitSync();
         }
 
         Lazy<string> _toString;
@@ -51,7 +71,7 @@ namespace GeneticAlgorithmPlatform
 
         public virtual bool Equals(IGene other)
         {
-            return this==other || this.ToString()==other.ToString();
+            return this == other || this.ToString() == other.ToString();
         }
 
     }
@@ -60,7 +80,14 @@ namespace GeneticAlgorithmPlatform
     where T : IGene
     {
 
-        ThreadSafeTrackedList<T> _children;
+        override protected ModificationSynchronizer InitSync()
+        {
+            var sync = new ModificationSynchronizer(_children.SyncLock, OnModified);
+            _children = new ThreadSafeTrackedList<T>(sync);
+            return sync;
+        }
+
+        protected ThreadSafeTrackedList<T> _children;
 
         public IEnumerable<T> Children
         {
@@ -123,7 +150,7 @@ namespace GeneticAlgorithmPlatform
                 c.SetAsReadOnly();
         }
 
-        public void Add(T item)
+        public virtual void Add(T item)
         {
             _children.Add(item);
         }
@@ -173,6 +200,10 @@ namespace GeneticAlgorithmPlatform
             return _children.GetEnumerator();
         }
 
+        public bool Replace(T item, T replacement, bool throwIfNotFound = false)
+        {
+            return _children.Replace(item, replacement, throwIfNotFound);
+        }
 
         IEnumerator IEnumerable.GetEnumerator()
         {

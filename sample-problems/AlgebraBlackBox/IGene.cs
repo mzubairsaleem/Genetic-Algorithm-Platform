@@ -1,18 +1,25 @@
 using System;
+using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
 
 namespace AlgebraBlackBox
 {
-    public interface IGene : GeneticAlgorithmPlatform.IGene, IComparable<IGene>
+    public interface IGene : GeneticAlgorithmPlatform.IGene, IComparable<IGene>, ICloneable<IGene>
     {
-        double Multiple { get; }
+        double Multiple { get; set; }
         bool SetMultiple(double value);
 
-        double Calculate(double[] values);
+        Task<double> Calculate(double[] values);
 
         bool IsReducible();
 
         IGene AsReduced(bool ensureClone = false);
+
+        string ToStringContents();
+
+        ModificationSynchronizer Sync { get; }
+
+        new IGene Clone();
     }
 
     public interface IGeneNode<T> : GeneticAlgorithmPlatform.IGeneNode<T>, IGene
@@ -21,7 +28,13 @@ namespace AlgebraBlackBox
 
     }
 
-    static class GeneUtil {
+    public interface IGeneNode : IGeneNode<IGene>
+    {
+
+    }
+
+    static class GeneUtil
+    {
         public static int Compare(this IGene a, IGene b)
         {
             // Constants should trail at the end.

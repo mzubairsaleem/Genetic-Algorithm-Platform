@@ -8,11 +8,10 @@ using System;
 namespace AlgebraBlackBox.Genes
 {
 
-    public abstract class UnreducibleGene<T> : Gene<T>
-    where T : Gene<T>
+    public abstract class UnreducibleGeneNode : GeneNode
     {
 
-        public UnreducibleGene(double multiple = 1) : base(multiple)
+        public UnreducibleGeneNode(double multiple = 1) : base(multiple)
         {
 
         }
@@ -22,12 +21,12 @@ namespace AlgebraBlackBox.Genes
             return false;
         }
 
-        public new UnreducibleGene<T> Clone()
+        public new UnreducibleGeneNode Clone()
         {
             throw new NotImplementedException();
         }
 
-        public new virtual UnreducibleGene<T> AsReduced(bool ensureClone = false)
+        public new virtual UnreducibleGeneNode AsReduced(bool ensureClone = false)
         {
             return ensureClone ? this.Clone(): this;
         }

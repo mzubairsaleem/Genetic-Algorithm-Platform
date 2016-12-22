@@ -11,8 +11,36 @@ using System.Collections.Generic;
 public class ThreadSafeTrackedList<T> : IList<T>
 {
     readonly List<T> _source = new List<T>();
+    public int SyncVersion
+    {
+        get { return Sync.Version; }
+    }
 
-    virtual public T this[int index]
+    readonly ModificationSynchronizer Sync;
+
+    public ThreadSafeTrackedList(ModificationSynchronizer sync = null)
+    {
+        if(sync==null)
+        {
+            sync = InitNewSync();
+        }
+        Sync = sync;
+        SyncLock = sync.SyncLock;
+    }
+    
+
+    protected virtual ModificationSynchronizer InitNewSync()
+    {
+        return new ModificationSynchronizer(new Object());
+    }
+
+    public object SyncLock
+    {
+        get;
+        private set;
+    }
+
+    public T this[int index]
     {
         get
         {
@@ -27,13 +55,13 @@ public class ThreadSafeTrackedList<T> : IList<T>
 
     public bool SetValue(int index, T value)
     {
-        return Modifying(() =>
-         {
+        return Sync.Modifying(() =>
+        {
              var changing = index > _source.Count || !_source[index].Equals(value);
              if (changing)
                  _source[index] = value;
              return changing;
-         });
+        });
     }
 
     public int Count
@@ -44,40 +72,7 @@ public class ThreadSafeTrackedList<T> : IList<T>
         }
     }
 
-    virtual protected void OnModified()
-    {
-
-    }
-
-    int _modifyingDepth;
-    protected bool Modifying(Func<bool> action)
-    {
-        bool modified;
-        lock (_source)
-        {
-            _modifyingDepth++;
-            modified = action();
-            if (--_modifyingDepth == 0 && modified)
-                OnModified();
-        }
-        return modified;
-    }
-
-    protected void Modifying(Action action)
-    {
-        if (IsReadOnly)
-            throw new InvalidOperationException("This collection is set to read-only.");
-
-        lock (_source)
-        {
-            _modifyingDepth++;
-            action();
-            if (--_modifyingDepth == 0)
-                OnModified();
-        }
-    }
-
-    virtual public bool IsReadOnly
+    public bool IsReadOnly
     {
         get
         {
@@ -87,12 +82,12 @@ public class ThreadSafeTrackedList<T> : IList<T>
 
     public void Add(T item)
     {
-        Modifying(() => _source.Add(item));
+        Sync.Modifying(() => _source.Add(item));
     }
 
     public void Add(IEnumerable<T> items)
     {
-        Modifying(() =>
+        Sync.Modifying(() =>
         {
             foreach (var item in items)
                 Add(item);
@@ -103,7 +98,7 @@ public class ThreadSafeTrackedList<T> : IList<T>
     {
         if (Count != 0)
         {
-            Modifying(() =>
+            Sync.Modifying(() =>
             {
                 bool hasItems = Count != 0;
                 if (hasItems)
@@ -136,17 +131,17 @@ public class ThreadSafeTrackedList<T> : IList<T>
 
     public void Insert(int index, T item)
     {
-        Modifying(() => _source.Insert(index, item));
+        Sync.Modifying(() => _source.Insert(index, item));
     }
 
     public bool Remove(T item)
     {
-        return Modifying(() => _source.Remove(item));
+        return Sync.Modifying(() => _source.Remove(item));
     }
 
     public void RemoveAt(int index)
     {
-        Modifying(() => _source.RemoveAt(index));
+        Sync.Modifying(() => _source.RemoveAt(index));
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -157,7 +152,7 @@ public class ThreadSafeTrackedList<T> : IList<T>
 
     public bool Replace(T target, T replacement, bool throwIfNotFound = false)
     {
-        return Modifying(() =>
+        return Sync.Modifying(() =>
         {
             var index = _source.IndexOf(target);
             if (index == -1)

@@ -40,7 +40,7 @@ namespace GeneticAlgorithmPlatform
 
         public IGeneNode<T> FindParent(T child)
         {
-            if(this._root is IGeneNode<T>)
+            if (this._root is IGeneNode<T>)
                 return ((IGeneNode<T>)_root).FindParent(child);
             return null;
         }
@@ -65,6 +65,22 @@ namespace GeneticAlgorithmPlatform
             get
             {
                 return _hash ?? (_hash = Serialize());
+            }
+        }
+
+        IGene IGenome.Root
+        {
+            get
+            {
+                return this.Root;
+            }
+        }
+
+        IEnumerable<IGene> IGenome.Genes
+        {
+            get
+            {
+                return (IEnumerable<IGene>)this.Genes;
             }
         }
 

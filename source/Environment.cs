@@ -13,9 +13,8 @@ using System.Threading.Tasks;
 namespace GeneticAlgorithmPlatform
 {
 
-    public class Environment<TGenome> : IEnvironment<TGenome>
-     where TGenome : IGenome
-
+    public abstract class Environment<TGenome> : IEnvironment<TGenome>
+        where TGenome : IGenome
     {
 
         protected uint _generations = 0;
@@ -28,7 +27,7 @@ namespace GeneticAlgorithmPlatform
         public int TestCount = 5;
 
 
-        Environment(IGenomeFactory<TGenome> genomeFactory)
+        protected Environment(IGenomeFactory<TGenome> genomeFactory)
         {
             this._genomeFactory = genomeFactory;
             this._problems = new List<IProblem<TGenome>>();
@@ -70,7 +69,7 @@ namespace GeneticAlgorithmPlatform
 
         private long _totalTime = 0;
 
-        protected async void _onAsyncExecute()
+        protected virtual async Task _onAsyncExecute()
         {
             Stopwatch sw;
 
@@ -126,7 +125,7 @@ namespace GeneticAlgorithmPlatform
 
         protected void _onExecute()
         {
-            this._onAsyncExecute();
+            this._onAsyncExecute().Wait();
         }
 
 

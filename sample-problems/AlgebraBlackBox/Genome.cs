@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace AlgebraBlackBox
 {
-    public class Genome : GeneticAlgorithmPlatform.Genome<Gene>, IEquatable<Genome>
+    public class Genome : GeneticAlgorithmPlatform.Genome<IGene>, IEquatable<Genome>
 	{
 		Lazy<string> _cachedToString;
 		Lazy<string> _cachedToStringReduced;
 
-		public Genome(Gene root):base()
+		public Genome(IGene root):base()
 		{
 			_cachedToString = new Lazy<string>(ToString);
 			_cachedToStringReduced = new Lazy<string>(ToStringReduced);
@@ -35,18 +36,33 @@ namespace AlgebraBlackBox
 			get { return _cachedToStringReduced.Value; }
 		}
 
-
-
 		public new Genome Clone()
 		{
 			return new Genome((Gene)Root.Clone());
 		}
 
+		public Task<double> Calculate(double[] values)
+		{
+			return Root.Calculate(values);
+		}
+
+		public Genome AsReduced()
+		{
+			return Root.IsReducible() ? new Genome( (Gene)Root.AsReduced(true) ) : this;
+		}
+
+        public string ToAlphaParameters(bool reduced = false)
+        {
+            return AlphaParameters.ConvertTo(reduced ? CachedToStringReduced : CachedToString);
+        }
+
+
+
 		#region IEquatable<Genome> Members
 
 		public bool Equals(Genome other)
 		{
-			return this.ToString()==other.ToString();
+			return this.CachedToStringReduced==other.CachedToStringReduced;
 		}
 
 		#endregion

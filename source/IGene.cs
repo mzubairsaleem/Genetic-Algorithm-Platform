@@ -22,6 +22,8 @@ namespace GeneticAlgorithmPlatform
         IEnumerable<T> Descendants { get; }
         IGeneNode<T> FindParent(T child);
 
+        bool Replace(T target, T replacement, bool throwIfNotFound = false);
+
         void SetAsReadOnly();
     }
 

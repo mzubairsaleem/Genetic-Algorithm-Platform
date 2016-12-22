@@ -1,16 +1,18 @@
 ﻿using System;
+using System.Threading.Tasks;
 using GeneticAlgorithmPlatform;
 
 namespace AlgebraBlackBox
 {
 
 
-    public abstract class Gene : GeneBase, IGene
+    public abstract class Gene : GeneBase, AlgebraBlackBox.IGene
     {
         public Gene(double multiple = 1) : base()
         {
             Multiple = multiple;
         }
+
         double _multiple;
         public double Multiple
         {
@@ -23,12 +25,14 @@ namespace AlgebraBlackBox
 
         public bool SetMultiple(double value)
         {
-            var changing = _multiple != value;
-            if (changing)
-                _multiple = value;
-            return changing;
+            return Sync.Modifying(ref _multiple, value);
         }
-        public abstract double Calculate(double[] values);
+        public virtual async Task<double> Calculate(double[] values)
+        {
+            return Multiple * await CalculateWithoutMultiple(values);
+        }
+
+        protected abstract Task<double> CalculateWithoutMultiple(double[] values);
 
 
         public virtual IGene AsReduced(bool ensureClone = false)
@@ -52,25 +56,36 @@ namespace AlgebraBlackBox
         {
             return MultiplePrefix + ToStringContents();
         }
+
         public abstract string ToStringContents();
 
         public abstract bool IsReducible();
 
         public virtual int CompareTo(IGene other)
         {
-           return this.Compare(other);
+            return this.Compare(other);
         }
-        
+
         public new Gene Clone()
         {
             throw new NotImplementedException();
         }
+
+        IGene IGene.Clone()
+        {
+            return this.Clone(); ;
+        }
+
+        IGene ICloneable<IGene>.Clone()
+        {
+            return this.Clone();
+        }
+
     }
 
-    public abstract class Gene<T> : GeneBase<T>, IGene
-    where T : IGene
+    public abstract class GeneNode : GeneBase<AlgebraBlackBox.IGene>, IGeneNode
     {
-        public Gene(double multiple = 1) : base()
+        public GeneNode(double multiple = 1) : base()
         {
             Multiple = multiple;
         }
@@ -88,10 +103,7 @@ namespace AlgebraBlackBox
 
         public bool SetMultiple(double value)
         {
-            var changing = _multiple != value;
-            if (changing)
-                _multiple = value;
-            return changing;
+            return Sync.Modifying(ref _multiple, value);
         }
 
 
@@ -101,12 +113,6 @@ namespace AlgebraBlackBox
         }
 
         public abstract string ToStringContents();
-
-
-        public string ToAlphaParameters()
-        {
-            return AlphaParameters.ConvertTo(this.ToString());
-        }
 
         protected string MultiplePrefix
         {
@@ -120,22 +126,22 @@ namespace AlgebraBlackBox
         }
 
 
-        public double Calculate(double[] values)
+        public virtual async Task<double> Calculate(double[] values)
         {
-            return Multiple * CalculateWithoutMultiple(values);
+            return Multiple * await CalculateWithoutMultiple(values);
         }
 
-        protected abstract double CalculateWithoutMultiple(double[] values);
+        protected abstract Task<double> CalculateWithoutMultiple(double[] values);
 
 
         public abstract bool IsReducible();
 
         public virtual int CompareTo(IGene other)
         {
-           return this.Compare(other);
+            return this.Compare(other);
         }
 
-        public new Gene<T> Clone()
+        public new GeneNode Clone()
         {
             throw new NotImplementedException();
         }
@@ -143,6 +149,16 @@ namespace AlgebraBlackBox
         public virtual IGene AsReduced(bool ensureClone = false)
         {
             throw new NotImplementedException();
+        }
+
+        IGene IGene.Clone()
+        {
+            return this.Clone(); ;
+        }
+
+        IGene ICloneable<IGene>.Clone()
+        {
+            return this.Clone();
         }
     }
 }

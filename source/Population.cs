@@ -67,8 +67,8 @@ namespace GeneticAlgorithmPlatform
                         if (top.VariationCountdown == 0)
                         {
                             top.VariationCountdown = 20;
-                            var v = await _genomeFactory.GenerateVariations(top);
-                            Console.WriteLine("Top Variations:", v.Length);
+                            var v = (await _genomeFactory.GenerateVariations(top)).Memoize();
+                            Console.WriteLine("Top Variations:", v.Count);
                             Add(v);
                         }
                         else

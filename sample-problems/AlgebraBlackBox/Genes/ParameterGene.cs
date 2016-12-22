@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace AlgebraBlackBox.Genes
 {
@@ -43,10 +44,11 @@ namespace AlgebraBlackBox.Genes
 			return new ParameterGene(ID) { Multiple = Multiple };
 		}
 
-		public override double Calculate(double[] values)
-		{
-			return ID<values.Length ? values[ID] : double.NaN;
-		}
+
+        protected override Task<double> CalculateWithoutMultiple(double[] values)
+        {
+            return new Task<double>(()=>ID<values.Length ? values[ID] : double.NaN);
+        }
 
 		#region IEquatable<Gene> Members
 
@@ -54,6 +56,7 @@ namespace AlgebraBlackBox.Genes
 		{
 			return this==other || ID==other.ID && Multiple==other.Multiple;
 		}
+
 
         #endregion
     }

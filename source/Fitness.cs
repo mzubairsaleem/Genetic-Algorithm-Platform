@@ -11,7 +11,7 @@ namespace GeneticAlgorithmPlatform
     {
         private Lazy<double> _average;
 
-        public SingleFitness(IEnumerable<double> scores = null)
+        public SingleFitness(IEnumerable<double> scores = null) : base()
         {
             if (scores != null)
                 Add(scores);
@@ -19,11 +19,15 @@ namespace GeneticAlgorithmPlatform
                 OnModified();
         }
 
-
-        override protected void OnModified()
+        protected override ModificationSynchronizer InitNewSync()
         {
-            base.OnModified();
-            if(_average==null || _average.IsValueCreated)
+            return new ModificationSynchronizer(OnModified);
+        }
+
+
+        protected void OnModified()
+        {
+            if (_average == null || _average.IsValueCreated)
                 _average = new Lazy<double>(GetAverage, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
@@ -53,10 +57,10 @@ namespace GeneticAlgorithmPlatform
         }
     }
 
-    public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable
+    public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable<Fitness>
     {
 
-        int SampleCount
+        public int SampleCount
         {
             get
             {
@@ -99,7 +103,7 @@ namespace GeneticAlgorithmPlatform
                 SingleFitness f;
                 if (i >= count)
                 {
-                    this[i] = f = new SingleFitness();                        
+                    this[i] = f = new SingleFitness();
                 }
                 else
                     f = this[i];
@@ -134,9 +138,6 @@ namespace GeneticAlgorithmPlatform
             return 0;
         }
 
-        int IComparable.CompareTo(object obj)
-        {
-            return this.CompareTo((Fitness)obj);
-        }
+
     }
 }
