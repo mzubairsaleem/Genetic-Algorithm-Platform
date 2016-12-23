@@ -63,6 +63,12 @@ namespace AlgebraBlackBox
             return Available.Functions.RandomSelectOne();
         }
 
+        public static char GetRandomFunction(char excluded)
+        {
+            var ao = Available.Functions.Where(o => o != excluded).ToArray();
+            return ao.RandomSelectOne();
+        }
+
         public static OperatorGeneBase GetRandomOperationGene(IEnumerable<char> excluded = null)
         {
             return New(GetRandom(excluded));
@@ -73,9 +79,9 @@ namespace AlgebraBlackBox
             return New(GetRandom(excluded));
         }
 
-        public static OperatorGeneBase GetRandomFunctionGene()
+        public static OperatorGeneBase GetRandomFunctionGene(char excluded)
         {
-            return New(GetRandomFunction());
+            return New(GetRandomFunction(excluded));
         }
 
 

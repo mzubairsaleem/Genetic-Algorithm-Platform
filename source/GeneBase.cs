@@ -155,7 +155,7 @@ namespace GeneticAlgorithmPlatform
             _children.Add(item);
         }
 
-        public void Add(IEnumerable<T> items)
+        public void AddThese(IEnumerable<T> items)
         {
             _children.Add(items);
         }

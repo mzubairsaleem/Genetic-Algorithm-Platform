@@ -14,9 +14,10 @@ namespace GeneticAlgorithmPlatform
     where T : IGene
     {
         private T _root;
-        public Genome()
+        public Genome(T root)
         {
-            _hash = null;
+            ResetHash();
+            _root = root;
             VariationCountdown = 0;
         }
 
@@ -84,7 +85,7 @@ namespace GeneticAlgorithmPlatform
             }
         }
 
-        public void ResetHash()
+        public virtual void ResetHash()
         {
             _hash = null;
             if (_root != null)

@@ -15,7 +15,7 @@ namespace AlgebraBlackBox.Genes
         {
             _operator = op;
             if (children != null)
-                Add(children);
+                AddThese(children);
         }
 
         public override bool IsReducible()

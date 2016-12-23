@@ -8,11 +8,15 @@ namespace AlgebraBlackBox
 		Lazy<string> _cachedToString;
 		Lazy<string> _cachedToStringReduced;
 
-		public Genome(IGene root):base()
+		public Genome(IGene root):base(root)
 		{
+		}
+
+		public override void ResetHash()
+		{
+			base.ResetHash();
 			_cachedToString = new Lazy<string>(ToString);
 			_cachedToStringReduced = new Lazy<string>(ToStringReduced);
-			Root = root;
 		}
 
 		public new IGeneNode FindParent(IGene child)

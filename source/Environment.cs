@@ -173,6 +173,11 @@ namespace GeneticAlgorithmPlatform
             return TrimEarlyPopulations(MaxPopulations);
         }
 
+
+        public void Poke()
+        {
+            this._onExecute();
+        }
     }
 
 
