@@ -38,31 +38,36 @@ public static class EnumerableUtil
             }
         }
 
-        // Start by getting the first enuerator if it exists.
-        var n = queue.First;
-        while (n != null)
+        if (queue != null)
         {
+
+            // Start by getting the first enuerator if it exists.
+            var n = queue.First;
             while (n != null)
             {
-                // Loop through all the enumerators..
-                var e2 = n.Value;
-                if (e2.MoveNext())
+                while (n != null)
                 {
-                    yield return e2.Current;
-                    n = n.Next;
+                    // Loop through all the enumerators..
+                    var e2 = n.Value;
+                    if (e2.MoveNext())
+                    {
+                        yield return e2.Current;
+                        n = n.Next;
+                    }
+                    else
+                    {
+                        // None left? Remove the node.
+                        var r = n;
+                        n = n.Next;
+                        queue.Remove(r);
+                        e2.Dispose();
+                    }
                 }
-                else
-                {
-                    // None left? Remove the node.
-                    var r = n;
-                    n = n.Next;
-                    queue.Remove(r);
-                    e2.Dispose();
-                }
+                // Reset and try again.
+                n = queue.First;
             }
-            // Reset and try again.
-            n = queue.First;
         }
+
 
     }
 
@@ -70,15 +75,15 @@ public static class EnumerableUtil
     {
         return new LazyList<T>(list);
     }
-    
+
     public static IEnumerable<T> OfType<TSource, T>(this IEnumerable<TSource> list)
     {
-        return list.Where(e=>e is T).Cast<T>();
+        return list.Where(e => e is T).Cast<T>();
     }
 
     public static void AddThese<T>(this IList<T> target, IEnumerable<T> values)
     {
-        foreach(var v in values)
+        foreach (var v in values)
         {
             target.Add(v);
         }

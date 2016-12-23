@@ -26,6 +26,11 @@ namespace AlgebraBlackBox.Genes
             return new DivisionGene(Multiple, _children.Select(g => g.Clone()));
         }
 
+        protected override GeneticAlgorithmPlatform.IGene CloneInternal()
+        {
+            return this.Clone();
+        }
+
         override protected void ReduceLoop()
         {
             // Pull out clean divisors.

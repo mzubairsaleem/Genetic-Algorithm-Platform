@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using GeneticAlgorithmPlatform;
 
 namespace AlgebraBlackBox.Genes
 {
@@ -45,10 +46,15 @@ namespace AlgebraBlackBox.Genes
             return new DivisionGene(Multiple, _children.Select(g => g.Clone()));
         }
 
+        protected override GeneticAlgorithmPlatform.IGene CloneInternal()
+        {
+            return this.Clone();
+        }
+
         override protected void ReduceLoop()
         {
             var child = _children.SingleOrDefault();
-            if (child != null && child.Multiple>3)
+            if (child != null && child.Multiple > 3)
             {
                 // First migrate any possible multiple.
                 var sqr = Math.Sqrt(child.Multiple);
@@ -65,5 +71,7 @@ namespace AlgebraBlackBox.Genes
 
             base.ReduceLoop();
         }
+
+
     }
 }

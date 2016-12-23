@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -84,6 +85,7 @@ namespace GeneticAlgorithmPlatform
             {
                 Add(await _genomeFactory.Generate(rankedGenomes));
             }
+
         }
 
         // Provide a mechanism for culling the herd without requiring IProblem to be imported.

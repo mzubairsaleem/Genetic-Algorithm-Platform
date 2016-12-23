@@ -88,9 +88,10 @@ public class LazyList<T> : IReadOnlyList<T>, IDisposable
 
         int result = _cached.IndexOf(item);
         T value;
-        while (result == -1 && GetNext(out value) && value.Equals(item))
+        while (result == -1 && GetNext(out value))
         {
-            result = _cached.Count - 1;
+            if(value.Equals(item))
+                result = _cached.Count - 1;
         }
 
         return result;

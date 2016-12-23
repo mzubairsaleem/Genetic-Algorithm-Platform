@@ -26,7 +26,7 @@ namespace AlgebraBlackBox.Genes
             throw new NotImplementedException();
         }
 
-        public new virtual UnreducibleGeneNode AsReduced(bool ensureClone = false)
+        public override IGene AsReduced(bool ensureClone = false)
         {
             return ensureClone ? this.Clone(): this;
         }
@@ -50,7 +50,7 @@ namespace AlgebraBlackBox.Genes
             throw new NotImplementedException();
         }
 
-        public new virtual UnreducibleGene AsReduced(bool ensureClone = false)
+        public override IGene AsReduced(bool ensureClone = false)
         {
             return ensureClone ? this.Clone(): this;
         }     

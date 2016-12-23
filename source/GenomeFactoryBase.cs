@@ -5,6 +5,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
@@ -44,8 +45,14 @@ namespace GeneticAlgorithmPlatform
         public Task TrimPreviousGenomes()
         {
             var _ = this;
-            lock(_) {
-                return _trimmer!=null ? _trimmer : _trimmer = Task.Run(() =>
+            var t = _trimmer;
+            if (t != null)
+                return t;
+
+            lock (_)
+            {
+                return LazyInitializer.EnsureInitialized(ref _trimmer,
+                () => Task.Run(() =>
                 {
                     while (_previousGenomesOrder.Count > MaxGenomeTracking)
                     {
@@ -57,11 +64,13 @@ namespace GeneticAlgorithmPlatform
                         }
                     }
 
-                    lock(_) {
+                    lock (_)
+                    {
                         _trimmer = null;
                     }
-                });
+                }));
             }
+
         }
 
         public abstract Task<IEnumerable<TGenome>> GenerateVariations(TGenome source);
@@ -73,7 +82,7 @@ namespace GeneticAlgorithmPlatform
         public void Add(TGenome genome)
         {
             var hash = genome.Hash;
-            if(_previousGenomes.TryAdd(hash, genome))
+            if (_previousGenomes.TryAdd(hash, genome))
             {
                 _previousGenomesOrder.Enqueue(hash);
             }

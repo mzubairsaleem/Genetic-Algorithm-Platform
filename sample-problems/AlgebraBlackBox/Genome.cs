@@ -59,7 +59,7 @@ namespace AlgebraBlackBox
 
 		public new Genome Clone()
 		{
-			return new Genome((Gene)Root.Clone());
+			return new Genome(Root.Clone());
 		}
 
 		public Task<double> Calculate(double[] values)

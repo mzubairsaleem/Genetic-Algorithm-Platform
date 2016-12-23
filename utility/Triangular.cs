@@ -47,8 +47,9 @@ namespace GeneticAlgorithmPlatform
             public static IEnumerable<T> Decreasing<T>(IEnumerable<T> source)
             {
                 var s = source.ToArray();
+                var i = 0;
                 return s.SelectMany(
-                        (c, i) => s.Take(i + 1));
+                        c => s.Take(++i));
             }
         }
     }

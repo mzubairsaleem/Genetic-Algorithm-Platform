@@ -66,8 +66,10 @@ namespace GeneticAlgorithmPlatform
 
         public virtual IGene Clone()
         {
-            throw new NotImplementedException();
+            return CloneInternal();
         }
+
+        protected abstract IGene CloneInternal();
 
         public virtual bool Equals(IGene other)
         {
@@ -82,7 +84,7 @@ namespace GeneticAlgorithmPlatform
 
         override protected ModificationSynchronizer InitSync()
         {
-            var sync = new ModificationSynchronizer(_children.SyncLock, OnModified);
+            var sync = new ModificationSynchronizer(new Object(), OnModified);
             _children = new ThreadSafeTrackedList<T>(sync);
             return sync;
         }
@@ -178,7 +180,7 @@ namespace GeneticAlgorithmPlatform
         public IGeneNode<T> FindParent(T child)
         {
             if (Count == 0) return null;
-            if (_children.IndexOf(child) != -1) return null;
+            if (_children.IndexOf(child) != -1) return this;
 
             foreach (var c in ChildNodes)
             {
@@ -219,10 +221,11 @@ namespace GeneticAlgorithmPlatform
         }
 
 
-        public new virtual IGeneNode<T> Clone()
+        public new IGeneNode<T> Clone()
         {
-            throw new NotImplementedException();
+            return (IGeneNode<T>)CloneInternal();
         }
+
 
     }
 

@@ -58,10 +58,10 @@ namespace AlgebraBlackBox
             return _fitness.TryGetValue(key, out value) ? value.Value : null;
         }
 
-        public OrderedParallelQuery<Genome> Rank(IEnumerable<Genome> population)
+        public IEnumerable<Genome> Rank(IEnumerable<Genome> population)
         {
             return population
-                .AsParallel()
+                //.AsParallel()
                 .Where(g => GetFitnessFor(g).Scores.All(s => !double.IsNaN(s)))
                 .OrderByDescending(g => GetFitnessFor(g))
                 .ThenBy(g => g.Hash.Length);
@@ -124,7 +124,7 @@ namespace AlgebraBlackBox
             double[] aSample, double[] bSample,
             Genome gA, Genome gB)
         {
-            return new Task<double>(() =>
+            return Task.Run(() =>
             {
                 var len = aSample.Length * bSample.Length;
 
@@ -148,8 +148,6 @@ namespace AlgebraBlackBox
 
                 return gA_result.Correlation(gB_result);
             });
-
-
         }
 
 
@@ -171,7 +169,7 @@ namespace AlgebraBlackBox
             return result.OrderBy(v => v).ToArray();
         }
 
-        Task ProcessTest(GeneticAlgorithmPlatform.Population<Genome> p)
+        async Task ProcessTest(GeneticAlgorithmPlatform.Population<Genome> p)
         {
             var f = this._actualFormula;
 
@@ -188,32 +186,38 @@ namespace AlgebraBlackBox
                     correct.Add(f(a, b));
                 }
             }
-
+            
             var len = correct.Count;
-            return Task.WhenAll(
-                p.Values.Select(
-                    async g =>
-                    {
-                        var divergence = new List<double>(correct.Count);
-                        var calc = new List<double>(correct.Count);
+            foreach(var g in p.Values)
+            {
+                var divergence = new double[correct.Count];
+                var calc = new double[correct.Count];
 
-                        for (var i = 0; i < len; i++)
-                        {
-                            var result = await g.Calculate(samples[i]);
-                            calc[i] = result;
-                            divergence[i] = -Math.Abs(result - correct[i]);
-                        }
+                for (var i = 0; i < len; i++)
+                {
+                    var result = await g.Calculate(samples[i]);
+                    calc[i] = result;
+                    divergence[i] = -Math.Abs(result - correct[i]);
+                }
 
-                        var c = correct.Correlation(calc);
-                        var d = divergence.Average() + 1;
+                var c = correct.Correlation(calc);
+                var d = divergence.Average() + 1;
 
-                        var fitness = GetFitnessFor(g);
-                        fitness.AddScores(
-                            (double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
-                            (double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
-                        );
-                    })
-            );
+                var fitness = GetFitnessFor(g);
+                fitness.AddScores(
+                    (double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
+                    (double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
+                );
+            }
+
+ 
+            // return Task.WhenAll(
+            //     p.Values.Select(
+            //         async g =>
+            //         {
+                       
+            //         })
+            // );
 
         }
         IEnumerable<Task> ProcessTest(GeneticAlgorithmPlatform.Population<Genome> p, int count)

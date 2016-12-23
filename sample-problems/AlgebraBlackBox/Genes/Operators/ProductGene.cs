@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using GeneticAlgorithmPlatform;
 using Open.Math;
 
 namespace AlgebraBlackBox.Genes
@@ -28,6 +30,10 @@ namespace AlgebraBlackBox.Genes
             return new ProductGene(Multiple, _children.Select(g => g.Clone()));
         }
 
+        protected override GeneticAlgorithmPlatform.IGene CloneInternal()
+        {
+            return this.Clone();
+        }
         void MigrateMultiples()
         {
             if (_children.Any(c => c.Multiple == 0))
@@ -148,5 +154,6 @@ namespace AlgebraBlackBox.Genes
             base.ReduceLoop();
 
         }
+
     }
 }

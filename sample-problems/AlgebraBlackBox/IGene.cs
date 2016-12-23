@@ -7,6 +7,7 @@ namespace AlgebraBlackBox
     public interface IGene : GeneticAlgorithmPlatform.IGene, IComparable<IGene>, ICloneable<IGene>
     {
         double Multiple { get; set; }
+
         bool SetMultiple(double value);
 
         Task<double> Calculate(double[] values);

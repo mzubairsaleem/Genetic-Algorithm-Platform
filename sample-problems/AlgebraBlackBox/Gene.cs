@@ -5,7 +5,6 @@ using GeneticAlgorithmPlatform;
 namespace AlgebraBlackBox
 {
 
-
     public abstract class Gene : GeneBase, AlgebraBlackBox.IGene
     {
         public Gene(double multiple = 1) : base()
@@ -34,13 +33,6 @@ namespace AlgebraBlackBox
 
         protected abstract Task<double> CalculateWithoutMultiple(double[] values);
 
-
-        public virtual IGene AsReduced(bool ensureClone = false)
-        {
-            // This way we can easily override and specify a reduction and detect if no reduction implemented.
-            throw new NotImplementedException();
-        }
-
         protected string MultiplePrefix
         {
             get
@@ -68,12 +60,13 @@ namespace AlgebraBlackBox
 
         public new Gene Clone()
         {
-            throw new NotImplementedException();
+            return (Gene)CloneInternal();
         }
+        
 
         IGene IGene.Clone()
         {
-            return this.Clone(); ;
+            return this.Clone();
         }
 
         IGene ICloneable<IGene>.Clone()
@@ -81,6 +74,7 @@ namespace AlgebraBlackBox
             return this.Clone();
         }
 
+        public abstract IGene AsReduced(bool ensureClone = false);
     }
 
     public abstract class GeneNode : GeneBase<AlgebraBlackBox.IGene>, IGeneNode
@@ -143,12 +137,7 @@ namespace AlgebraBlackBox
 
         public new GeneNode Clone()
         {
-            throw new NotImplementedException();
-        }
-
-        public virtual IGene AsReduced(bool ensureClone = false)
-        {
-            throw new NotImplementedException();
+            return (GeneNode)CloneInternal();   
         }
 
         IGene IGene.Clone()
@@ -160,5 +149,7 @@ namespace AlgebraBlackBox
         {
             return this.Clone();
         }
+
+        public abstract IGene AsReduced(bool ensureClone = false);
     }
 }

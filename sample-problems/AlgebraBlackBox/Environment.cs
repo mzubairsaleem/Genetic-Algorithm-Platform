@@ -22,9 +22,9 @@ namespace AlgebraBlackBox
             this.PopulationSize = 100;
         }
 
-        protected override async Task _onAsyncExecute()
+        protected override async Task _onExecute()
         {
-            await base._onAsyncExecute();
+            await base._onExecute();
 
             var p = this._populations
                 .SelectMany(s => s.Values)
@@ -44,7 +44,7 @@ namespace AlgebraBlackBox
                       return new
                       {
                           Label = String.Format(
-                              "{0}: ({1} samples) [{3}]",
+                              "{0}: ({1} samples) [{2}]",
                               alpha + suffix,
                               f.SampleCount,
                               String.Join(", ", f.Scores.Select(v => v.ToString()).ToArray())),

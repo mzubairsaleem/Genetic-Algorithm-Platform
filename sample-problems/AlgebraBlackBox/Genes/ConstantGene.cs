@@ -20,9 +20,14 @@ namespace AlgebraBlackBox.Genes
 			return new ConstantGene(Multiple);
 		}
 
+        protected override GeneticAlgorithmPlatform.IGene CloneInternal()
+        {
+			return this.Clone();
+        }
+
         protected override Task<double> CalculateWithoutMultiple(double[] values)
         {
-			return new Task<double>(()=>Multiple);
+			return Task.Run(()=>Multiple);
         }
 
 
@@ -37,6 +42,11 @@ namespace AlgebraBlackBox.Genes
 		{
 			return Multiple == other.Multiple;
 		}
+
+        public new ConstantGene AsReduced(bool ensureClone = false)
+        {
+            return ensureClone ? this.Clone(): this;
+        }
 
         #endregion
     }

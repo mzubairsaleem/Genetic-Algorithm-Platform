@@ -39,11 +39,23 @@ namespace GeneticAlgorithmPlatform
             return Task.Run(() =>
             {
                 // Normally, double parallel loops are discouraged, but in this case we may not get any use out of parallel without it.
-                Parallel.ForEach(_problems, problem =>
+                // Parallel.ForEach(_problems, problem =>
+                // {
+                //     Parallel.ForEach(_populations,
+                //         async population => await problem.Test(population, count));
+                // });
+
+
+                // Normally, double parallel loops are discouraged, but in this case we may not get any use out of parallel without it.
+                foreach(var problem in _problems)
                 {
-                    Parallel.ForEach(_populations,
-                        async population => await problem.Test(population, count));
-                });
+                    foreach(var population in _populations)
+                    {
+                       // problem.Test(population, count).Wait();
+                    }
+                        
+                }
+
             });
         }
 
@@ -69,10 +81,10 @@ namespace GeneticAlgorithmPlatform
 
         private long _totalTime = 0;
 
-        protected virtual async Task _onAsyncExecute()
+        protected virtual async Task _onExecute()
         {
-            Stopwatch sw;
 
+            Stopwatch sw;
 
             var allGenes = _populations.SelectMany(g => g.Values).ToArray();
             // Get ranked population for each problem and merge it into a weaved enumeration.
@@ -80,7 +92,7 @@ namespace GeneticAlgorithmPlatform
 
             sw = Stopwatch.StartNew();
             Population<TGenome> p = await Spawn(
-                PopulationSize, previousP.Any() ?
+                PopulationSize, (allGenes.Any() && previousP.Any()) ?
                     Triangular.Disperse.Decreasing(
                         previousP.Weave()
                     ) : null
@@ -123,11 +135,6 @@ namespace GeneticAlgorithmPlatform
             Console.WriteLine("({0} average)", Math.Floor(((double)_totalTime) / _generations));
         }
 
-        protected void _onExecute()
-        {
-            this._onAsyncExecute().Wait();
-        }
-
 
         /**
          * Adds a new population to the environment.  Optionally pulling from the source provided.
@@ -139,9 +146,14 @@ namespace GeneticAlgorithmPlatform
             await p.Populate(populationSize, source);
 
             _populations.AddLast(p);
-            _genomeFactory.TrimPreviousGenomes().Start();
-            TrimEarlyPopulations().Start();
+            StartTrimming();
             return p;
+        }
+
+        void StartTrimming()
+        {
+            _genomeFactory.TrimPreviousGenomes();
+            TrimEarlyPopulations();
         }
 
         Lazy<Task> _trimEarlyPopulations;
@@ -149,7 +161,7 @@ namespace GeneticAlgorithmPlatform
         {
             return LazyInitializer.EnsureInitialized(ref _trimEarlyPopulations,
                 () => Lazy.New(
-                    () => new Task(() =>
+                    () => Task.Run(() =>
                     {
                         while (_populations.Count > maxPopulations)
                         {
@@ -176,7 +188,9 @@ namespace GeneticAlgorithmPlatform
 
         public void Poke()
         {
-            this._onExecute();
+            Debug.WriteLine("Poke Start");
+            this._onExecute().Wait();
+            Debug.WriteLine("Poke End");
         }
     }
 

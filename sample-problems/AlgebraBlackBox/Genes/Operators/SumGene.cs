@@ -30,7 +30,7 @@ namespace AlgebraBlackBox.Genes
 
         void RemoveZeroMultiples()
         {
-            foreach (var g in _children.Where(g => g.Multiple == 0))
+            foreach (var g in _children.Where(g => g.Multiple == 0).ToArray())
             {
                 Remove(g);
             }
@@ -38,9 +38,8 @@ namespace AlgebraBlackBox.Genes
 
         protected override void ReduceLoop()
         {
-
             // Collapse sums within sums.
-            foreach (var p in _children.OfType<ProductGene>())
+            foreach (var p in _children.OfType<ProductGene>().ToArray())
             {
                 var m = p.Multiple;
                 foreach (var s in p)
@@ -117,6 +116,11 @@ namespace AlgebraBlackBox.Genes
             RemoveZeroMultiples();
 
             base.ReduceLoop();
+        }
+
+        protected override GeneticAlgorithmPlatform.IGene CloneInternal()
+        {
+            return this.Clone();
         }
     }
 }

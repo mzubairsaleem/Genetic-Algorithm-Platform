@@ -23,7 +23,7 @@ namespace AlgebraBlackBox.Genes
             return true;
         }
 
-        public new OperatorGeneBase AsReduced(bool ensureClone = false)
+        public override IGene AsReduced(bool ensureClone = false)
         {
             var gene = this.Clone();
             gene.Reduce();
@@ -44,7 +44,7 @@ namespace AlgebraBlackBox.Genes
                             Sync.IncrementVersion();
                     }
                     ver = Version;
-                    ReduceLoop();
+                    //ReduceLoop();
                 }
                 while (ver != Version);
             });
@@ -99,7 +99,7 @@ namespace AlgebraBlackBox.Genes
 
         public new OperatorGeneBase Clone()
         {
-            throw new NotImplementedException();
+            return (OperatorGeneBase)CloneInternal();
         }
 
 

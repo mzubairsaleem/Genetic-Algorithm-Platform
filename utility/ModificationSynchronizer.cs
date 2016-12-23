@@ -89,7 +89,7 @@ public class ModificationSynchronizer
         {
             var ver = Version; // Capture the version so that if changes occur indirectly...
             _modifyingDepth++;
-            changed = target.Equals(newValue);
+            changed = !target.Equals(newValue);
             if(changed) {
                 Version++;
                 target = newValue;

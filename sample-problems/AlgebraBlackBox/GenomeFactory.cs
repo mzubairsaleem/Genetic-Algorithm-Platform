@@ -120,9 +120,10 @@ namespace AlgebraBlackBox
             //console.log("Generate attempts:",attempts);
             if (hash != null)
             {
-                if (_previousGenomes.TryGetValue(hash, out genome))
+                Genome temp;
+                if (_previousGenomes.TryGetValue(hash, out temp))
                 {
-                    return genome;
+                    return temp;
                 }
 
                 if (genome != null)
@@ -182,6 +183,7 @@ namespace AlgebraBlackBox
 
             public static bool CheckRemovalValidity(Genome source, IGene gene)
             {
+                if(gene==source.Root) return false;
                 // Validate worthyness.
                 var parent = source.FindParent(gene);
 
@@ -399,7 +401,7 @@ namespace AlgebraBlackBox
 
         public override Task<IEnumerable<Genome>> GenerateVariations(Genome source)
         {
-            return new Task<IEnumerable<Genome>>(() =>
+            return Task.Run(() =>
             {
                 var result = new List<Genome>();
                 var sourceGenes = source.Genes.ToArray();
@@ -432,7 +434,7 @@ namespace AlgebraBlackBox
 
         public Task<Genome> Mutate(Genome source)
         {
-            return new Task<Genome>(() =>
+            return Task.Run(() =>
             {
                 /* Possible mutations:
                  * 1) Adding a parameter node to an operation.
@@ -570,7 +572,7 @@ namespace AlgebraBlackBox
 
         public override Task<Genome> Mutate(Genome source, uint mutations)
         {
-            return new Task<Genome>(() =>
+            return Task.Run(() =>
             {
                 Genome genome = null;
                 for (uint i = 0; i < mutations; i++)
