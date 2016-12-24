@@ -44,9 +44,31 @@ namespace AlgebraBlackBox.Genes
                         _children.Remove(g);
                     Multiple /= m;
                 }
+
+                // Inversion?
+                if(g is DivisionGene)
+                {
+
+                }
+            }
+
+            foreach(var g in _children.OfType<DivisionGene>().Where(g=>g._children.Any(c=>c is ConstantGene)))
+            {
+
             }
 
             base.ReduceLoop();
+        }
+
+        public override string ToStringContents()
+        {
+
+            return GroupedString(Operator,Multiple.ToString()+Symbol);
+        }
+
+        protected override string ToStringInternal()
+        {
+            return ToStringContents();
         }
 
     }

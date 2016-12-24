@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -34,7 +35,7 @@ namespace GeneticAlgorithmPlatform
 
         private double GetAverage()
         {
-            return this.Average();
+            return this.ToArray().Average();
         }
 
         public int CompareTo(object obj)
@@ -73,7 +74,7 @@ namespace GeneticAlgorithmPlatform
         {
             if (minSamples > SampleCount) return false;
 
-            foreach (var s in this)
+            foreach (var s in this.ToArray())
             {
                 var score = s.Average;
                 if (score > convergence)
@@ -94,27 +95,34 @@ namespace GeneticAlgorithmPlatform
         }
 
 
-        public void AddScores(IEnumerable<double> scores)
+        public void AddTheseScores(IEnumerable<double> scores)
         {
-            var i = 0;
-            var count = Count;
-            foreach (var n in scores)
+            Sync.Modifying(() =>
             {
-                SingleFitness f;
-                if (i >= count)
+                var i = 0;
+                var count = Count;
+                foreach (var n in scores)
                 {
-                    this[i] = f = new SingleFitness();
+                    SingleFitness f;
+                    if (i < count)
+                    {
+                        f = this[i];
+                    }
+                    else
+                    {
+                        this.Add(f = new SingleFitness());
+                    }
+
+                    f.Add(n);
+                    i++;
                 }
-                else
-                    f = this[i];
-                f.Add(n);
-                i++;
-            }
+            });
+
         }
 
         public void AddScores(params double[] scores)
         {
-            this.AddScores(scores);
+            this.AddTheseScores(scores);
         }
 
 
@@ -122,8 +130,12 @@ namespace GeneticAlgorithmPlatform
         public int CompareTo(Fitness other)
         {
             var len = Count;
+            Debug.Assert(len == other.Count);
             for (var i = 0; i < len; i++)
             {
+                if(this.Count<other.Count) return -1;
+                if(this.Count>other.Count) return +1;
+
                 var a = this[i];
                 var b = other[i];
                 var aA = a.Average;

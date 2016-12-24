@@ -44,7 +44,7 @@ namespace AlgebraBlackBox.Genes
                             Sync.IncrementVersion();
                     }
                     ver = Version;
-                    //ReduceLoop();
+                    ReduceLoop();
                 }
                 while (ver != Version);
             });
@@ -54,9 +54,23 @@ namespace AlgebraBlackBox.Genes
         protected virtual void ReduceLoop()
         {
             // Convert empty operators to their constant counterparts.
-            foreach (var g in _children.OfType<OperatorGeneBase>().Where(g => g.Count == 0))
+            foreach (var g in _children.OfType<OperatorGeneBase>().ToArray())
             {
-                _children.Replace(g, new ConstantGene(g.Multiple));
+                switch (g.Count)
+                {
+                    case 0:
+                        _children.Replace(g, new ConstantGene(g.Multiple));
+                        break;
+                    case 1:
+                        if(g is ProductGene || g is SumGene)
+                        {
+                            var c = g.Single();
+                            c.Multiple *= g.Multiple;
+                            _children.Replace(g, c);
+                        }
+                        break;
+                }
+
             }
         }
 
@@ -78,23 +92,16 @@ namespace AlgebraBlackBox.Genes
 
         public override string ToStringContents()
         {
-            if (Operators.Available.Functions.Contains(Operator))
-            {
-                if (Count == 1)
-                    return Operator + this.Single().ToString();
-                else
-                    return Operator + GroupedString(",");
-            }
             return GroupedString(Operator);
         }
 
-        string GroupedString(string separator)
+        protected string GroupedString(string separator, string internalPrefix = "")
         {
-            return "(" + String.Join(separator, this.OrderBy(g => g).Select(s => s.ToString())) + ")";
+            return "(" + internalPrefix + String.Join(separator, this.OrderBy(g => g).Select(s => s.ToString())) + ")";
         }
-        string GroupedString(char separator)
+        protected string GroupedString(char separator, string internalPrefix = "")
         {
-            return GroupedString(separator.ToString());
+            return GroupedString(separator.ToString(), internalPrefix);
         }
 
         public new OperatorGeneBase Clone()

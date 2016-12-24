@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using GeneticAlgorithmPlatform;
 using Open.Math;
 
 namespace AlgebraBlackBox.Genes
@@ -45,7 +43,7 @@ namespace AlgebraBlackBox.Genes
             else
             {
                 // Extract any multiples so we don't have to worry about them later.
-                foreach (var c in _children.OfType<ConstantGene>())
+                foreach (var c in _children.OfType<ConstantGene>().ToArray())
                 {
                     var m = c.Multiple;
                     Remove(c);
@@ -82,7 +80,7 @@ namespace AlgebraBlackBox.Genes
             }
 
             // Collapse products within products.
-            foreach (var p in _children.OfType<ProductGene>())
+            foreach (var p in _children.OfType<ProductGene>().ToArray())
             {
                 Debug.Assert(p.Multiple == 1, "Should have already been pulled out.");
                 _children.Add(p.Children);

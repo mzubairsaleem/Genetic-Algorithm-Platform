@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -34,9 +35,9 @@ namespace GeneticAlgorithmPlatform
              */
             public static IEnumerable<T> Increasing<T>(IEnumerable<T> source)
             {
-                return source
-                    .SelectMany(
-                        (c, i) => Enumerable.Repeat(c, i + 1));
+                int i = 0;
+                return source.SelectMany(
+                    c => Enumerable.Repeat(c, Interlocked.Increment(ref i)));
             }
 
             /**
@@ -46,10 +47,10 @@ namespace GeneticAlgorithmPlatform
              */
             public static IEnumerable<T> Decreasing<T>(IEnumerable<T> source)
             {
-                var s = source.ToArray();
-                var i = 0;
+                var s = source.Memoize();
+                int i = 0;
                 return s.SelectMany(
-                        c => s.Take(++i));
+                    c => s.Take(Interlocked.Increment(ref i)));
             }
         }
     }

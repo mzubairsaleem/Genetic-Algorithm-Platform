@@ -34,29 +34,20 @@ namespace GeneticAlgorithmPlatform
             this._populations = new LinkedList<Population<TGenome>>();
         }
 
+        IEnumerable<Task> GenerateTests(int count)
+        {
+            foreach (var population in _populations.ToArray())
+            {
+                foreach (var problem in _problems)
+                {
+                    yield return problem.Test(population, count);
+                }
+            }
+        }
+
         public Task Test(int count)
         {
-            return Task.Run(() =>
-            {
-                // Normally, double parallel loops are discouraged, but in this case we may not get any use out of parallel without it.
-                // Parallel.ForEach(_problems, problem =>
-                // {
-                //     Parallel.ForEach(_populations,
-                //         async population => await problem.Test(population, count));
-                // });
-
-
-                // Normally, double parallel loops are discouraged, but in this case we may not get any use out of parallel without it.
-                foreach(var problem in _problems)
-                {
-                    foreach(var population in _populations)
-                    {
-                       // problem.Test(population, count).Wait();
-                    }
-                        
-                }
-
-            });
+            return Task.WhenAll(GenerateTests(count));
         }
 
         public Task Test()
@@ -119,9 +110,24 @@ namespace GeneticAlgorithmPlatform
             // Since we have 'variations' added into the pool, we don't want to eliminate any new material that may be useful.
             var additional = Math.Max(p.Count - PopulationSize, 0);
 
+            Debug.Assert(
+                p.Values.All(
+                    g => _problems.All(
+                        r =>
+                        {
+                            var f = r.GetFitnessFor(g);
+                            return f == null ? false : f.Any();
+                        }
+                    )
+                )
+            );
+
             p.KeepOnly(
-                    _problems.Select(r => r.Rank(p.Values)).Weave()
-                    .Take(PopulationSize / 2 + additional));
+                _problems
+                    .Select(r => r.Rank(p.Values))
+                    .Weave()
+                    .Take(PopulationSize / 2 + additional)
+            );
             Console.Write("Population Size: {0}", p.Count);
             Console.WriteLine(" / {0}", beforeCulling);
 

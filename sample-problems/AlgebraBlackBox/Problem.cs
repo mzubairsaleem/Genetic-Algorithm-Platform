@@ -61,8 +61,15 @@ namespace AlgebraBlackBox
         public IEnumerable<Genome> Rank(IEnumerable<Genome> population)
         {
             return population
-                //.AsParallel()
-                .Where(g => GetFitnessFor(g).Scores.All(s => !double.IsNaN(s)))
+                .AsParallel()
+                .Where(g =>
+                {
+                    var fitness = GetFitnessFor(g);
+                    lock (fitness.SyncLock)
+                    {
+                        return fitness.Scores.All(s => !double.IsNaN(s));
+                    }
+                })
                 .OrderByDescending(g => GetFitnessFor(g))
                 .ThenBy(g => g.Hash.Length);
         }
@@ -186,9 +193,9 @@ namespace AlgebraBlackBox
                     correct.Add(f(a, b));
                 }
             }
-            
+
             var len = correct.Count;
-            foreach(var g in p.Values)
+            foreach (var g in p.Values)
             {
                 var divergence = new double[correct.Count];
                 var calc = new double[correct.Count];
@@ -203,19 +210,18 @@ namespace AlgebraBlackBox
                 var c = correct.Correlation(calc);
                 var d = divergence.Average() + 1;
 
-                var fitness = GetFitnessFor(g);
-                fitness.AddScores(
+                GetFitnessFor(g).AddScores(
                     (double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
                     (double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
                 );
             }
 
- 
+
             // return Task.WhenAll(
             //     p.Values.Select(
             //         async g =>
             //         {
-                       
+
             //         })
             // );
 

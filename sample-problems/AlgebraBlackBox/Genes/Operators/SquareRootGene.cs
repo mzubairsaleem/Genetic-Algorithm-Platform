@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using GeneticAlgorithmPlatform;
 
 namespace AlgebraBlackBox.Genes
 {
     public class SquareRootGene : OperatorGeneBase
     {
-        public const char Symbol = '√';
+        public const char Symbol = 'S';
         protected SquareRootGene(double multiple, IEnumerable<IGene> children) : base(Symbol, multiple, children)
         {
         }

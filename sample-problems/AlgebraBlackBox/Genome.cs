@@ -69,7 +69,7 @@ namespace AlgebraBlackBox
 
 		public Genome AsReduced()
 		{
-			return Root.IsReducible() ? new Genome( (Gene)Root.AsReduced(true) ) : this;
+			return Root.IsReducible() ? new Genome( Root.AsReduced(true) ) : this;
 		}
 
         public string ToAlphaParameters(bool reduced = false)

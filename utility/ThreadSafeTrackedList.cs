@@ -16,18 +16,18 @@ public class ThreadSafeTrackedList<T> : IList<T>
         get { return Sync.Version; }
     }
 
-    readonly ModificationSynchronizer Sync;
+    protected readonly ModificationSynchronizer Sync;
 
     public ThreadSafeTrackedList(ModificationSynchronizer sync = null)
     {
-        if(sync==null)
+        if (sync == null)
         {
             sync = InitNewSync();
         }
         Sync = sync;
         SyncLock = sync.SyncLock;
     }
-    
+
 
     protected virtual ModificationSynchronizer InitNewSync()
     {
@@ -57,10 +57,10 @@ public class ThreadSafeTrackedList<T> : IList<T>
     {
         return Sync.Modifying(() =>
         {
-             var changing = index > _source.Count || !_source[index].Equals(value);
-             if (changing)
-                 _source[index] = value;
-             return changing;
+            var changing = index > _source.Count || !_source[index].Equals(value);
+            if (changing)
+                _source[index] = value;
+            return changing;
         });
     }
 
@@ -80,9 +80,13 @@ public class ThreadSafeTrackedList<T> : IList<T>
         }
     }
 
-    public void Add(T item)
+    public virtual void Add(T item)
     {
-        Sync.Modifying(() => _source.Add(item));
+        Sync.Modifying(() =>
+        {
+            _source.Add(item);
+            return true;
+        });
     }
 
     public void Add(IEnumerable<T> items)
@@ -131,17 +135,26 @@ public class ThreadSafeTrackedList<T> : IList<T>
 
     public void Insert(int index, T item)
     {
-        Sync.Modifying(() => _source.Insert(index, item));
+        Sync.Modifying(
+        () => {
+            _source.Insert(index, item);
+            return true;
+        });
     }
 
     public bool Remove(T item)
     {
-        return Sync.Modifying(() => _source.Remove(item));
+        return Sync.Modifying(
+        () => _source.Remove(item));
     }
 
     public void RemoveAt(int index)
     {
-        Sync.Modifying(() => _source.RemoveAt(index));
+        Sync.Modifying(
+        () => {
+            _source.RemoveAt(index);
+            return true;
+        });
     }
 
     IEnumerator IEnumerable.GetEnumerator()

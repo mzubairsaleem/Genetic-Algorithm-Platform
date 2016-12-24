@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AlgebraBlackBox.Genes
 {
@@ -12,6 +13,15 @@ namespace AlgebraBlackBox.Genes
         public new FunctionGene Clone()
         {
             throw new NotImplementedException();
+        }
+
+
+        public override string ToStringContents()
+        {
+            if (Count == 1)
+                return Operator + this.Single().ToString();
+            else
+                return Operator + GroupedString(",");
         }
     }
 }

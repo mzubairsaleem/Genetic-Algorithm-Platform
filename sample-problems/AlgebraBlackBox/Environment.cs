@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -35,19 +36,19 @@ namespace AlgebraBlackBox
             var top = _problems
                 .Select(r => r.Rank(p).Select(g =>
                   {
-                      var red = g.Root.AsReduced();
                       var alpha = g.ToAlphaParameters();
-                      var suffix = "";
-                      if (red != g.Root)
-                          suffix = " => " + g.ToAlphaParameters(true);
+                      var alphaRed = g.ToAlphaParameters(true);
+                      var suffix = alpha == alphaRed ? "" : (" => " + g.ToAlphaParameters(true));
                       var f = r.GetFitnessFor(g);
+                      Debug.Assert(f!=null);
                       return new
                       {
                           Label = String.Format(
                               "{0}: ({1} samples) [{2}]",
                               alpha + suffix,
                               f.SampleCount,
-                              String.Join(", ", f.Scores.Select(v => v.ToString()).ToArray())),
+                              String.Join(", ",
+                                f.Scores.Select(v => v.ToString()).ToArray())),
                           Gene = g
                       };
                   })
@@ -56,10 +57,15 @@ namespace AlgebraBlackBox
                 .Take(_problems.Count)
                 .Memoize();
 
-            var c = _problems.SelectMany(pr => pr.Convergent).ToArray();
-            var topOutput = "\n\t" + String.Join("\n\t", top.Select(s => s.Label).ToArray());
             // this.state = "Top Genome: "+topOutput.replace(": ",":\n\t"); // For display elsewhere.
-            Console.WriteLine("Top:", topOutput);
+            Console.WriteLine("Top:");
+            foreach(var label in top.Select(s => s.Label))
+            {
+                Console.Write("\t");
+                Console.WriteLine(label);
+            }
+
+            var c = _problems.SelectMany(pr => pr.Convergent).ToArray();
             if (c.Length != 0) Console.WriteLine("\nConvergent:", c.Select(
                    g => g.ToAlphaParameters(true)));
 

@@ -39,7 +39,7 @@ namespace AlgebraBlackBox.Genes
         protected override void ReduceLoop()
         {
             // Collapse sums within sums.
-            foreach (var p in _children.OfType<ProductGene>().ToArray())
+            foreach (var p in _children.OfType<SumGene>().ToArray())
             {
                 var m = p.Multiple;
                 foreach (var s in p)
@@ -52,7 +52,7 @@ namespace AlgebraBlackBox.Genes
             }
 
             // Pull out multiples.
-            if (_children.All(g => Math.Abs(g.Multiple) > 1))
+            if (_children.Any() && _children.All(g => Math.Abs(g.Multiple) > 1 || g.Multiple==-1))
             {
                 var smallest = _children.OrderBy(g => g.Multiple).First();
                 var max = smallest.Multiple;
@@ -72,16 +72,14 @@ namespace AlgebraBlackBox.Genes
             }
 
             // Combine any constants.  This is more optimal because we don't neet to query ToStringContents.
-            using (var constants = _children.OfType<ConstantGene>().Memoize())
+            var constants = _children.OfType<ConstantGene>().ToArray();
+            if (constants.Length > 1)
             {
-                if (constants.Count > 1)
+                var main = constants.First();
+                foreach (var c in constants.Skip(1))
                 {
-                    var main = constants.First();
-                    foreach (var c in constants.Skip(1))
-                    {
-                        main.Multiple += c.Multiple;
-                        _children.Remove(c);
-                    }
+                    main.Multiple += c.Multiple;
+                    _children.Remove(c);
                 }
             }
 
