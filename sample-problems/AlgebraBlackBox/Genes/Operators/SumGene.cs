@@ -27,6 +27,10 @@ namespace AlgebraBlackBox.Genes
             return new SumGene(Multiple, _children.Select(g => g.Clone()));
         }
 
+        protected override string ToStringInternal()
+        {
+            return base.ToStringInternal().Replace("+-","-");
+        }
 
         void RemoveZeroMultiples()
         {
@@ -112,8 +116,16 @@ namespace AlgebraBlackBox.Genes
             }
 
             RemoveZeroMultiples();
+        }
 
-            base.ReduceLoop();
+        protected override IGene ReplaceWithReduced()
+        {
+            if(_children.Count==1) {
+                var c = _children.Single();
+                c.Multiple *= this.Multiple;
+                return c;
+            }
+            return base.ReplaceWithReduced();
         }
 
         protected override GeneticAlgorithmPlatform.IGene CloneInternal()

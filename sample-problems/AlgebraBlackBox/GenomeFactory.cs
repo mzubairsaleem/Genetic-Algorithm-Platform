@@ -427,7 +427,7 @@ namespace AlgebraBlackBox
                     {
                         genome = genome.AsReduced();
                         Genome temp;
-                        return _previousGenomes.TryGetValue(genome.CachedToString, out temp) ? temp : genome;
+                        return _previousGenomes.TryGetValue(genome.ToString(), out temp) ? temp : genome;
                     });
             });
         }

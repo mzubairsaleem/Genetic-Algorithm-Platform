@@ -18,9 +18,6 @@ namespace AlgebraBlackBox
         {
             this._problems
                 .Add(new Problem(actualFormula));
-
-            this.MaxPopulations = 20;
-            this.PopulationSize = 100;
         }
 
         protected override async Task _onExecute()
@@ -28,9 +25,10 @@ namespace AlgebraBlackBox
             await base._onExecute();
 
             var p = this._populations
+                .AsParallel()
                 .SelectMany(s => s.Values)
-                .OrderBy(g => g.Hash.Length)
-                .GroupBy(g => g.CachedToStringReduced)
+                .OrderBy(g => g.Hash.Length) // Pick the most reduced version.
+                .GroupBy(g => g.AsReduced().ToString())
                 .Select(g => g.First());
 
             var top = _problems
@@ -49,7 +47,7 @@ namespace AlgebraBlackBox
                               f.SampleCount,
                               String.Join(", ",
                                 f.Scores.Select(v => v.ToString()).ToArray())),
-                          Gene = g
+                          Genome = g
                       };
                   })
                 )
@@ -58,15 +56,16 @@ namespace AlgebraBlackBox
                 .Memoize();
 
             // this.state = "Top Genome: "+topOutput.replace(": ",":\n\t"); // For display elsewhere.
+            var topDisplay = top.Select(s => s.Label).ToArray();
             Console.WriteLine("Top:");
-            foreach(var label in top.Select(s => s.Label))
+            foreach(var label in topDisplay)
             {
                 Console.Write("\t");
                 Console.WriteLine(label);
             }
 
             var c = _problems.SelectMany(pr => pr.Convergent).ToArray();
-            if (c.Length != 0) Console.WriteLine("\nConvergent:", c.Select(
+            if (c.Length != 0) Console.WriteLine("Convergent:", c.Select(
                    g => g.ToAlphaParameters(true)));
 
 
@@ -74,20 +73,13 @@ namespace AlgebraBlackBox
             {
                 var n = this._populations.Last.Value;
                 n.Add(top
-                    .Select(g => g.Gene)
-                    .Where(g => g.Root.IsReducible() && g.Root.AsReduced() != g.Root)
-                    .Select(g =>
-                    {
-                        var m = g.Clone();
-                        m.Root = g.Root.AsReduced();
-                        return m;//.setAsReadOnly();
-                    }));
-
-                // this.start();
+                    .Select(g => g.Genome)
+                    .Where(g => g.IsReducible)
+                    .Select(g => g.AsReduced())
+                );
             }
 
             Console.WriteLine("");
-
 
         }
 

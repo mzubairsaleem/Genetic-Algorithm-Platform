@@ -35,7 +35,10 @@ namespace GeneticAlgorithmPlatform
 
         private double GetAverage()
         {
-            return this.ToArray().Average();
+            lock(Sync.SyncLock)
+            {
+                return this.Average();
+            }
         }
 
         public int CompareTo(object obj)

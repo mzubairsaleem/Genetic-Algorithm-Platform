@@ -16,7 +16,6 @@ namespace GeneticAlgorithmPlatform
         private T _root;
         public Genome(T root)
         {
-            ResetHash();
             _root = root;
             VariationCountdown = 0;
         }
@@ -33,7 +32,6 @@ namespace GeneticAlgorithmPlatform
             {
                 if (_root == null && value == null || _root != null && !_root.Equals(value))
                 {
-                    ResetHash();
                     _root = value;
                 }
             }
@@ -55,17 +53,11 @@ namespace GeneticAlgorithmPlatform
             }
         }
 
-        public virtual string Serialize()
-        {
-            return this.ToString();
-        }
-
-        private string _hash;
         public string Hash
         {
             get
             {
-                return _hash ?? (_hash = Serialize());
+                return ToString();
             }
         }
 
@@ -83,18 +75,6 @@ namespace GeneticAlgorithmPlatform
             {
                 return (IEnumerable<IGene>)this.Genes;
             }
-        }
-
-        public virtual void ResetHash()
-        {
-            _hash = null;
-            if (_root != null)
-                this._root.ResetToString();
-        }
-
-        override public string ToString()
-        {
-            return Hash;
         }
 
         public virtual Genome<T> Clone()

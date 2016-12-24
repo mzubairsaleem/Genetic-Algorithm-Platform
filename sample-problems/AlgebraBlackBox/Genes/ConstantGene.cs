@@ -2,7 +2,7 @@
 
 namespace AlgebraBlackBox.Genes
 {
-    public class ConstantGene : UnreducibleGene
+    public class ConstantGene : Gene
 	{
 		public ConstantGene(double multiple = 1) : base(multiple)
 		{
@@ -42,11 +42,6 @@ namespace AlgebraBlackBox.Genes
 		{
 			return Multiple == other.Multiple;
 		}
-
-        public new ConstantGene AsReduced(bool ensureClone = false)
-        {
-            return ensureClone ? this.Clone(): this;
-        }
 
         #endregion
     }

@@ -44,20 +44,17 @@ namespace AlgebraBlackBox.Genes
                         _children.Remove(g);
                     Multiple /= m;
                 }
-
-                // Inversion?
-                if(g is DivisionGene)
-                {
-
-                }
             }
+        }
 
-            foreach(var g in _children.OfType<DivisionGene>().Where(g=>g._children.Any(c=>c is ConstantGene)))
-            {
-
+        protected override IGene ReplaceWithReduced()
+        {
+            var d = (_children.Count ==1 ? _children.SingleOrDefault() : null) as DivisionGene;
+            if(d!=null && d.Multiple==1) {
+                d.Multiple *= this.Multiple;
+                return d;
             }
-
-            base.ReduceLoop();
+            return base.ReplaceWithReduced();
         }
 
         public override string ToStringContents()

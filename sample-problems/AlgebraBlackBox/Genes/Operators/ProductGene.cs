@@ -66,17 +66,33 @@ namespace AlgebraBlackBox.Genes
 
             MigrateMultiples();
 
-            foreach (var p in _children.OfType<DivisionGene>())
+            foreach (var p in _children.OfType<DivisionGene>().ToArray())
             {
                 Debug.Assert(p.Multiple == 1, "Should have already been pulled out.");
                 // Use the internal reduction routine of the division gene to reduce the division node.
                 var m = Multiple;
                 p.Multiple = m;
-                if (p.Reduce())
-                    Sync.IncrementVersion();
-                Debug.Assert(Multiple == m, "Shouldn't have changed!");
-                Multiple = p.Multiple;
-                p.Multiple = 1;
+
+                // Dividing by itself?
+                var d = p.Children.Where(g=>_children.Any(a=>g!=p && g.ToString()==a.ToString()));
+                IGene df;
+                while((df = d.FirstOrDefault())!=null)
+                {
+                    p.Remove(df);
+                    Remove(_children.First(g=>g.ToString()==df.ToString()));
+                }
+
+                if(p.Count==0)
+                {
+                    Remove(p);
+                } else {
+                    var pReduced = ChildReduce(p) ?? p;
+                    Debug.Assert(Multiple == m, "Shouldn't have changed!");
+                    Multiple = pReduced.Multiple;
+                    pReduced.Multiple = 1;
+                }
+
+
             }
 
             // Collapse products within products.
@@ -148,9 +164,16 @@ namespace AlgebraBlackBox.Genes
                 }
             }
 
+        }
 
-            base.ReduceLoop();
-
+        protected override IGene ReplaceWithReduced()
+        {
+            if(_children.Count==1) {
+                var c = _children.Single();
+                c.Multiple *= this.Multiple;
+                return c;
+            }
+            return base.ReplaceWithReduced();
         }
 
     }

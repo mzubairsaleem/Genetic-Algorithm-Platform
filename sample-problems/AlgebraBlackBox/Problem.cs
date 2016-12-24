@@ -51,7 +51,7 @@ namespace AlgebraBlackBox
 
         public Fitness GetFitnessFor(Genome genome, bool createIfMissing = true)
         {
-            var key = genome.CachedToStringReduced;
+            var key = genome.AsReduced().ToString();
             if (createIfMissing) return _fitness.GetOrAdd(key, k => Lazy.New(() => new Fitness())).Value;
 
             Lazy<Fitness> value;
@@ -94,7 +94,7 @@ namespace AlgebraBlackBox
             var d = population
                 .Select(g => g.AsReduced())
                 .Distinct()
-                .ToDictionary(g => g.CachedToStringReduced, g => g);
+                .ToDictionary(g => g.AsReduced().ToString(), g => g);
 
             bool found;
             List<Genome> p;
@@ -195,7 +195,7 @@ namespace AlgebraBlackBox
             }
 
             var len = correct.Count;
-            foreach (var g in p.Values)
+            foreach (var g in p.Values.ToArray())
             {
                 var divergence = new double[correct.Count];
                 var calc = new double[correct.Count];
@@ -241,7 +241,7 @@ namespace AlgebraBlackBox
 
             foreach (var g in p.Values)
             {
-                var key = g.CachedToStringReduced;
+                var key = g.AsReduced().ToString();
                 if (GetFitnessFor(g).HasConverged())
                 {
                     this._convergent[key] = g;

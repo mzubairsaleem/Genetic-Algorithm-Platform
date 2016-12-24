@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace AlgebraBlackBox.Genes
 {
-    public class SquareRootGene : OperatorGeneBase
+    public class SquareRootGene : FunctionGene
     {
         public const char Symbol = 'S';
         protected SquareRootGene(double multiple, IEnumerable<IGene> children) : base(Symbol, multiple, children)
@@ -50,7 +50,7 @@ namespace AlgebraBlackBox.Genes
             return this.Clone();
         }
 
-        override protected void ReduceLoop()
+        protected override void ReduceLoop()
         {
             var child = _children.SingleOrDefault();
             if (child != null && child.Multiple > 3)
@@ -67,8 +67,6 @@ namespace AlgebraBlackBox.Genes
                     this.Multiple *= sqr;
                 }
             }
-
-            base.ReduceLoop();
         }
 
 

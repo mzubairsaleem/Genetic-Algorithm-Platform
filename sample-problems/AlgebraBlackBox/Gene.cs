@@ -51,8 +51,6 @@ namespace AlgebraBlackBox
 
         public abstract string ToStringContents();
 
-        public abstract bool IsReducible();
-
         public virtual int CompareTo(IGene other)
         {
             return this.Compare(other);
@@ -74,7 +72,6 @@ namespace AlgebraBlackBox
             return this.Clone();
         }
 
-        public abstract IGene AsReduced(bool ensureClone = false);
     }
 
     public abstract class GeneNode : GeneBase<AlgebraBlackBox.IGene>, IGeneNode
@@ -128,8 +125,6 @@ namespace AlgebraBlackBox
         protected abstract Task<double> CalculateWithoutMultiple(double[] values);
 
 
-        public abstract bool IsReducible();
-
         public virtual int CompareTo(IGene other)
         {
             return this.Compare(other);
@@ -149,7 +144,6 @@ namespace AlgebraBlackBox
         {
             return this.Clone();
         }
-
-        public abstract IGene AsReduced(bool ensureClone = false);
+        
     }
 }

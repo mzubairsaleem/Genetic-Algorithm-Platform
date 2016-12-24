@@ -47,7 +47,7 @@ namespace GeneticAlgorithmPlatform
 
         public Task Test(int count)
         {
-            return Task.WhenAll(GenerateTests(count));
+            return Task.WhenAll(GenerateTests(count).ToArray());
         }
 
         public Task Test()
@@ -138,7 +138,7 @@ namespace GeneticAlgorithmPlatform
             Console.Write("Generations: {0}, ", _generations);
             Console.Write("Time: {0} current / ", time);
             Console.Write("{0} total", _totalTime);
-            Console.WriteLine("({0} average)", Math.Floor(((double)_totalTime) / _generations));
+            Console.WriteLine(" ({0} average)", Math.Floor(((double)_totalTime) / _generations));
         }
 
 
@@ -196,7 +196,6 @@ namespace GeneticAlgorithmPlatform
         {
             Debug.WriteLine("Poke Start");
             this._onExecute().Wait();
-            Debug.WriteLine("Poke End");
         }
     }
 

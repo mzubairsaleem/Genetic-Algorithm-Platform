@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace AlgebraBlackBox.Genes
 {
-    public abstract class OperatorGeneBase : GeneNode
+    public abstract class OperatorGeneBase : ReducibleGeneNode
     {
 
 
@@ -18,60 +18,57 @@ namespace AlgebraBlackBox.Genes
                 AddThese(children);
         }
 
-        public override bool IsReducible()
+        /*
+            REDUCTION:
+            Goal, avoid reference to parent so that nodes can be reused across genes.
+            When calling .Reduce() a gene will be returned as a gene that could replace this one,
+            or the same gene is returned signaling that it's contents were updated.
+        */
+
+        protected IGene ChildReduce(OperatorGeneBase child)
         {
-            return true;
+            // Here's the magic... If the Reduce call returns non-null, then attempt to replace o with (new) g.
+            var g = child.Reduce(); 
+            if (g != null)
+            {                            
+                _children.Replace(child, g);
+                Sync.IncrementVersion();
+            }
+            return g;
         }
 
-        public override IGene AsReduced(bool ensureClone = false)
+        public override IGene Reduce()
         {
-            var gene = this.Clone();
-            gene.Reduce();
-            return gene;
-        }
-
-        public bool Reduce()
-        {
-            return Sync.Modifying(() =>
+            IGene reduced = this;
+            var modfied = Sync.Modifying(() =>
             {
                 // This could be excessive and there definitely could be optimizations, but for now this will do.
                 int ver;
                 do
                 {
-                    foreach (var o in _children.OfType<OperatorGeneBase>())
-                    {
-                        if (o.Reduce())
-                            Sync.IncrementVersion();
-                    }
                     ver = Version;
+
+                    foreach (var o in _children.OfType<OperatorGeneBase>().ToArray())
+                    {
+                        ChildReduce(o);
+                    }
+
                     ReduceLoop();
                 }
                 while (ver != Version);
+
             });
+
+            return ReplaceWithReduced()
+                ?? (modfied ? reduced : null);
         }
 
         // Call this at the end of the sub-classes reduce loop.
-        protected virtual void ReduceLoop()
-        {
-            // Convert empty operators to their constant counterparts.
-            foreach (var g in _children.OfType<OperatorGeneBase>().ToArray())
-            {
-                switch (g.Count)
-                {
-                    case 0:
-                        _children.Replace(g, new ConstantGene(g.Multiple));
-                        break;
-                    case 1:
-                        if(g is ProductGene || g is SumGene)
-                        {
-                            var c = g.Single();
-                            c.Multiple *= g.Multiple;
-                            _children.Replace(g, c);
-                        }
-                        break;
-                }
+        protected abstract void ReduceLoop();
 
-            }
+        protected virtual IGene ReplaceWithReduced()
+        {
+            return _children.Count==0 ? new ConstantGene(this.Multiple) : null;
         }
 
 

@@ -12,10 +12,6 @@ namespace AlgebraBlackBox
 
         Task<double> Calculate(double[] values);
 
-        bool IsReducible();
-
-        IGene AsReduced(bool ensureClone = false);
-
         string ToStringContents();
 
         ModificationSynchronizer Sync { get; }

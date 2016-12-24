@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace AlgebraBlackBox.Genes
 {
-    public class ParameterGene : UnreducibleGene
+    public class ParameterGene : ReducibleGene
 	{
 
 		static readonly Regex PATTERN = new Regex(@"(?<multiple>-?\d*){(?<id>\d+)}");
@@ -65,6 +65,16 @@ namespace AlgebraBlackBox.Genes
 		{
 			return this==other || ID==other.ID && Multiple==other.Multiple;
 		}
+
+        public override IGene Reduce()
+        {
+			if(this.Multiple==0
+			|| double.IsInfinity(this.Multiple)
+			|| double.IsNaN(this.Multiple))
+				return new ConstantGene(this.Multiple);
+				
+			return null;
+        }
 
 
 

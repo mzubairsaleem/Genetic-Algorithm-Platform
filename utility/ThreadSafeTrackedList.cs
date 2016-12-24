@@ -165,7 +165,7 @@ public class ThreadSafeTrackedList<T> : IList<T>
 
     public bool Replace(T target, T replacement, bool throwIfNotFound = false)
     {
-        return Sync.Modifying(() =>
+        return !target.Equals(replacement) && Sync.Modifying(() =>
         {
             var index = _source.IndexOf(target);
             if (index == -1)
