@@ -15,8 +15,7 @@ namespace GeneticAlgorithmPlatform
         public static void Main(string[] args)
         {
             var environment = new AlgebraBlackBox.Environment(SqrtA2B2);
-            for (var i = 0; i < 100; i++)
-                environment.Poke();
+            environment.RunUntilConverged();
         }
 
         static void PerfTest()

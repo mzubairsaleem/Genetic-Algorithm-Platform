@@ -44,7 +44,16 @@ namespace AlgebraBlackBox.Genes
             return ensureClone ? r.Clone() : r;
         }
 
-        public abstract IGene Reduce();
+
+        public virtual IGene Reduce()
+        {
+			if(this.Multiple==0
+			|| double.IsInfinity(this.Multiple)
+			|| double.IsNaN(this.Multiple))
+				return new ConstantGene(this.Multiple);
+				
+			return null;
+        }
     }
 
     public abstract class ReducibleGene : Gene, IReducibleGene {
@@ -83,8 +92,15 @@ namespace AlgebraBlackBox.Genes
             var r = _reduced.Value;
             return ensureClone ? r.Clone() : r;
         }
-
-        public abstract IGene Reduce();
+        public virtual IGene Reduce()
+        {
+			if(this.Multiple==0
+			|| double.IsInfinity(this.Multiple)
+			|| double.IsNaN(this.Multiple))
+				return new ConstantGene(this.Multiple);
+				
+			return null;
+        }
     }
 
 }

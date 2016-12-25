@@ -15,23 +15,27 @@ namespace Open.Threading
 
 		public ModificationSynchronizer(ReaderWriterLockSlim sync = null)
 		{
-			if(_sync==null) _lockOwned = true;
+			if (_sync == null) _lockOwned = true;
 			_sync = sync ?? new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 		}
 
 		void Cleanup()
 		{
 			Modified = null;
-			var s = _sync;
 			_sync = null;
-			if(_lockOwned) s.Dispose();
 		}
-        protected override void OnDispose(bool calledExplicitly)
-        {
-			if(!calledExplicitly
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			var s = _sync;
+			if (!calledExplicitly
 			|| !_sync.Write(Cleanup, 10 /* Give any cleanup a chance. */ ))
-				Cleanup();			
-        }
+				Cleanup();
+			if (_lockOwned)
+			{
+				s.Dispose();
+			}
+
+		}
 
 		public ReaderWriterLockSlim Synchronizer
 		{
@@ -75,7 +79,7 @@ namespace Open.Threading
 			_sync.ReadUpgradeable(() =>
 			{
 				AssertIsLiving();
-				if(condition==null || condition())
+				if (condition == null || condition())
 				{
 					bool signal = false;
 					_sync.Write(() =>
@@ -152,5 +156,5 @@ namespace Open.Threading
 		}
 
 
-    }
+	}
 }

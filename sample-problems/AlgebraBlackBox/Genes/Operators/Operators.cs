@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AlgebraBlackBox.Genes;
+using Open;
 
 namespace AlgebraBlackBox
 {

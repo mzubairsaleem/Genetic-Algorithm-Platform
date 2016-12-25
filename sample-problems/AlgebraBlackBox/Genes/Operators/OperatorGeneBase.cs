@@ -39,7 +39,9 @@ namespace AlgebraBlackBox.Genes
 
         public override IGene Reduce()
         {
-            IGene reduced = this;
+            IGene reduced = base.Reduce();
+            if(reduced!=null) return reduced;
+            reduced = this;
             var modfied = Sync.Modifying(() =>
             {
                 // This could be excessive and there definitely could be optimizations, but for now this will do.

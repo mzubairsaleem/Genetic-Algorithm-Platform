@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
+using Open;
+using Open.Collections;
 
 namespace AlgebraBlackBox
 {
@@ -276,7 +278,7 @@ namespace AlgebraBlackBox
             {
                 return ApplyClone(source, gene, g =>
                 {
-                    switch (RandomUtil.Random.Next(3))
+                    switch (RandomUtilities.Random.Next(3))
                     {
                         case 0:
                             // Alter Sign
@@ -300,7 +302,7 @@ namespace AlgebraBlackBox
                 {
                     var parameter = (ParameterGene)g;
                     var inputParamCount = newGenome.Genes.OfType<ParameterGene>().Count();
-                    var nextParameter = RandomUtil.NextRandomIntegerExcluding(inputParamCount + 1, parameter.ID);
+                    var nextParameter = RandomUtilities.NextRandomIntegerExcluding(inputParamCount + 1, parameter.ID);
                     newGenome.Replace(g, new ParameterGene(nextParameter, parameter.Multiple));
                 });
             }
@@ -347,7 +349,7 @@ namespace AlgebraBlackBox
                 {
                     var og = (OperatorGeneBase)g;
                     var inputParamCount = newGenome.Genes.OfType<ParameterGene>().Count();
-                    og.Add(new ParameterGene(RandomUtil.Random.Next(inputParamCount + 1)));
+                    og.Add(new ParameterGene(RandomUtilities.Random.Next(inputParamCount + 1)));
                 });
             }
 
@@ -356,12 +358,12 @@ namespace AlgebraBlackBox
                 return ApplyClone(source, gene, (g, newGenome) =>
                 {
                     var inputParamCount = source.Genes.OfType<ParameterGene>().Count();
-                    var n = new ParameterGene(RandomUtil.Random.Next(inputParamCount));
+                    var n = new ParameterGene(RandomUtilities.Random.Next(inputParamCount));
                     var newOp = Operators.GetRandomOperationGene();
 
-                    if (gene is FunctionGene || RandomUtil.Random.Next(4) == 0)
+                    if (gene is FunctionGene || RandomUtilities.Random.Next(4) == 0)
                     {
-                        var index = RandomUtil.Random.Next(2);
+                        var index = RandomUtilities.Random.Next(2);
                         if (index == 1)
                         {
                             newOp.Add(n);
@@ -378,7 +380,7 @@ namespace AlgebraBlackBox
                     {
                         newOp.Add(n);
                         // Useless to divide a param by itself, avoid...
-                        newOp.Add(new ParameterGene(RandomUtil.Random.Next(inputParamCount)));
+                        newOp.Add(new ParameterGene(RandomUtilities.Random.Next(inputParamCount)));
 
                         ((OperatorGeneBase)g).Add(newOp);
                     }
@@ -451,7 +453,7 @@ namespace AlgebraBlackBox
                     var gene = genes.RandomSelectOne();
                     if (gene is ConstantGene)
                     {
-                        switch (RandomUtil.Random.Next(3))
+                        switch (RandomUtilities.Random.Next(3))
                         {
                             case 0:
                                 return VariationCatalog
@@ -487,7 +489,7 @@ namespace AlgebraBlackBox
                                 // Apply a function
                                 case 3:
                                     // Reduce the pollution of functions...
-                                    if (RandomUtil.Random.Next(0, 4) == 0)
+                                    if (RandomUtilities.Random.Next(0, 4) == 0)
                                     {
                                         return VariationCatalog
                                         .ApplyFunction(source, gene, Operators.GetRandomFunction());
@@ -533,7 +535,7 @@ namespace AlgebraBlackBox
                                 // Apply a function
                                 case 3:
                                     // Reduce the pollution of functions...
-                                    if (RandomUtil.Random.Next(0, 4) == 0)
+                                    if (RandomUtilities.Random.Next(0, 4) == 0)
                                     {
                                         return VariationCatalog
                                         .ApplyFunction(source, gene, Operators.GetRandomFunction());

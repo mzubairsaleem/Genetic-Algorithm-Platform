@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
+using Open.Threading;
 
 namespace AlgebraBlackBox
 {

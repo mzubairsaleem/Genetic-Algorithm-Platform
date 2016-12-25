@@ -26,7 +26,7 @@ namespace AlgebraBlackBox
             await base._onExecute();
 
             var p = this._populations
-                .AsParallel()
+                //.AsParallel()
                 .SelectMany(s => s.Values)
                 .OrderBy(g => g.Hash.Length) // Pick the most reduced version.
                 .GroupBy(g => g.AsReduced().ToString())
@@ -79,6 +79,8 @@ namespace AlgebraBlackBox
                     .Select(g => g.AsReduced())
                 );
             }
+            else
+                Converged = true;
 
             Console.WriteLine("");
 

@@ -44,11 +44,6 @@ namespace AlgebraBlackBox.Genes
 			return new ParameterGene(ID) { Multiple = Multiple };
 		}
 
-        public new ParameterGene AsReduced(bool ensureClone = false)
-        {
-            return ensureClone ? this.Clone(): this;
-        }
-
         protected override GeneticAlgorithmPlatform.IGene CloneInternal()
         {
 			return this.Clone();
@@ -60,24 +55,10 @@ namespace AlgebraBlackBox.Genes
         }
 
 		#region IEquatable<Gene> Members
-
 		public bool Equals(ParameterGene other)
 		{
 			return this==other || ID==other.ID && Multiple==other.Multiple;
 		}
-
-        public override IGene Reduce()
-        {
-			if(this.Multiple==0
-			|| double.IsInfinity(this.Multiple)
-			|| double.IsNaN(this.Multiple))
-				return new ConstantGene(this.Multiple);
-				
-			return null;
-        }
-
-
-
         #endregion
     }
 }

@@ -6,7 +6,7 @@
 using System;
 
 
-namespace Open.Arithmetic
+namespace Open.Arithmetic.Dynamic
 {
 	/// <summary>
 	/// Acts as a substitute for missing cross-type operators.
@@ -50,7 +50,7 @@ namespace Open.Arithmetic
 			T result = a;
 
 			for (uint i = 1; i < power; i++)
-				result = result.MultiplyBy(a);
+				result *= (dynamic)a;
 
 			return a;
 		}

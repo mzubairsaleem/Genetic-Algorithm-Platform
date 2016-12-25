@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Open.Math;
+using Open.Arithmetic;
+using Open.Collections;
 
 namespace AlgebraBlackBox.Genes
 {

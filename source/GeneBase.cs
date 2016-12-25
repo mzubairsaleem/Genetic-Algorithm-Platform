@@ -51,7 +51,12 @@ namespace GeneticAlgorithmPlatform
 				_toString = Lazy.New(ToStringInternal);
 		}
 
-		protected virtual void OnModified(object source = null, EventArgs e = null)
+		protected void OnModified(object source = null, EventArgs e = null)
+		{
+			OnModified();
+		}
+
+		protected virtual void OnModified()
 		{
 			ResetToString();
 		}
@@ -220,11 +225,11 @@ namespace GeneticAlgorithmPlatform
 		}
 
 
-		override protected void OnModified(object source = null, EventArgs e = null)
+		protected override void OnModified()
 		{
 			base.OnModified();
 			if (_descendants == null || _descendants.IsValueCreated)
-				_descendants = Lazy.New(() => GetDescendants().ToArray());
+				_descendants = Lazy.New(() => GetDescendants().ToArray());			
 		}
 
 
