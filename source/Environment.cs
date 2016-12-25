@@ -9,6 +9,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Open.Arithmetic;
+using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {

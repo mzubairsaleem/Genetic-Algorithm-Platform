@@ -11,6 +11,9 @@
         "Microsoft.NETCore.App": {
           "type": "platform",
           "version": "1.1.0"
+        },
+        "Open" :{
+          "target": "project"
         }
       },
       "imports": "dnxcore50"

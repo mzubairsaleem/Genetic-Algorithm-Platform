@@ -7,8 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Open.Collections;
 
-namespace GeneticAlgorithmPlatform
+namespace Open.Arithmetic
 {
 
     public static class Triangular

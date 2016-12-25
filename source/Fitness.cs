@@ -3,156 +3,147 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
+using Open.Arithmetic;
+using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public class SingleFitness : ThreadSafeTrackedList<double>
-    {
-        private Lazy<double> _average;
+    public class SingleFitness : IComparable<SingleFitness>
+	{
+		private ProcedureResult _result;
 
-        public SingleFitness(IEnumerable<double> scores = null) : base()
-        {
-            if (scores != null)
-                Add(scores);
-            else
-                OnModified();
-        }
-
-        protected override ModificationSynchronizer InitNewSync()
-        {
-            return new ModificationSynchronizer(OnModified);
-        }
+		public SingleFitness(IEnumerable<double> scores = null) : base()
+		{
+			if (scores != null)
+				Add(scores);
+		}
 
 
-        protected void OnModified()
-        {
-            if (_average == null || _average.IsValueCreated)
-                _average = new Lazy<double>(GetAverage, LazyThreadSafetyMode.ExecutionAndPublication);
-        }
+		public ProcedureResult Result
+		{
+			get { return _result; }
+		}
 
 
-        private double GetAverage()
-        {
-            lock(Sync.SyncLock)
+		public void Add(double value, int count = 1)
+		{            
+            if(count!=0) lock(this)
             {
-                return this.Average();
+                _result = _result.Add(value, count);
             }
-        }
+		}
 
-        public int CompareTo(object obj)
+        public void Add(IEnumerable<double> values)
         {
-            var other = (SingleFitness)obj;
-            var a = this.Average;
-            var b = other.Average;
-            if (a < b || double.IsNaN(a) && !double.IsNaN(b)) return -1;
-            if (a > b || !double.IsNaN(a) && double.IsNaN(b)) return +1;
-            return 0;
-        }
-
-        public double Average
-        {
-            get
+            double sum = 0;
+            int count = 0;
+            foreach(var value in values)
             {
-                if (Count == 0) return double.NaN;
-                return _average.Value;
+                sum += value;
+                count++;
             }
-        }
-    }
-
-    public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable<Fitness>
-    {
-
-        public int SampleCount
-        {
-            get
-            {
-                if (Count == 0) return 0;
-                return this.Min(s => s.Count);
-            }
+            Add(sum,count);
         }
 
-        public bool HasConverged(uint minSamples = 100, float convergence = 1, float tolerance = 0)
-        {
-            if (minSamples > SampleCount) return false;
+		public int CompareTo(SingleFitness b)
+		{
+            return _result.CompareTo(b._result);
+		}
 
-            foreach (var s in this.ToArray())
-            {
-                var score = s.Average;
-                if (score > convergence)
-                    throw new Exception("Score has exceeded convergence value.");
-                if (score < convergence - tolerance)
-                    return false;
-            }
-            return true;
-        }
+	}
 
+	public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable<Fitness>
+	{
 
-        public IEnumerable<double> Scores
-        {
-            get
-            {
-                return this.Select(s => s.Average);
-            }
-        }
+		public int SampleCount
+		{
+			get
+			{
+				if (Count == 0) return 0;
+				return Sync.Reading(()=>this.Min(s => s.Result.Count));
+			}
+		}
 
-
-        public void AddTheseScores(IEnumerable<double> scores)
-        {
-            Sync.Modifying(() =>
-            {
-                var i = 0;
-                var count = Count;
-                foreach (var n in scores)
-                {
-                    SingleFitness f;
-                    if (i < count)
-                    {
-                        f = this[i];
-                    }
-                    else
-                    {
-                        this.Add(f = new SingleFitness());
-                    }
-
-                    f.Add(n);
-                    i++;
-                }
-            });
-
-        }
-
-        public void AddScores(params double[] scores)
-        {
-            this.AddTheseScores(scores);
-        }
+		public bool HasConverged(uint minSamples = 100, float convergence = 1, float tolerance = 0)
+		{
+			if (minSamples > SampleCount) return false;
+            var scores = Sync.Reading(()=>this.Select(v=>v.Result.Average).ToArray());
+            foreach (var s in scores)
+			{
+				if (s > convergence)
+					throw new Exception("Score has exceeded convergence value.");
+				if (s < convergence - tolerance)
+					return false;
+			}
+			return true;
+		}
 
 
-
-        public int CompareTo(Fitness other)
-        {
-            var len = Count;
-            Debug.Assert(len == other.Count);
-            for (var i = 0; i < len; i++)
-            {
-                if(this.Count<other.Count) return -1;
-                if(this.Count>other.Count) return +1;
-
-                var a = this[i];
-                var b = other[i];
-                var aA = a.Average;
-                var bA = b.Average;
-
-                if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -1;
-                if (aA > bA || !double.IsNaN(aA) && double.IsNaN(bA)) return +1;
-
-                if (a.Count < b.Count) return -1;
-                if (a.Count > b.Count) return +1;
-            }
-            return 0;
-        }
+		public double[] Scores
+		{
+			get
+			{
+				return Sync.Reading(()=>this.Select(v=>v.Result.Average).ToArray());
+			}
+		}
 
 
-    }
+		public void AddTheseScores(IEnumerable<double> scores)
+		{
+			Sync.Modifying(() =>
+			{
+				var i = 0;
+				var count = Count;
+				foreach (var n in scores)
+				{
+					SingleFitness f;
+					if (i < count)
+					{
+						f = this[i];
+					}
+					else
+					{
+						this.Add(f = new SingleFitness());
+					}
+
+					f.Add(n);
+					i++;
+				}
+			});
+
+		}
+
+		public void AddScores(params double[] scores)
+		{
+			this.AddTheseScores(scores);
+		}
+
+
+
+		public int CompareTo(Fitness other)
+		{
+			var len = Count;
+			Debug.Assert(len == other.Count);
+			for (var i = 0; i < len; i++)
+			{
+				if (this.Count < other.Count) return -1;
+				if (this.Count > other.Count) return +1;
+
+				var a = this[i].Result;
+				var b = other[i].Result;
+				var aA = a.Average;
+				var bA = b.Average;
+
+				if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -1;
+				if (aA > bA || !double.IsNaN(aA) && double.IsNaN(bA)) return +1;
+
+				if (a.Count < b.Count) return -1;
+				if (a.Count > b.Count) return +1;
+			}
+			return 0;
+		}
+
+
+	}
 }

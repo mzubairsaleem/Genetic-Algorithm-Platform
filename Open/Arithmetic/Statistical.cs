@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Open.Math
+namespace Open.Arithmetic
 {
     public static class Statistical
     {

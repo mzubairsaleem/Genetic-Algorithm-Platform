@@ -1,3 +1,5 @@
+using Open.Formatting;
+
 namespace AlgebraBlackBox
 {
     static class AlphaParameters
