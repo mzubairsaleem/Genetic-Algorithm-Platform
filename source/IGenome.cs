@@ -4,7 +4,6 @@
  */
 
 
-using System.Collections.Generic;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -14,7 +13,7 @@ namespace GeneticAlgorithmPlatform
     {
         IGene Root { get; }
         string Hash { get; }
-        IEnumerable<IGene> Genes { get; }
+        IGene[] Genes { get; }
 
         int VariationSpawn(int allowed);
 
@@ -31,7 +30,7 @@ namespace GeneticAlgorithmPlatform
     where T : IGene
     {
         new T Root { get; }
-        new IEnumerable<T> Genes { get; }
+        new T[] Genes { get; }
     }
 
 

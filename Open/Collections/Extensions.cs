@@ -285,9 +285,9 @@ namespace Open.Collections
 			var e = source.GetEnumerator();
 			try
 			{
-				while(e.MoveNext())
+				while (e.MoveNext())
 				{
-					if(--minimum==0)
+					if (--minimum == 0)
 						return true;
 				}
 				return false;
@@ -2382,6 +2382,15 @@ namespace Open.Collections
 			{
 				target.Add(v);
 			}
+		}
+
+		public static int IndexOf<T>(this T[] source, T value)
+		{
+			var len = source.Length;
+			for (var i = 0; i < len; i++)
+				if (source[i].Equals(value))
+					return i;
+			return -1;
 		}
 
 	}

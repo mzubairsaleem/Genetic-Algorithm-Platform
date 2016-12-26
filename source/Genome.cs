@@ -4,7 +4,7 @@
  */
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using Open.Threading;
@@ -12,7 +12,7 @@ using Open.Threading;
 namespace GeneticAlgorithmPlatform
 {
 
-	public abstract class Genome<T> : ModificationSynchronizedBase, IGenome<T>
+    public abstract class Genome<T> : ModificationSynchronizedBase, IGenome<T>
 	where T : IGene
 	{
 		private T _root;
@@ -21,6 +21,14 @@ namespace GeneticAlgorithmPlatform
 			if (root == null)
 				throw new ArgumentNullException("root");
 			Root = root;
+		}
+
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			base.OnDispose(calledExplicitly);
+			_root = default(T);
+			_genes = null;
+			_parentCache = null;
 		}
 
 		public T Root
@@ -56,7 +64,14 @@ namespace GeneticAlgorithmPlatform
 
 		protected abstract void OnRootChanged(T oldRoot, T newRoot);
 
+		ConcurrentDictionary<T,IGeneNode<T>> _parentCache;
 		public virtual IGeneNode<T> FindParent(T child)
+		{
+			return _parentCache == null
+				? FindParentInternal(child)
+				: _parentCache.GetOrAdd(child,key=>FindParentInternal(key));
+		}
+		protected IGeneNode<T> FindParentInternal(T child)
 		{
 			var rn = _root as IGeneNode<T>;
 			if (rn != null)
@@ -64,14 +79,21 @@ namespace GeneticAlgorithmPlatform
 			return null;
 		}
 
-		public IEnumerable<T> Genes
+		Lazy<T[]> _genes;
+		public T[] Genes
 		{
 			get
 			{
-				var r = Enumerable.Repeat(_root, 1);
-				var rn = _root as IGeneNode<T>;
-				return rn != null ? r.Concat(rn.Descendants) : r;
+				var g = _genes;
+				return g==null ? GetGenes() : g.Value;
 			}
+		}
+		
+		T[] GetGenes()
+		{
+			var r = Enumerable.Repeat(_root, 1);
+			var rn = _root as IGeneNode<T>;
+			return (rn != null ? r.Concat(rn.Descendants) : r).ToArray();
 		}
 
 		public string Hash
@@ -90,15 +112,15 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		IEnumerable<IGene> IGenome.Genes
-		{
-			get
-			{
-				return (IEnumerable<IGene>)this.Genes;
-			}
-		}
+        IGene[] IGenome.Genes
+        {
+            get
+            {
+				return (dynamic)this.Genes;
+            }
+        }
 
-		public virtual Genome<T> Clone()
+        public virtual Genome<T> Clone()
 		{
 			throw new NotImplementedException();
 		}
@@ -112,6 +134,8 @@ namespace GeneticAlgorithmPlatform
 		{
 			base.OnFrozen();
 			Root.Freeze();
+			_genes = Lazy.New(()=>GetGenes());
+			_parentCache = new ConcurrentDictionary<T,IGeneNode<T>>();
 		}
 
 		int _variationSpawns;

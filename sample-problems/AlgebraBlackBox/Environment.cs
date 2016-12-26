@@ -67,9 +67,13 @@ namespace AlgebraBlackBox
 				}
 
 				var c = _problems.SelectMany(pr => pr.Convergent).ToArray();
-				if (c.Length != 0)
-					Console.WriteLine("Convergent:"
-						+ c.Select(g => g.ToAlphaParameters(true)));
+				if (c.Length != 0) {
+					Console.WriteLine("Convergent:");
+					foreach(var converged in c)
+					{
+						Console.WriteLine("\t"+converged.ToAlphaParameters(true));
+					}
+				}
 
 				if (_problems.Count(pr => pr.Convergent.Any()) < this._problems.Count)
 				{

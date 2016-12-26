@@ -146,7 +146,7 @@ namespace AlgebraBlackBox
 			if (geneIndex == -1)
 				throw new ArgumentOutOfRangeException("geneIndex", "Can't be -1.");
 			var newGenome = source.Clone();
-			var gene = newGenome.Genes.ElementAt(geneIndex);
+			var gene = newGenome.Genes[geneIndex];
 			handler(gene, newGenome);
 			return Freeze(newGenome);
 		}
@@ -156,27 +156,19 @@ namespace AlgebraBlackBox
 			if (geneIndex == -1)
 				throw new ArgumentOutOfRangeException("geneIndex", "Can't be -1.");
 			var newGenome = source.Clone();
-			var gene = newGenome.Genes.ElementAt(geneIndex);
+			var gene = newGenome.Genes[geneIndex];
 			handler(gene);
 			return Freeze(newGenome);
 		}
 
 		public static Genome ApplyClone(Genome source, IGene gene, Action<IGene, Genome> handler)
 		{
-			using (var m = source.Genes.Memoize())
-			{
-				var index = m.IndexOf(gene);
-				return ApplyClone(source, index, handler);
-			}
+			return ApplyClone(source, source.Genes.IndexOf(gene), handler);
 		}
 
 		public static Genome ApplyClone(Genome source, IGene gene, Action<IGene> handler)
 		{
-			using (var m = source.Genes.Memoize())
-			{
-				var index = m.IndexOf(gene);
-				return ApplyClone(source, index, handler);
-			}
+			return ApplyClone(source, source.Genes.IndexOf(gene), handler);
 		}
 
 		public static class VariationCatalog
@@ -210,7 +202,7 @@ namespace AlgebraBlackBox
 			public static Genome RemoveGene(Genome source, int geneIndex)
 			{
 				// Validate worthyness.
-				var gene = source.Genes.ElementAt(geneIndex);
+				var gene = source.Genes[geneIndex];
 
 				if (CheckRemovalValidity(source, gene))
 				{
@@ -225,11 +217,7 @@ namespace AlgebraBlackBox
 			}
 			public static Genome RemoveGene(Genome source, IGene gene)
 			{
-				using (var m = source.Genes.Memoize())
-				{
-					var index = m.IndexOf(gene);
-					return RemoveGene(source, index);
-				}
+				return RemoveGene(source, source.Genes.IndexOf(gene));
 			}
 
 			public static bool CheckPromoteChildrenValidity(Genome source, IGene gene)
@@ -242,7 +230,7 @@ namespace AlgebraBlackBox
 			public static Genome PromoteChildren(Genome source, int geneIndex)
 			{
 				// Validate worthyness.
-				var gene = source.Genes.ElementAt(geneIndex);
+				var gene = source.Genes[geneIndex];
 
 				if (CheckPromoteChildrenValidity(source, gene))
 				{
@@ -260,11 +248,7 @@ namespace AlgebraBlackBox
 
 			public static Genome PromoteChildren(Genome source, IGene gene)
 			{
-				using (var m = source.Genes.Memoize())
-				{
-					var index = m.IndexOf(gene);
-					return PromoteChildren(source, index);
-				}
+				return PromoteChildren(source, source.Genes.IndexOf(gene));
 			}
 
 			public static Genome ApplyFunction(Genome source, int geneIndex, char fn)
@@ -284,11 +268,7 @@ namespace AlgebraBlackBox
 
 			public static Genome ApplyFunction(Genome source, IGene gene, char fn)
 			{
-				using (var m = source.Genes.Memoize())
-				{
-					var index = m.IndexOf(gene);
-					return ApplyFunction(source, index, fn);
-				}
+				return ApplyFunction(source, source.Genes.IndexOf(gene), fn);
 			}
 		}
 
@@ -318,10 +298,10 @@ namespace AlgebraBlackBox
 
 			public static Genome MutateParameter(Genome source, ParameterGene gene)
 			{
+				var inputParamCount = source.Genes.OfType<ParameterGene>().GroupBy(p => p.ToString()).Count();
 				return ApplyClone(source, gene, (g, newGenome) =>
 				{
 					var parameter = (ParameterGene)g;
-					var inputParamCount = newGenome.Genes.OfType<ParameterGene>().Count();
 					var nextParameter = RandomUtilities.NextRandomIntegerExcluding(inputParamCount + 1, parameter.ID);
 					newGenome.Replace(g, new ParameterGene(nextParameter, parameter.Multiple));
 				});
@@ -365,19 +345,19 @@ namespace AlgebraBlackBox
 						return null;
 				}
 
+				var inputParamCount = source.Genes.OfType<ParameterGene>().GroupBy(p => p.ToString()).Count();
 				return ApplyClone(source, gene, (g, newGenome) =>
 				{
 					var og = (OperatorGeneBase)g;
-					var inputParamCount = newGenome.Genes.OfType<ParameterGene>().Count();
 					og.Add(new ParameterGene(RandomUtilities.Random.Next(inputParamCount + 1)));
 				});
 			}
 
 			public static Genome BranchOperation(Genome source, OperatorGeneBase gene)
 			{
+				var inputParamCount = source.Genes.OfType<ParameterGene>().GroupBy(p => p.ToString()).Count();
 				return ApplyClone(source, gene, (g, newGenome) =>
 				{
-					var inputParamCount = source.Genes.OfType<ParameterGene>().Count();
 					var n = new ParameterGene(RandomUtilities.Random.Next(inputParamCount));
 					var newOp = Operators.GetRandomOperationGene();
 
@@ -426,7 +406,7 @@ namespace AlgebraBlackBox
 			return Task.Run(() =>
 			{
 				var result = new List<Genome>();
-				var sourceGenes = source.Genes.ToArray();
+				var sourceGenes = source.Genes;
 				var count = sourceGenes.Length;
 				for (var i = 0; i < count; i++)
 				{
@@ -472,7 +452,7 @@ namespace AlgebraBlackBox
 				 * 5) Removing an operation.
 				 * 6) Removing a function. */
 
-				var genes = target.Genes.ToList();
+				var genes = target.Genes;
 
 				while (genes.Any())
 				{
