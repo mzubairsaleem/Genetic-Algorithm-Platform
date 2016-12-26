@@ -17,7 +17,7 @@ namespace AlgebraBlackBox
 		//noinspection JSMethodCanBeStatic
 		protected Genome GenerateParamOnly(int id)
 		{
-			return new Genome(new ParameterGene(id));
+			return Freeze(new Genome(new ParameterGene(id)));
 		}
 
 		//noinspection JSMethodCanBeStatic
@@ -31,7 +31,7 @@ namespace AlgebraBlackBox
 				op.Add(new ParameterGene(i));
 			}
 
-			return result;
+			return Freeze(result);
 		}
 
 
@@ -54,7 +54,7 @@ namespace AlgebraBlackBox
 						var tries = 10;//200;
 						do
 						{
-							genome = await Mutate(source.RandomSelectOne(), m);
+							genome = await MutateAsync(source.RandomSelectOne(), m);
 							hash = genome.Hash;
 							attempts++;
 						}
@@ -98,7 +98,7 @@ namespace AlgebraBlackBox
 							var t = Math.Min(_previousGenomes.Count * 2, 100); // A local maximum.
 							do
 							{
-								genome = await Mutate(p.RandomSelectOne(), m);
+								genome = await MutateAsync(p.RandomSelectOne(), m);
 								hash = genome.Hash;
 								attempts++;
 							}
@@ -136,7 +136,7 @@ namespace AlgebraBlackBox
 			// if(!genome)
 			// 	throw "Failed... Converged? No solutions? Saturated?";
 
-			return Freeze(genome);
+			return genome;
 
 		}
 
@@ -148,7 +148,7 @@ namespace AlgebraBlackBox
 			var newGenome = source.Clone();
 			var gene = newGenome.Genes[geneIndex];
 			handler(gene, newGenome);
-			return Freeze(newGenome);
+			return newGenome;
 		}
 
 		public static Genome ApplyClone(Genome source, int geneIndex, Action<IGene> handler)
@@ -158,7 +158,7 @@ namespace AlgebraBlackBox
 			var newGenome = source.Clone();
 			var gene = newGenome.Genes[geneIndex];
 			handler(gene);
-			return Freeze(newGenome);
+			return newGenome;
 		}
 
 		public static Genome ApplyClone(Genome source, IGene gene, Action<IGene, Genome> handler)
@@ -401,183 +401,180 @@ namespace AlgebraBlackBox
 
 		}
 
-		public override Task<IEnumerable<Genome>> GenerateVariations(Genome source)
+		protected override IEnumerable<Genome> GenerateVariations(Genome source)
 		{
-			return Task.Run(() =>
+			var result = new List<Genome>();
+			var sourceGenes = source.Genes;
+			var count = sourceGenes.Length;
+			for (var i = 0; i < count; i++)
 			{
-				var result = new List<Genome>();
-				var sourceGenes = source.Genes;
-				var count = sourceGenes.Length;
-				for (var i = 0; i < count; i++)
+				var gene = sourceGenes[i];
+				var isRoot = gene == source.Root;
+
+				result.Add(VariationCatalog.ReduceMultipleMagnitude(source, i));
+				result.Add(VariationCatalog.RemoveGene(source, i));
+				result.Add(VariationCatalog.PromoteChildren(source, i));
+
+				foreach (var fn in Operators.Available.Functions)
 				{
-					var gene = sourceGenes[i];
-					var isRoot = gene == source.Root;
-
-					result.Add(VariationCatalog.ReduceMultipleMagnitude(source, i));
-					result.Add(VariationCatalog.RemoveGene(source, i));
-					result.Add(VariationCatalog.PromoteChildren(source, i));
-
-					foreach (var fn in Operators.Available.Functions)
-					{
-						result.Add(VariationCatalog.ApplyFunction(source, i, fn));
-					}
+					result.Add(VariationCatalog.ApplyFunction(source, i, fn));
 				}
+			}
 
-				return result
-					.Where(genome => genome != null)
-					.Select(genome =>
-					{
-						genome = genome.AsReduced();
-						Genome temp;
-						return _previousGenomes.TryGetValue(genome.ToString(), out temp) ? temp : Freeze(genome);
-					});
-			});
+			return result
+				.Where(genome => genome != null)
+				.Select(genome =>
+				{
+					genome = genome.AsReduced();
+					Genome temp;
+					return _previousGenomes.TryGetValue(genome.ToString(), out temp) ? temp : Freeze(genome);
+				});
 		}
 
-		static Genome Freeze(Genome target)
+		Genome Freeze(Genome target)
 		{
+			if(target == null) return null;
+			target.RegisterVariations(() => GenerateVariations(target));
 			target.Freeze();
 			return target;
 		}
 
-		public Task<Genome> Mutate(Genome target)
+		protected Genome MutateInternal(Genome target)
 		{
-			return Task.Run(() =>
+			/* Possible mutations:
+			 * 1) Adding a parameter node to an operation.
+			 * 2) Apply a function to node.
+			 * 3) Adding an operator and a parameter node.
+			 * 4) Removing a node from an operation.
+			 * 5) Removing an operation.
+			 * 6) Removing a function. */
+
+			var genes = target.Genes;
+
+			while (genes.Any())
 			{
-				/* Possible mutations:
-				 * 1) Adding a parameter node to an operation.
-				 * 2) Apply a function to node.
-				 * 3) Adding an operator and a parameter node.
-				 * 4) Removing a node from an operation.
-				 * 5) Removing an operation.
-				 * 6) Removing a function. */
-
-				var genes = target.Genes;
-
-				while (genes.Any())
+				var gene = genes.RandomSelectOne();
+				if (gene is ConstantGene)
 				{
-					var gene = genes.RandomSelectOne();
-					if (gene is ConstantGene)
+					switch (RandomUtilities.Random.Next(3))
 					{
-						switch (RandomUtilities.Random.Next(3))
-						{
-							case 0:
-								return VariationCatalog
-									.ApplyFunction(target, gene, Operators.GetRandomFunction());
-							default:
-								return MutationCatalog
-									.MutateSign(target, gene);
-						}
-
-					}
-					else if (gene is ParameterGene)
-					{
-						var options = Enumerable.Range(0, 4).ToList();
-						while (options.Any())
-						{
-							switch (options.RandomPluck())
-							{
-								case 0:
-									return MutationCatalog
-										.MutateSign(target, gene);
-
-								// Simply change parameters
-								case 1:
-									return MutationCatalog
-										.MutateParameter(target, (ParameterGene)gene);
-
-								// Split it...
-								case 2:
-									return MutationCatalog
-										.Split(target, gene);
-
-								// Apply a function
-								case 3:
-									// Reduce the pollution of functions...
-									if (RandomUtilities.Random.Next(0, 4) == 0)
-									{
-										return VariationCatalog
-											.ApplyFunction(target, gene, Operators.GetRandomFunction());
-									}
-									break;
-
-								// Remove it!
-								case 4:
-									var attempt = VariationCatalog.RemoveGene(target, gene);
-									if (attempt != null)
-										return attempt;
-									break;
-
-
-							}
-						}
-
-
-					}
-					else if (gene is OperatorGeneBase)
-					{
-						var options = Enumerable.Range(0, 6).ToList();
-						while (options.Any())
-						{
-							Genome ng = null;
-							switch (options.RandomPluck())
-							{
-								case 0:
-									ng = MutationCatalog
-										.MutateSign(target, gene);
-									break;
-
-								case 1:
-									ng = VariationCatalog
-										.PromoteChildren(target, gene);
-									break;
-
-								case 2:
-									ng = MutationCatalog
-										.ChangeOperation(target, (OperatorGeneBase)gene);
-									break;
-
-								// Apply a function
-								case 3:
-									// Reduce the pollution of functions...
-									if (RandomUtilities.Random.Next(0, 4) == 0)
-									{
-										return VariationCatalog
-											.ApplyFunction(target, gene, Operators.GetRandomFunction());
-									}
-									break;
-
-								case 4:
-									ng = VariationCatalog.RemoveGene(target, gene);
-									break;
-
-								case 5:
-									ng = MutationCatalog
-										.AddParameter(target, (OperatorGeneBase)gene);
-									break;
-
-								case 6:
-									ng = MutationCatalog
-										.BranchOperation(target, (OperatorGeneBase)gene);
-									break;
-
-							}
-
-							if (ng != null)
-								return ng;
-						}
-
-
-
+						case 0:
+							return VariationCatalog
+								.ApplyFunction(target, gene, Operators.GetRandomFunction());
+						default:
+							return MutationCatalog
+								.MutateSign(target, gene);
 					}
 
 				}
+				else if (gene is ParameterGene)
+				{
+					var options = Enumerable.Range(0, 4).ToList();
+					while (options.Any())
+					{
+						switch (options.RandomPluck())
+						{
+							case 0:
+								return MutationCatalog
+									.MutateSign(target, gene);
 
-				return null;
-			});
+							// Simply change parameters
+							case 1:
+								return MutationCatalog
+									.MutateParameter(target, (ParameterGene)gene);
+
+							// Split it...
+							case 2:
+								return MutationCatalog
+									.Split(target, gene);
+
+							// Apply a function
+							case 3:
+								// Reduce the pollution of functions...
+								if (RandomUtilities.Random.Next(0, 4) == 0)
+								{
+									return VariationCatalog
+										.ApplyFunction(target, gene, Operators.GetRandomFunction());
+								}
+								break;
+
+							// Remove it!
+							case 4:
+								var attempt = VariationCatalog.RemoveGene(target, gene);
+								if (attempt != null)
+									return attempt;
+								break;
+
+
+						}
+					}
+
+
+				}
+				else if (gene is OperatorGeneBase)
+				{
+					var options = Enumerable.Range(0, 6).ToList();
+					while (options.Any())
+					{
+						Genome ng = null;
+						switch (options.RandomPluck())
+						{
+							case 0:
+								ng = MutationCatalog
+									.MutateSign(target, gene);
+								break;
+
+							case 1:
+								ng = VariationCatalog
+									.PromoteChildren(target, gene);
+								break;
+
+							case 2:
+								ng = MutationCatalog
+									.ChangeOperation(target, (OperatorGeneBase)gene);
+								break;
+
+							// Apply a function
+							case 3:
+								// Reduce the pollution of functions...
+								if (RandomUtilities.Random.Next(0, 4) == 0)
+								{
+									return VariationCatalog
+										.ApplyFunction(target, gene, Operators.GetRandomFunction());
+								}
+								break;
+
+							case 4:
+								ng = VariationCatalog.RemoveGene(target, gene);
+								break;
+
+							case 5:
+								ng = MutationCatalog
+									.AddParameter(target, (OperatorGeneBase)gene);
+								break;
+
+							case 6:
+								ng = MutationCatalog
+									.BranchOperation(target, (OperatorGeneBase)gene);
+								break;
+
+						}
+
+						if (ng != null)
+							return ng;
+					}
+
+
+
+				}
+
+			}
+
+			return null;
+
 		}
 
-		public override Task<Genome> Mutate(Genome source, uint mutations)
+		public override Task<Genome> MutateAsync(Genome source, uint mutations = 1)
 		{
 			return Task.Run(() =>
 			{
@@ -587,9 +584,7 @@ namespace AlgebraBlackBox
 					uint tries = 3;
 					do
 					{
-						var r = Mutate(source);
-						r.Wait();
-						genome = r.Result;
+						genome = Freeze(MutateInternal(source));
 					}
 					while (genome == null && --tries != 0);
 					// Reuse the clone as the source 

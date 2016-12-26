@@ -73,11 +73,11 @@ namespace GeneticAlgorithmPlatform
 
         }
 
-        public abstract Task<IEnumerable<TGenome>> GenerateVariations(TGenome source);
+        protected abstract IEnumerable<TGenome> GenerateVariations(TGenome source);
 
         public abstract Task<TGenome> Generate(IEnumerable<TGenome> source);
 
-        public abstract Task<TGenome> Mutate(TGenome source, uint mutations);
+        public abstract Task<TGenome> MutateAsync(TGenome source, uint mutations);
 
         public void Add(TGenome genome)
         {

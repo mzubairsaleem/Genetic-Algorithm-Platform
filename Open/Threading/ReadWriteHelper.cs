@@ -81,8 +81,7 @@ namespace Open.Threading
 
                 var l = Lock;
                 Lock = null;
-                if (l != null)
-                    l.Dispose();
+                l.SmartDispose();
             }
         }
 

@@ -3,12 +3,10 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -65,12 +63,9 @@ namespace GeneticAlgorithmPlatform
                     if (e.MoveNext())
                     {
                         var top = e.Current;
-                        if (top.VariationSpawn(1) == 0)
-                        {
-                            var v = (await _genomeFactory.GenerateVariations(top)).Memoize();
-                            Console.WriteLine("Top Variations:", v.Count);
-                            Add(v);
-                        }
+                        var v = top.NextVariation();
+                        if(v!=null)
+                            Add((TGenome)v);
                     }
                 }
             }

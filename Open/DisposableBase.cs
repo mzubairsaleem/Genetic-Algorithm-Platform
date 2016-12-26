@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace Open
 {
-	public sealed class DisposeHelper
+    public sealed class DisposeHelper
 	{
 		// Since all write operations are done through Interlocked, no need for volatile.
 		private int _disposeState;
@@ -191,6 +191,24 @@ namespace Open
 			{
 				if(d!=null)
 					d.Dispose();
+			}
+		}
+
+		public static void SmartDispose(this IDisposable target)
+		{
+			if(target!=null)
+				target.Dispose();
+		}
+
+		public static void SmartDispose<T>(this ICollection<T> target)
+		{
+			if(target!=null)
+			{
+				target.Clear();
+				if(target is IDisposable)
+				{
+					((IDisposable)target).Dispose();
+				}
 			}
 		}
 	}

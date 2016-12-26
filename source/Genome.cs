@@ -6,7 +6,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Threading;
+using Open;
 using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
@@ -28,7 +28,9 @@ namespace GeneticAlgorithmPlatform
 			base.OnDispose(calledExplicitly);
 			_root = default(T);
 			_genes = null;
+			var p = _parentCache;
 			_parentCache = null;
+			p.SmartDispose();
 		}
 
 		public T Root
@@ -54,12 +56,6 @@ namespace GeneticAlgorithmPlatform
 					OnRootChanged(old, value);
 					return true;
 				});
-		}
-
-		protected override void OnModified()
-		{
-			base.OnModified();
-			Interlocked.Exchange(ref _variationSpawns, 0);
 		}
 
 		protected abstract void OnRootChanged(T oldRoot, T newRoot);
@@ -138,17 +134,7 @@ namespace GeneticAlgorithmPlatform
 			_parentCache = new ConcurrentDictionary<T,IGeneNode<T>>();
 		}
 
-		int _variationSpawns;
-		public int VariationSpawn(int allowed)
-		{
-			var value = _variationSpawns;
-			if (value < allowed)
-			{
-				return Interlocked.Increment(ref _variationSpawns);
-			}
-			return value;
-		}
-
-	}
+        public abstract IGenome NextVariation();
+    }
 
 }

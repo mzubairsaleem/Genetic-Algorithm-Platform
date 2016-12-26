@@ -69,8 +69,7 @@ namespace Open
 						_cleanupTimer = null;
 					}
 			}
-			if (ct2 != null)
-				ct2.Dispose();
+			ct2.SmartDispose();
 		}
 
 		public void SetCleanup(CleanupMode mode = CleanupMode.Deferred)

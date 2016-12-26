@@ -10,6 +10,7 @@ using System.Threading;
 using System.Collections;
 using Open.Threading;
 using Open.Collections;
+using Open;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -75,12 +76,9 @@ namespace GeneticAlgorithmPlatform
 		protected override void OnDispose(bool calledExplicitly)
 		{
 			base.OnDispose(calledExplicitly);
-			var c = _children;
+			var c = _children as IDisposable;
 			_children = null;
-			if (c != null)
-			{
-				c.Dispose();
-			}
+			c.SmartDispose();
 			_getChildNodes = null;
 			_getDescendants = null;
 		}

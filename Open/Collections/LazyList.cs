@@ -23,10 +23,10 @@ namespace Open.Collections
         {
             var e = _enumerator;
 			_enumerator = null;
-			if (e != null) e.Dispose();
+			e.SmartDispose();
 			var c = _cached;
 			_cached = null;
-			if (c != null) c.Clear();
+			c.SmartDispose();
         }
 
 		public T this[int index]
