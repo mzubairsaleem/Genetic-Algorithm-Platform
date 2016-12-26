@@ -41,84 +41,83 @@ namespace AlgebraBlackBox
 			var attempts = 0;
 			Genome genome = null;
 			string hash = null;
-			using (var p = _previousGenomes.Values.Memoize())
-			{
-				// Note: for now, we will only mutate by 1.
 
-				// See if it's possible to mutate from the provided genomes.
-				if (source != null && source.Any())
+			// Note: for now, we will only mutate by 1.
+
+			// See if it's possible to mutate from the provided genomes.
+			if (source != null && source.Any())
+			{
+				// Find one that will mutate well and use it.
+				for (uint m = 1; m < 4; m++)
 				{
-					// Find one that will mutate well and use it.
-					for (uint m = 1; m < 4; m++)
+					var tries = 10;//200;
+					do
 					{
-						var tries = 10;//200;
+						genome = await MutateAsync(source.RandomSelectOne(), m);
+						hash = genome.Hash;
+						attempts++;
+					}
+					while (_previousGenomes.ContainsKey(hash) && --tries != 0);
+
+					if (tries != 0)
+						break;
+					// else
+					// 	genome = null; // Failed... Converged? No solutions? Saturated?
+				}
+
+			}
+
+			if (genome == null)
+			{
+				for (uint m = 1; m < 4; m++)
+				{
+
+					// Establish a maximum.
+					var tries = 10;
+					var paramCount = 0;
+
+					do
+					{
+						{ // Try a param only version first.
+							genome = this.GenerateParamOnly(paramCount);
+							hash = genome.Hash;
+							attempts++;
+							if (!_previousGenomes.ContainsKey(hash)) break;
+						}
+
+						paramCount += 1; // Operators need at least 2 params to start.
+
+						{ // Then try an operator based version.
+							genome = this.GenerateOperated(paramCount + 1);
+							hash = genome.Hash;
+							attempts++;
+							if (!_previousGenomes.ContainsKey(hash)) break;
+						}
+
+						var t = Math.Min(_previousGenomes.Count * 2, 100); // A local maximum.
 						do
 						{
-							genome = await MutateAsync(source.RandomSelectOne(), m);
+							genome = await MutateAsync(_previousGenomes.Values.RandomSelectOne(), m);
 							hash = genome.Hash;
 							attempts++;
 						}
-						while (_previousGenomes.ContainsKey(hash) && --tries != 0);
+						while (_previousGenomes.ContainsKey(hash) && --t != 0);
 
-						if (tries != 0)
-							break;
-						// else
-						// 	genome = null; // Failed... Converged? No solutions? Saturated?
+						// t==0 means nothing found :(
+						if (t != 0) break;
 					}
+					while (--tries != 0);
 
+					if (tries != 0)
+						break;
+					// else
+					// 	genome = null; // Failed... Converged? No solutions? Saturated?
 				}
 
-				if (genome == null)
-				{
-					for (uint m = 1; m < 4; m++)
-					{
-
-						// Establish a maximum.
-						var tries = 10;
-						var paramCount = 0;
-
-						do
-						{
-							{ // Try a param only version first.
-								genome = this.GenerateParamOnly(paramCount);
-								hash = genome.Hash;
-								attempts++;
-								if (!_previousGenomes.ContainsKey(hash)) break;
-							}
-
-							paramCount += 1; // Operators need at least 2 params to start.
-
-							{ // Then try an operator based version.
-								genome = this.GenerateOperated(paramCount + 1);
-								hash = genome.Hash;
-								attempts++;
-								if (!_previousGenomes.ContainsKey(hash)) break;
-							}
-
-							var t = Math.Min(_previousGenomes.Count * 2, 100); // A local maximum.
-							do
-							{
-								genome = await MutateAsync(p.RandomSelectOne(), m);
-								hash = genome.Hash;
-								attempts++;
-							}
-							while (_previousGenomes.ContainsKey(hash) && --t != 0);
-
-							// t==0 means nothing found :(
-							if (t != 0) break;
-						}
-						while (--tries != 0);
-
-						if (tries != 0)
-							break;
-						// else
-						// 	genome = null; // Failed... Converged? No solutions? Saturated?
-					}
 
 
-
-				}
 			}
+
 			//console.log("Generate attempts:",attempts);
 			if (hash != null)
 			{
@@ -434,7 +433,7 @@ namespace AlgebraBlackBox
 
 		Genome Freeze(Genome target)
 		{
-			if(target == null) return null;
+			if (target == null) return null;
 			target.RegisterVariations(GenerateVariations(target));
 			target.Freeze();
 			return target;

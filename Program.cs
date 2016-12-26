@@ -14,11 +14,17 @@ namespace GeneticAlgorithmPlatform
             return Math.Sqrt(a * a + b * b);
         }
 
+        static double SqrtA2B2AB(params double[] p)
+        {
+            var a = p[0];
+            var b = p[1];
+            return Math.Sqrt(a * a + b * b + a) + b;
+        }
         public static void Main(string[] args)
         {
             Task.WaitAny(
                 Enumerable.Range(1,1)
-                .Select(i=>(new AlgebraBlackBox.Environment(SqrtA2B2)).RunUntilConvergedAsync()).ToArray()
+                .Select(i=>(new AlgebraBlackBox.Environment(SqrtA2B2AB)).RunUntilConvergedAsync()).ToArray()
             );
         }
 
