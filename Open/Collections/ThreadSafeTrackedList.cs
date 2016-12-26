@@ -14,9 +14,6 @@ namespace Open.Collections
 	public class ThreadSafeTrackedList<T> : ModificationSynchronizedBase, IList<T>
 	{
 		List<T> _source = new List<T>();
-		#if DEBUG
-		public readonly List<string> ChangeLog = new List<string>();
-		#endif
 
 		public ThreadSafeTrackedList(ModificationSynchronizer sync = null) : base(sync)
 		{
@@ -33,7 +30,7 @@ namespace Open.Collections
 			base.OnDispose(calledExplicitly);
 			var s = _source;
 			_source = null;
-			if(s!=null)
+			if (s != null)
 			{
 				s.Clear();
 			}
@@ -64,12 +61,8 @@ namespace Open.Collections
 		private bool SetValueInternal(int index, T value)
 		{
 			var changing = index >= _source.Count || !_source[index].Equals(value);
-			if (changing) {
+			if (changing)
 				_source[index] = value;
-				#if DEBUG
-				ChangeLog.Add(String.Format("Set Value {0} at {1}",value,index));
-				#endif
-			}
 			return changing;
 		}
 
@@ -90,9 +83,6 @@ namespace Open.Collections
 			Sync.Modifying(AssertIsLiving, () =>
 			{
 				_source.Add(item);
-				#if DEBUG
-				ChangeLog.Add("Added Item: "+item);
-				#endif
 				return true;
 			});
 		}
@@ -124,11 +114,9 @@ namespace Open.Collections
 				{
 					var count = Count;
 					bool hasItems = count != 0;
-					if (hasItems) {
+					if (hasItems)
+					{
 						_source.Clear();
-						#if DEBUG
-						ChangeLog.Add("Cleared: "+count);
-						#endif
 					}
 					return hasItems;
 				});
@@ -170,9 +158,6 @@ namespace Open.Collections
 				() =>
 				{
 					_source.Insert(index, item);
-					#if DEBUG
-					ChangeLog.Add(String.Format("Inserted Item {0} at {1}",item,index));
-					#endif
 					return true;
 				});
 		}
@@ -181,17 +166,7 @@ namespace Open.Collections
 		{
 			return Sync.Modifying(
 				AssertIsLiving,
-				() => {
-					if(_source.Remove(item))
-					{
-						#if DEBUG
-						ChangeLog.Add(String.Format("Removed Item {0}",item));
-						#endif
-						return true;
-					}
-
-					return false;
-				});
+				() => _source.Remove(item));
 		}
 
 		public void RemoveAt(int index)
@@ -201,9 +176,6 @@ namespace Open.Collections
 				() =>
 				{
 					_source.RemoveAt(index);
-					#if DEBUG
-					ChangeLog.Add(String.Format("Removed Item at {0}",index));
-					#endif					
 					return true;
 				});
 		}

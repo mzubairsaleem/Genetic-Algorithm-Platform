@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -40,9 +41,9 @@ namespace AlgebraBlackBox.Genes
             return Math.Sqrt(await GetChildren().Single().Calculate(values));
         }
 
-        public new DivisionGene Clone()
+        public new SquareRootGene Clone()
         {
-            return new DivisionGene(Multiple, GetChildren().Select(g => g.Clone()));
+            return new SquareRootGene(Multiple, GetChildren().Select(g => g.Clone()));
         }
 
         protected override GeneticAlgorithmPlatform.IGene CloneInternal()

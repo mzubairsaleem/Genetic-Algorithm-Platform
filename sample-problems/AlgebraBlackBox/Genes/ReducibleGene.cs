@@ -80,7 +80,7 @@ namespace AlgebraBlackBox.Genes
             or the same gene is returned signaling that it's contents were updated.
         */
 
-		public virtual IGene Reduce()
+		public IGene Reduce()
 		{
 			var m = Multiple;
 			if (m == 0

@@ -18,7 +18,7 @@ namespace GeneticAlgorithmPlatform
 	{
 
 		Lazy<string> _toString;
-		public void ResetToString()
+		public virtual void ResetToString()
 		{
 			if (_toString == null || _toString.IsValueCreated)
 				_toString = Lazy.New(ToStringInternal);
@@ -58,6 +58,12 @@ namespace GeneticAlgorithmPlatform
 		public virtual bool Equivalent(IGene other)
 		{
 			return this == other || other != null && this.ToString() == other.ToString();
+		}
+
+		protected override void OnFrozen()
+		{
+			base.OnFrozen();
+			ResetToString();
 		}
 
 	}

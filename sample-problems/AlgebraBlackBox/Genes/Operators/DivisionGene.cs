@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Open.Arithmetic;
@@ -24,7 +25,7 @@ namespace AlgebraBlackBox.Genes
 
         public new DivisionGene Clone()
         {
-            return new DivisionGene(Multiple, GetChildren().Select(g => g.Clone()));
+            return new DivisionGene(Multiple, GetChildren().Select(g => g.Clone()));        
         }
 
         protected override GeneticAlgorithmPlatform.IGene CloneInternal()

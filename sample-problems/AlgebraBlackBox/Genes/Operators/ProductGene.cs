@@ -26,7 +26,7 @@ namespace AlgebraBlackBox.Genes
 
 		public new ProductGene Clone()
 		{
-            return new ProductGene(Multiple, GetChildren().Select(g => g.Clone()));
+            return new ProductGene(Multiple, GetChildren().Select(g => g.Clone()));	
 		}
 
 		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
