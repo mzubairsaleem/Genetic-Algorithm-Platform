@@ -401,9 +401,8 @@ namespace AlgebraBlackBox
 
 		}
 
-		protected override IEnumerable<Genome> GenerateVariations(Genome source)
+		protected IEnumerable<Genome> GenerateVariationsUnfiltered(Genome source)
 		{
-			var result = new List<Genome>();
 			var sourceGenes = source.Genes;
 			var count = sourceGenes.Length;
 			for (var i = 0; i < count; i++)
@@ -411,17 +410,19 @@ namespace AlgebraBlackBox
 				var gene = sourceGenes[i];
 				var isRoot = gene == source.Root;
 
-				result.Add(VariationCatalog.ReduceMultipleMagnitude(source, i));
-				result.Add(VariationCatalog.RemoveGene(source, i));
-				result.Add(VariationCatalog.PromoteChildren(source, i));
+				yield return VariationCatalog.ReduceMultipleMagnitude(source, i);
+				yield return VariationCatalog.RemoveGene(source, i);
+				yield return VariationCatalog.PromoteChildren(source, i);
 
 				foreach (var fn in Operators.Available.Functions)
 				{
-					result.Add(VariationCatalog.ApplyFunction(source, i, fn));
+					yield return VariationCatalog.ApplyFunction(source, i, fn);
 				}
 			}
-
-			return result
+		}
+		protected override IEnumerable<Genome> GenerateVariations(Genome source)
+		{
+			return GenerateVariationsUnfiltered(source)
 				.Where(genome => genome != null)
 				.Select(genome =>
 				{
@@ -434,7 +435,7 @@ namespace AlgebraBlackBox
 		Genome Freeze(Genome target)
 		{
 			if(target == null) return null;
-			target.RegisterVariations(() => GenerateVariations(target));
+			target.RegisterVariations(GenerateVariations(target));
 			target.Freeze();
 			return target;
 		}

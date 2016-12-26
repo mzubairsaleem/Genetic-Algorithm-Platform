@@ -68,6 +68,7 @@ namespace AlgebraBlackBox
 
 				var c = _problems.SelectMany(pr => pr.Convergent).ToArray();
 				if (c.Length != 0) {
+					Console.WriteLine("");
 					Console.WriteLine("Convergent:");
 					foreach(var converged in c)
 					{

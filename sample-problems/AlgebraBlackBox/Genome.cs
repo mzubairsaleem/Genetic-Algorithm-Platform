@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Open.Collections;
 using Open.Threading;
 
 namespace AlgebraBlackBox
@@ -31,7 +32,7 @@ namespace AlgebraBlackBox
 					var r = Root as IReducibleGene;
 					return r != null && r.IsReducible ? new Genome(r.AsReduced()) : this;
 				}); // Use a clone to prevent any threading issues.
-			_variationIndex = -1;
+			_variations = null;
 		}
 
 
@@ -131,60 +132,32 @@ namespace AlgebraBlackBox
 			return ensureClone ? r.Clone() : r;
 		}
 
-		int _variationIndex = -1;
-		public int VariationIndex {
-			get {
-				return _variationIndex;
-			}
-		}
-
-
-		public Genome CurrentVariation
-		{
-			get {
-				var v = Variations;
-				return v==null ? null : v[_variationIndex];
-			}
-		}
 
 		public override GeneticAlgorithmPlatform.IGenome NextVariation()
-		{
-			var v = Variations;
-			if(v==null) return null;
-			var c = v.Count;
-			if(c==0) return null;
-			int i;
-			while((i = Interlocked.Increment(ref _variationIndex))>c) {
-				Interlocked.CompareExchange(ref _variationIndex,-1,i); // If i and variation index match, then we owned it.
-			}
-			return v[i];
+		{			
+			var source = _variations;
+			if(source==null) return null;
+			var e = LazyInitializer.EnsureInitialized(ref _varationEnumerator,()=>source.GetEnumerator());
+			if(e.MoveNext()) return e.Current;
+			Interlocked.Exchange(ref _varationEnumerator, null);
+			return NextVariation();
 		}
 
-		Lazy<ReadOnlyCollection<Genome>> _variations;
-		public ReadOnlyCollection<Genome> Variations
+		IEnumerator<Genome> _varationEnumerator;
+		LazyList<Genome> _variations;
+		public IReadOnlyList<Genome> Variations
 		{
 			get
 			{
-				var v = _variations;
-				return v==null ? null : _variations.Value;
+				return _variations;
 			}
 		}
 
-		public void RegisterVariations(Lazy<ReadOnlyCollection<Genome>> variations)
+		public void RegisterVariations(IEnumerable<Genome> variations)
 		{
 			if(this.IsReadOnly)
 				throw new ArgumentException("Cannot register variations after frozen.","variations");
-			_variations = variations;
-		}
-
-		public void RegisterVariations(Func<ReadOnlyCollection<Genome>> variations)
-		{
-			RegisterVariations(Lazy.New(variations));
-		}
-
-		public void RegisterVariations(Func<IEnumerable<Genome>> variations)
-		{
-			RegisterVariations(Lazy.New(()=>variations().ToList().AsReadOnly()));
+			_variations = variations.Memoize();
 		}
 
 	}
