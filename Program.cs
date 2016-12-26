@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -14,8 +16,10 @@ namespace GeneticAlgorithmPlatform
 
         public static void Main(string[] args)
         {
-            var environment = new AlgebraBlackBox.Environment(SqrtA2B2);
-            environment.RunUntilConverged();
+            Task.WaitAny(
+                Enumerable.Range(1,1)
+                .Select(i=>(new AlgebraBlackBox.Environment(SqrtA2B2)).RunUntilConvergedAsync()).ToArray()
+            );
         }
 
         static void PerfTest()

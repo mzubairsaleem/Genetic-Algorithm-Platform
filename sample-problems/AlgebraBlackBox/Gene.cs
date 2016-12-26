@@ -15,7 +15,11 @@ namespace AlgebraBlackBox
 		double _multiple;
 		public double Multiple
 		{
-			get { return Sync.Reading(()=>_multiple); }
+			get
+			{
+				AssertIsLiving();
+				return Sync.Reading(() => _multiple);
+			}
 			set
 			{
 				SetMultiple(value);
@@ -24,10 +28,12 @@ namespace AlgebraBlackBox
 
 		public bool SetMultiple(double value)
 		{
+			AssertIsLiving();
 			return Sync.Modifying(ref _multiple, value);
 		}
 		public virtual async Task<double> Calculate(double[] values)
 		{
+			AssertIsLiving();
 			var calc = await CalculateWithoutMultiple(values);
 			return Multiple * calc;
 		}
@@ -38,7 +44,7 @@ namespace AlgebraBlackBox
 		{
 			get
 			{
-                var m = _multiple;
+				var m = Multiple;
 				if (m != 1d)
 					return m == -1d ? "-" : m.ToString();
 
@@ -87,18 +93,23 @@ namespace AlgebraBlackBox
 		double _multiple;
 		public double Multiple
 		{
-			get { return Sync.Reading(()=>_multiple); }
+			get
+			{
+				AssertIsLiving();
+				return Sync.Reading(() => _multiple);
+			}
 			set
 			{
 				SetMultiple(value);
 			}
 		}
 
+
 		public bool SetMultiple(double value)
 		{
+			AssertIsLiving();
 			return Sync.Modifying(ref _multiple, value);
 		}
-
 
 		protected override string ToStringInternal()
 		{
@@ -111,7 +122,7 @@ namespace AlgebraBlackBox
 		{
 			get
 			{
-                var m = Multiple;
+				var m = Multiple;
 				if (m != 1d)
 					return m == -1d ? "-" : m.ToString();
 
@@ -122,6 +133,7 @@ namespace AlgebraBlackBox
 
 		public virtual async Task<double> Calculate(double[] values)
 		{
+			AssertIsLiving();
 			var calc = await CalculateWithoutMultiple(values);
 			return Multiple * calc;
 		}

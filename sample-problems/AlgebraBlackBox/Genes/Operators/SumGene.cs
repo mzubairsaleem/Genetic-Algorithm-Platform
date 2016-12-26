@@ -17,7 +17,7 @@ namespace AlgebraBlackBox.Genes
 
         protected async override Task<double> CalculateWithoutMultiple(double[] values)
         {
-            using (var results = _children.Select(s => s.Calculate(values)).Memoize())
+            using (var results = GetChildren().Select(s => s.Calculate(values)).Memoize())
             {
                 return results.Any() ? (await Task.WhenAll(results)).Sum() : 0;
             }
@@ -25,7 +25,7 @@ namespace AlgebraBlackBox.Genes
 
         public new SumGene Clone()
         {
-            return new SumGene(Multiple, _children.Select(g => g.Clone()));
+            return new SumGene(Multiple, GetChildren().Select(g => g.Clone()));
         }
 
         protected override string ToStringInternal()
@@ -35,7 +35,7 @@ namespace AlgebraBlackBox.Genes
 
         void RemoveZeroMultiples()
         {
-            foreach (var g in _children.Where(g => g.Multiple == 0).ToArray())
+            foreach (var g in GetChildren().Where(g => g.Multiple == 0).ToArray())
             {
                 Remove(g);
             }
@@ -44,30 +44,31 @@ namespace AlgebraBlackBox.Genes
         protected override void ReduceLoop()
         {
             // Collapse sums within sums.
-            foreach (var p in _children.OfType<SumGene>().ToArray())
+            var children = GetChildren();
+            foreach (var p in children.OfType<SumGene>().ToArray())
             {
                 var m = p.Multiple;
                 foreach (var s in p)
                 {
                     s.Multiple *= m;
-                    _children.Add(s);
+                    children.Add(s);
                 }
                 p.Clear();
-                _children.Remove(p);
+                children.Remove(p);
             }
 
             // Pull out multiples.
-            if (_children.Any() && _children.All(g => Math.Abs(g.Multiple) > 1 || g.Multiple==-1))
+            if (children.Any() && children.All(g => Math.Abs(g.Multiple) > 1 || g.Multiple==-1))
             {
-                var smallest = _children.OrderBy(g => g.Multiple).First();
+                var smallest = children.OrderBy(g => g.Multiple).First();
                 var max = smallest.Multiple;
                 for (var i = 2; i <= max; i = i.NextPrime())
                 {
-                    while (max % i == 0 && _children.All(g => g.Multiple % i == 0))
+                    while (max % i == 0 && children.All(g => g.Multiple % i == 0))
                     {
                         max /= i;
                         Multiple *= i;
-                        foreach (var g in _children)
+                        foreach (var g in children)
                         {
                             g.Multiple /= i;
                         }
@@ -77,21 +78,21 @@ namespace AlgebraBlackBox.Genes
             }
 
             // Combine any constants.  This is more optimal because we don't neet to query ToStringContents.
-            var constants = _children.OfType<ConstantGene>().ToArray();
+            var constants = children.OfType<ConstantGene>().ToArray();
             if (constants.Length > 1)
             {
                 var main = constants.First();
                 foreach (var c in constants.Skip(1))
                 {
                     main.Multiple += c.Multiple;
-                    _children.Remove(c);
+                    children.Remove(c);
                 }
             }
 
             RemoveZeroMultiples();
 
             // Look for groupings...
-            foreach (var p in _children
+            foreach (var p in children
                 .Where(g => !(g is ConstantGene)) // We just reduced constants above so skip them...
                 .GroupBy(g => g.ToStringContents())
                 .Where(g => g.Count() > 1))
@@ -121,9 +122,10 @@ namespace AlgebraBlackBox.Genes
 
         protected override IGene ReplaceWithReduced()
         {
-            if(_children.Count==1) {
-                var c = _children.Single();
-                c.Multiple *= this.Multiple;
+            var children = GetChildren();
+            if(children.Count==1) {
+                var c = children.Single();
+                c.Multiple *= Multiple;
                 return c;
             }
             return base.ReplaceWithReduced();

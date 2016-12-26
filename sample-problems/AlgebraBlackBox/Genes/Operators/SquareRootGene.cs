@@ -29,7 +29,7 @@ namespace AlgebraBlackBox.Genes
 
         public override void Add(IGene target)
         {
-            if (_children.Count == 1)
+            if (GetChildren().Count == 1)
                 throw new InvalidOperationException("A SquareRootGene can only have 1 child.");
 
             base.Add(target);
@@ -37,12 +37,12 @@ namespace AlgebraBlackBox.Genes
 
         protected async override Task<double> CalculateWithoutMultiple(double[] values)
         {
-            return Math.Sqrt(await _children.Single().Calculate(values));
+            return Math.Sqrt(await GetChildren().Single().Calculate(values));
         }
 
         public new DivisionGene Clone()
         {
-            return new DivisionGene(Multiple, _children.Select(g => g.Clone()));
+            return new DivisionGene(Multiple, GetChildren().Select(g => g.Clone()));
         }
 
         protected override GeneticAlgorithmPlatform.IGene CloneInternal()
@@ -52,7 +52,7 @@ namespace AlgebraBlackBox.Genes
 
         protected override void ReduceLoop()
         {
-            var child = _children.SingleOrDefault();
+            var child = GetChildren().SingleOrDefault();
             if (child != null && child.Multiple > 3)
             {
                 // First migrate any possible multiple.

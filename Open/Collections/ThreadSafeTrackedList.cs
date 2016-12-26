@@ -6,58 +6,48 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 using Open.Threading;
 
 namespace Open.Collections
 {
-	public class ThreadSafeTrackedList<T> : DisposableBase, IList<T>
+	public class ThreadSafeTrackedList<T> : ModificationSynchronizedBase, IList<T>
 	{
 		List<T> _source = new List<T>();
-		public int Version
+		#if DEBUG
+		public readonly List<string> ChangeLog = new List<string>();
+		#endif
+
+		public ThreadSafeTrackedList(ModificationSynchronizer sync = null) : base(sync)
 		{
-			get {
-      			AssertIsLiving();
-                return Sync.Version;
-            }
 		}
 
-		public ModificationSynchronizer Sync
-		{
-			get;
-			private set;
-		}
-        bool _syncOwned;
 
-		public ThreadSafeTrackedList(ModificationSynchronizer sync = null)
+		public ThreadSafeTrackedList(out ModificationSynchronizer sync) : base(out sync)
 		{
-			if (sync == null)
+		}
+
+
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			base.OnDispose(calledExplicitly);
+			var s = _source;
+			_source = null;
+			if(s!=null)
 			{
-				sync = InitNewSync();
+				s.Clear();
 			}
-			Sync = sync;
 		}
-
-		protected virtual ModificationSynchronizer InitNewSync(ReaderWriterLockSlim sync = null)
-		{
-            _syncOwned = true;
-			return new ModificationSynchronizer(sync);
-		}
-
-        protected override void OnDispose(bool calledExplicitly)
-        {
-			var s = Sync;
-			Sync = null;
-			if(_syncOwned) s.Dispose();
-            _source = null;
-        }
 
 		public T this[int index]
 		{
 			get
 			{
-                AssertIsLiving();
-				return Sync.Reading(() => _source[index]);
+				return Sync.Reading(() =>
+				{
+					AssertIsLiving();
+					return _source[index];
+				});
 			}
 
 			set
@@ -68,16 +58,18 @@ namespace Open.Collections
 
 		public bool SetValue(int index, T value)
 		{
-            AssertIsLiving();
-			return Sync.Modifying(() => SetValueInternal(index, value));
+			return Sync.Modifying(AssertIsLiving, () => SetValueInternal(index, value));
 		}
 
 		private bool SetValueInternal(int index, T value)
 		{
-            AssertIsLiving();
 			var changing = index >= _source.Count || !_source[index].Equals(value);
-			if (changing)
+			if (changing) {
 				_source[index] = value;
+				#if DEBUG
+				ChangeLog.Add(String.Format("Set Value {0} at {1}",value,index));
+				#endif
+			}
 			return changing;
 		}
 
@@ -85,119 +77,155 @@ namespace Open.Collections
 		{
 			get
 			{
-                AssertIsLiving();
-				return Sync.Reading(() => _source.Count);
-			}
-		}
-
-		public bool IsReadOnly
-		{
-			get
-			{
-				return false;
+				return Sync.Reading(() =>
+				{
+					AssertIsLiving();
+					return _source.Count;
+				});
 			}
 		}
 
 		public virtual void Add(T item)
 		{
-            AssertIsLiving();
-			Sync.Modifying(() =>
+			Sync.Modifying(AssertIsLiving, () =>
 			{
 				_source.Add(item);
+				#if DEBUG
+				ChangeLog.Add("Added Item: "+item);
+				#endif
 				return true;
 			});
 		}
 
-		public void Add(IEnumerable<T> items)
+		public void Add(T item, T item2, params T[] items)
 		{
-            AssertIsLiving();
-			Sync.Modifying(() =>
+			AddThese(new T[] { item, item2 }.Concat(items));
+		}
+
+		public void AddThese(IEnumerable<T> items)
+		{
+			if (items != null && items.HasAny())
 			{
-				foreach (var item in items)
-					Add(item);
-			});
+				Sync.Modifying(AssertIsLiving, () =>
+				{
+					foreach (var item in items)
+						Add(item); // Yes, we could just _source.Add() but this allows for overrideing Add();
+					return true;
+				});
+			}
+
 		}
 
 		public void Clear()
 		{
 			Sync.Modifying(
-				() => _source.Count != 0,
+				() => AssertIsLiving() && _source.Count != 0,
 				() =>
 				{
-					bool hasItems = Count != 0;
-					if (hasItems)
+					var count = Count;
+					bool hasItems = count != 0;
+					if (hasItems) {
 						_source.Clear();
+						#if DEBUG
+						ChangeLog.Add("Cleared: "+count);
+						#endif
+					}
 					return hasItems;
 				});
 		}
 
 		public bool Contains(T item)
 		{
-            AssertIsLiving();           
-			return Sync.Reading(() => _source.Contains(item));
+			return Sync.Reading(() =>
+				AssertIsLiving() && _source.Contains(item));
 		}
 
 		public void CopyTo(T[] array, int arrayIndex)
 		{
-            AssertIsLiving();            
-			Sync.Reading(() => _source.CopyTo(array, arrayIndex));
+			Sync.Reading(() =>
+			{
+				AssertIsLiving();
+				_source.CopyTo(array, arrayIndex);
+			});
 		}
 
 		public IEnumerator<T> GetEnumerator()
 		{
-            AssertIsLiving();
-			return _source.GetEnumerator();
+			return Sync.Reading(() =>
+			{
+				AssertIsLiving();
+				return _source.GetEnumerator();
+			});
 		}
 
 		public int IndexOf(T item)
 		{
-            AssertIsLiving();
-			return Sync.Reading(() => _source.IndexOf(item));
+			return Sync.Reading(() => AssertIsLiving() ? _source.IndexOf(item) : -1);
 		}
 
 		public void Insert(int index, T item)
 		{
-            AssertIsLiving();
 			Sync.Modifying(
-			() =>
-			{
-				_source.Insert(index, item);
-				return true;
-			});
+				AssertIsLiving,
+				() =>
+				{
+					_source.Insert(index, item);
+					#if DEBUG
+					ChangeLog.Add(String.Format("Inserted Item {0} at {1}",item,index));
+					#endif
+					return true;
+				});
 		}
 
 		public bool Remove(T item)
 		{
-            AssertIsLiving();
 			return Sync.Modifying(
-				() => _source.Remove(item));
+				AssertIsLiving,
+				() => {
+					if(_source.Remove(item))
+					{
+						#if DEBUG
+						ChangeLog.Add(String.Format("Removed Item {0}",item));
+						#endif
+						return true;
+					}
+
+					return false;
+				});
 		}
 
 		public void RemoveAt(int index)
 		{
-            AssertIsLiving();
 			Sync.Modifying(
-			() =>
-			{
-				_source.RemoveAt(index);
-				return true;
-			});
+				AssertIsLiving,
+				() =>
+				{
+					_source.RemoveAt(index);
+					#if DEBUG
+					ChangeLog.Add(String.Format("Removed Item at {0}",index));
+					#endif					
+					return true;
+				});
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()
 		{
-            AssertIsLiving();
-			return _source.GetEnumerator();
+			return Sync.Reading(() =>
+			{
+				AssertIsLiving();
+				return _source.GetEnumerator();
+			});
 		}
 
 
 		public bool Replace(T target, T replacement, bool throwIfNotFound = false)
 		{
-            AssertIsLiving();
+			AssertIsLiving();
 			int index = -1;
 			return !target.Equals(replacement) && Sync.Modifying(
 				() =>
 				{
+					AssertIsLiving();
 					index = _source.IndexOf(target);
 					if (index == -1)
 					{
@@ -208,9 +236,9 @@ namespace Open.Collections
 					return true;
 				},
 				() =>
-                    SetValueInternal(index, replacement)
-            );
+					SetValueInternal(index, replacement)
+			);
 		}
 
-    }
+	}
 }

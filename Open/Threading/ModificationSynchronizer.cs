@@ -3,7 +3,77 @@ using System.Threading;
 
 namespace Open.Threading
 {
-	public class ModificationSynchronizer : DisposableBase
+
+	public interface IReadOnlyModificationSynchronizer
+	{
+		void Reading(Action action);
+
+		T Reading<T>(Func<T> action);
+	}
+
+	public interface IModificationSynchronizer : IReadOnlyModificationSynchronizer
+	{
+
+		bool Modifying(Func<bool> condition, Func<bool> action);
+		bool Modifying(Func<bool> action);
+
+		bool Modifying(Action action);
+
+		bool Modifying<T>(ref T target, T newValue);
+
+		// If this is modifiable, it will increment the version.
+		void Poke();
+
+	}
+
+	public class ReadOnlyModificationSynchronizer : IModificationSynchronizer
+	{
+		public bool Modifying(Action action)
+		{
+			throw new NotSupportedException("Synchronizer is read-only.");
+		}
+
+		public bool Modifying(Func<bool> action)
+		{
+			throw new NotSupportedException("Synchronizer is read-only.");
+		}
+
+		public bool Modifying(Func<bool> condition, Func<bool> action)
+		{
+			throw new NotSupportedException("Synchronizer is read-only.");
+		}
+
+		public bool Modifying<T>(ref T target, T newValue)
+		{
+			throw new NotSupportedException("Synchronizer is read-only.");
+		}
+
+		public void Reading(Action action)
+		{
+			action();
+		}
+
+		public T Reading<T>(Func<T> action)
+		{
+			return action();
+		}
+
+        public void Poke()
+        {
+            // Does nothing.
+        }
+
+        static ReadOnlyModificationSynchronizer _instance;
+		public static ReadOnlyModificationSynchronizer Instance
+		{
+			get
+			{
+				return LazyInitializer.EnsureInitialized(ref _instance);
+			}
+		}
+	}
+
+	public sealed class ModificationSynchronizer : DisposableBase, IModificationSynchronizer
 	{
 
 		public event EventHandler Modified;
@@ -37,10 +107,10 @@ namespace Open.Threading
 
 		}
 
-		public ReaderWriterLockSlim Synchronizer
-		{
-			get { return _sync; }
-		}
+		// public ReaderWriterLockSlim Synchronizer
+		// {
+		// 	get { return _sync; }
+		// }
 
 		public int Version
 		{
@@ -52,7 +122,12 @@ namespace Open.Threading
 			Interlocked.Increment(ref _version);
 		}
 
-		protected virtual void OnModified()
+		public void Poke()
+		{
+
+		}
+
+		void OnModified()
 		{
 			var handler = Modified;
 			if (handler != null)
@@ -75,23 +150,27 @@ namespace Open.Threading
 		public bool Modifying(Func<bool> condition, Func<bool> action)
 		{
 			AssertIsLiving();
+
+			// Try and early invalidate.
+			if(condition!=null && !_sync.ReadValue(condition))
+				return false;
+
 			bool modified = false;
 			_sync.ReadUpgradeable(() =>
 			{
 				AssertIsLiving();
 				if (condition == null || condition())
 				{
-					bool signal = false;
 					_sync.Write(() =>
 					{
 						var ver = _version; // Capture the version so that if changes occur indirectly...
 						Interlocked.Increment(ref _modifyingDepth);
 						modified = action();
 						if (modified) IncrementVersion();
-						signal = Interlocked.Decrement(ref _modifyingDepth) == 0 && ver != _version;
+						// At zero depth and version change? Signal.
+						if(Interlocked.Decrement(ref _modifyingDepth) == 0 && ver != _version)
+							OnModified();
 					});
-					if (signal) // At zero depth and version change? Signal.
-						OnModified();
 				}
 			});
 			return modified;
@@ -155,6 +234,5 @@ namespace Open.Threading
 			return changed;
 		}
 
-
-	}
+    }
 }

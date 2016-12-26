@@ -14,35 +14,8 @@ using Open.Collections;
 namespace GeneticAlgorithmPlatform
 {
 
-	public abstract class GeneBase : IGene
+	public abstract class GeneBase : ModificationSynchronizedBase, IGene
 	{
-
-		public ModificationSynchronizer Sync
-		{
-			get;
-			private set;
-		}
-
-		public int Version
-		{
-			get
-			{
-				return Sync.Version;
-			}
-		}
-
-		protected virtual ModificationSynchronizer InitSync()
-		{
-			return new ModificationSynchronizer();
-		}
-
-
-		public GeneBase()
-		{
-			OnModified();
-			Sync = InitSync();
-			Sync.Modified += OnModified;
-		}
 
 		Lazy<string> _toString;
 		public void ResetToString()
@@ -51,13 +24,15 @@ namespace GeneticAlgorithmPlatform
 				_toString = Lazy.New(ToStringInternal);
 		}
 
-		protected void OnModified(object source = null, EventArgs e = null)
+		protected override void OnDispose(bool calledExplicitly)
 		{
-			OnModified();
+			base.OnDispose(calledExplicitly);
+			_toString = null;
 		}
 
-		protected virtual void OnModified()
+		protected override void OnModified()
 		{
+			base.OnModified();
 			ResetToString();
 		}
 
@@ -65,7 +40,7 @@ namespace GeneticAlgorithmPlatform
 
 		public sealed override string ToString()
 		{
-			return _toString.Value;
+			return _toString == null ? base.ToString() : _toString.Value;
 		}
 
 		public virtual string Serialize()
@@ -75,14 +50,14 @@ namespace GeneticAlgorithmPlatform
 
 		public virtual IGene Clone()
 		{
-			return CloneInternal();
+			return Sync.Reading(() => CloneInternal());
 		}
 
 		protected abstract IGene CloneInternal();
 
-		public virtual bool Equals(IGene other)
+		public virtual bool Equivalent(IGene other)
 		{
-			return this == other || this.ToString() == other.ToString();
+			return this == other || other != null && this.ToString() == other.ToString();
 		}
 
 	}
@@ -91,21 +66,42 @@ namespace GeneticAlgorithmPlatform
 	where T : IGene
 	{
 
-		override protected ModificationSynchronizer InitSync()
+		protected override void OnDispose(bool calledExplicitly)
 		{
-			_children = new ThreadSafeTrackedList<T>();
-			return _children.Sync;
+			base.OnDispose(calledExplicitly);
+			var c = _children;
+			_children = null;
+			if (c != null)
+			{
+				c.Dispose();
+			}
+			_getChildNodes = null;
+			_getDescendants = null;
 		}
 
-		protected ThreadSafeTrackedList<T> _children;
+		override protected ModificationSynchronizer InitSync(ReaderWriterLockSlim rwlock = null)
+		{
+			ModificationSynchronizer sync;
+			_children = new ThreadSafeTrackedList<T>(out sync);
+			return sync;
+		}
+
+		private ThreadSafeTrackedList<T> _children;
 
 		public IEnumerable<T> Children
 		{
 			get
 			{
-				// Since we can't know if changes occur in our children, we have to return the uncached value until it is set to read-only.
-				return _children;
+				return GetChildren();
 			}
+		}
+
+		protected ThreadSafeTrackedList<T> GetChildren()
+		{
+			// Since we can't know if changes occur in our children, we have to return the uncached value until it is set to read-only.
+			var c = _children;
+			AssertIsLiving();
+			return c;
 		}
 
 		IEnumerable<IGeneNode<T>> _getChildNodes;
@@ -113,8 +109,9 @@ namespace GeneticAlgorithmPlatform
 		{
 			get
 			{
+				var children = GetChildren();
 				return LazyInitializer.EnsureInitialized(ref _getChildNodes,
-				() => _children.Where(c => c is IGeneNode<T>).Cast<IGeneNode<T>>());
+					() => children.Where(c => c is IGeneNode<T>).Cast<IGeneNode<T>>());
 			}
 		}
 
@@ -122,7 +119,7 @@ namespace GeneticAlgorithmPlatform
 		{
 			get
 			{
-				return _children.Count;
+				return GetChildren().Count;
 			}
 		}
 
@@ -130,8 +127,9 @@ namespace GeneticAlgorithmPlatform
 		IEnumerable<T> _getDescendants;
 		protected IEnumerable<T> GetDescendants()
 		{
+			var children = GetChildren();
 			return LazyInitializer.EnsureInitialized(ref _getDescendants,
-				() => _children.Concat(ChildNodes.SelectMany(s => s.Descendants)));
+				() => children.Concat(ChildNodes.SelectMany(s => s.Descendants)));
 		}
 
 		Lazy<T[]> _descendants;
@@ -139,58 +137,50 @@ namespace GeneticAlgorithmPlatform
 		{
 			get
 			{
+				var d = _descendants;
+				AssertIsLiving();
 				// Since we can't know if changes occur in our children, we have to return the uncached value until it is set to read-only.
-				return this.IsReadOnly ? _descendants.Value : GetDescendants();
+				return d==null ? GetDescendants() : d.Value;
 			}
-		}
-
-		bool _isReadOnly = false;
-		public bool IsReadOnly
-		{
-			get
-			{
-				return _isReadOnly;
-			}
-		}
-
-		public void SetAsReadOnly()
-		{
-			_isReadOnly = true;
-			foreach (var c in _children.Where(c => c is IGeneNode).Cast<IGeneNode>())
-				c.SetAsReadOnly();
 		}
 
 		public virtual void Add(T item)
 		{
-			_children.Add(item);
+			GetChildren().Add(item);
+		}
+
+		public void Add(T item, T item2, params T[] items)
+		{
+			GetChildren().AddThese(new T[] { item, item2 }.Concat(items));
 		}
 
 		public void AddThese(IEnumerable<T> items)
 		{
-			_children.Add(items);
+			GetChildren().AddThese(items);
 		}
 
 		public void Clear()
 		{
-			_children.Clear();
+			GetChildren().Clear();
 		}
 
 		public bool Contains(T item)
 		{
-			return _children.Contains(item);
+			return GetChildren().Contains(item);
 		}
 
 		public void CopyTo(T[] array, int arrayIndex)
 		{
-			_children.CopyTo(array, arrayIndex);
+			GetChildren().CopyTo(array, arrayIndex);
 		}
 
 		public IGeneNode<T> FindParent(T child)
 		{
 			return Sync.Reading(() =>
 			{
-				if (Count == 0) return null;
-				if (_children.IndexOf(child) != -1) return this;
+				var children = GetChildren();
+				if (children.Count == 0) return null;
+				if (children.IndexOf(child) != -1) return this;
 
 				foreach (var c in ChildNodes)
 				{
@@ -205,37 +195,39 @@ namespace GeneticAlgorithmPlatform
 
 		public bool Remove(T item)
 		{
-			return _children.Remove(item);
+			return GetChildren().Remove(item);
 		}
 
 
 		public IEnumerator<T> GetEnumerator()
 		{
-			return _children.GetEnumerator();
+			return GetChildren().GetEnumerator();
 		}
 
-		public bool Replace(T item, T replacement, bool throwIfNotFound = false)
+		public bool ReplaceChild(T item, T replacement, bool throwIfNotFound = false)
 		{
-			return _children.Replace(item, replacement, throwIfNotFound);
+			return GetChildren().Replace(item, replacement, throwIfNotFound);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()
 		{
-			return _children.GetEnumerator();
+			return GetChildren().GetEnumerator();
 		}
-
-
-		protected override void OnModified()
-		{
-			base.OnModified();
-			if (_descendants == null || _descendants.IsValueCreated)
-				_descendants = Lazy.New(() => GetDescendants().ToArray());			
-		}
-
 
 		public new IGeneNode<T> Clone()
 		{
 			return Sync.Reading(() => (IGeneNode<T>)CloneInternal());
+		}
+
+		protected override void OnFrozen()
+		{
+			base.OnFrozen();
+			var children = GetChildren();
+			children.Freeze();
+			foreach (var child in children)
+				child.Freeze();
+
+			_descendants = Lazy.New(() => GetDescendants().ToArray());
 		}
 
 

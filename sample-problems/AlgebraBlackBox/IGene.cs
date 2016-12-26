@@ -15,7 +15,7 @@ namespace AlgebraBlackBox
 
         string ToStringContents();
 
-        ModificationSynchronizer Sync { get; }
+        IModificationSynchronizer Sync { get; }
 
         new IGene Clone();
     }
@@ -23,7 +23,6 @@ namespace AlgebraBlackBox
     public interface IGeneNode<T> : GeneticAlgorithmPlatform.IGeneNode<T>, IGene
     where T : IGene
     {
-
     }
 
     public interface IGeneNode : IGeneNode<IGene>

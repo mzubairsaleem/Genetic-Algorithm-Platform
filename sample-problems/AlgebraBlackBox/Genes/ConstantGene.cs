@@ -30,19 +30,9 @@ namespace AlgebraBlackBox.Genes
 			return Task.Run(()=>Multiple);
         }
 
-
-		#region IEquatable<ConstantGene> Members
-
-		public bool Equals(IGene other)
+		public bool Equivalent(IGene other)
 		{
-			return other is ConstantGene && Multiple == other.Multiple;
+			return this==other || other is ConstantGene && Multiple == other.Multiple;
 		}
-
-		public bool Equals(ConstantGene other)
-		{
-			return Multiple == other.Multiple;
-		}
-
-        #endregion
     }
 }

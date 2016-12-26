@@ -215,20 +215,23 @@ namespace AlgebraBlackBox
 				var c = correct.Correlation(calc);
 				var d = divergence.Average() + 1;
 
-				GetFitnessFor(g).AddScores(
+				var fitness = GetFitnessFor(g);
+				fitness.AddScores(
 					(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
 					(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
 				);
+
+				var key = g.AsReduced().ToString();
+				if (fitness.HasConverged())
+				{
+					_convergent[key] = g;
+				}
+				else
+				{
+					Genome v;
+					_convergent.TryRemove(key, out v);
+				}
 			}
-
-
-			// return Task.WhenAll(
-			//     p.Values.Select(
-			//         async g =>
-			//         {
-
-			//         })
-			// );
 
 		}
 		IEnumerable<Task> ProcessTest(GeneticAlgorithmPlatform.Population<Genome> p, int count)
@@ -239,28 +242,13 @@ namespace AlgebraBlackBox
 			}
 		}
 
-		public async Task Test(GeneticAlgorithmPlatform.Population<Genome> p, int count = 1)
+		public Task Test(GeneticAlgorithmPlatform.Population<Genome> p, int count = 1)
 		{
 			if(p==null)
 				throw new ArgumentNullException("p");
 
 			// TODO: Need to find a way to dynamically implement more than 2 params... (discover significant params)
-			await Task.WhenAll(ProcessTest(p, count));
-
-			foreach (var g in p.Values)
-			{
-				var key = g.AsReduced().ToString();
-				if (GetFitnessFor(g).HasConverged())
-				{
-					this._convergent[key] = g;
-				}
-				else
-				{
-					Genome v;
-					this._convergent.TryRemove(key, out v);
-				}
-			}
-
+			return Task.WhenAll(ProcessTest(p, count));
 		}
 
 

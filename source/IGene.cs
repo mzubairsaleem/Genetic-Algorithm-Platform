@@ -10,9 +10,13 @@ using System.Collections.Generic;
 namespace GeneticAlgorithmPlatform
 {
 
-    public interface IGene : ICloneable<IGene>, IEquatable<IGene>
+    public interface IGene : ICloneable<IGene>
     {
-         void ResetToString();
+        /*
+         * Should prevent further modifications to the genome.
+         */
+        void Freeze();
+        bool Equivalent(IGene other);
     }
 
     public interface IGeneNode<T> : IGene, ICollection<T>, ICloneable<IGeneNode<T>> /*,ISerializable*/
@@ -22,9 +26,8 @@ namespace GeneticAlgorithmPlatform
         IEnumerable<T> Descendants { get; }
         IGeneNode<T> FindParent(T child);
 
-        bool Replace(T target, T replacement, bool throwIfNotFound = false);
+        bool ReplaceChild(T target, T replacement, bool throwIfNotFound = false);
 
-        void SetAsReadOnly();
     }
 
     public interface IGeneNode : IGeneNode<IGeneNode>

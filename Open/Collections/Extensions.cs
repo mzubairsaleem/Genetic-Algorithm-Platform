@@ -261,26 +261,36 @@ namespace Open.Collections
 			public TValue Value { get; set; }
 		}
 
-		public static bool HasAny<T>(this ICollection<T> source)
+
+		// Ensures an optimized means of acquiring Any();
+		public static bool HasAny<T>(this IEnumerable<T> source)
 		{
-			return source != null && source.Count != 0;
+			return source.HasAtLeast(1);
 		}
 
-		public static bool HasAny(this IEnumerable source)
+		public static bool HasAtLeast<T>(this IEnumerable<T> source, int minimum)
 		{
+			if (minimum < 1)
+				throw new ArgumentOutOfRangeException("minimum", minimum, "Cannot be zero or negative.");
+
 			if (source == null)
 				throw new ArgumentNullException("source");
 
 			if (source is System.Array)
-				return ((System.Array)source).Length != 0;
+				return ((System.Array)source).Length >= minimum;
 
-			if (source is ICollection)
-				return ((ICollection)source).Count != 0;
+			if (source is List<T>)
+				return ((ICollection)source).Count >= minimum;
 
 			var e = source.GetEnumerator();
 			try
 			{
-				return e.MoveNext();
+				while(e.MoveNext())
+				{
+					if(--minimum==0)
+						return true;
+				}
+				return false;
 			}
 			finally
 			{
@@ -288,13 +298,7 @@ namespace Open.Collections
 				if (d != null)
 					d.Dispose();
 			}
-		}
 
-		public static bool HasAtLeast<T>(this ICollection<T> source, int minimum)
-		{
-			if (minimum < 0)
-				throw new ArgumentOutOfRangeException("minimum", minimum, "Cannot be negative.");
-			return source != null && source.Count >= minimum;
 		}
 
 		// The idea here is a zero capacity string array is effectively imutable and will not change.  So it can be reused for comparison.

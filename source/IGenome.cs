@@ -4,7 +4,6 @@
  */
 
 
-using System;
 using System.Collections.Generic;
 
 namespace GeneticAlgorithmPlatform
@@ -13,15 +12,22 @@ namespace GeneticAlgorithmPlatform
 
     public interface IGenome
     {
-        // This allows for variation testing without constantly overloading.
-        int VariationCountdown { get; set; }
-
         IGene Root { get; }
         string Hash { get; }
         IEnumerable<IGene> Genes { get; }
+
+        int VariationSpawn(int allowed);
+
+        /*
+         * Should prevent further modifications to the genome.
+         */
+        void Freeze();
+
+        bool Equivalent(IGenome other);
+     
     }
 
-    public interface IGenome<T> : IGenome, IEquatable<IGenome<T>> /* : ISerializable */
+    public interface IGenome<T> : IGenome /* : ISerializable */
     where T : IGene
     {
         new T Root { get; }

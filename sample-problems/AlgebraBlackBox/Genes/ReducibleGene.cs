@@ -4,103 +4,172 @@
  */
 
 using System;
+using System.Linq;
 
 namespace AlgebraBlackBox.Genes
 {
 
-    public abstract class ReducibleGeneNode : GeneNode, IReducibleGene
-    {
+	public abstract class ReducibleGeneNode : GeneNode, IReducibleGene
+	{
 
-        public ReducibleGeneNode(double multiple = 1) : base(multiple)
-        {
+		public ReducibleGeneNode(double multiple = 1) : base(multiple)
+		{
 
-        }
+		}
 
-        override protected void OnModified()
-        {
-            base.OnModified();
-            if(_reduced==null || _reduced.IsValueCreated)
-                _reduced = Lazy.New(()=>this.Clone().Reduce() ?? this); // Use a clone to prevent any threading issues.
-        }
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			base.OnDispose(calledExplicitly);
+			_reduced = null;
+		}
 
-        public new ReducibleGeneNode Clone()
-        {
-            return (ReducibleGeneNode)CloneInternal();
-        }
+		override protected void OnModified()
+		{
+			base.OnModified();
+			if (_reduced == null || _reduced.IsValueCreated)
+				_reduced = Lazy.New(() => this.Clone().Reduce() ?? this); // Use a clone to prevent any threading issues.
+		}
 
-        Lazy<IGene> _reduced;
+		public new ReducibleGeneNode Clone()
+		{
+			return (ReducibleGeneNode)CloneInternal();
+		}
 
-        public bool IsReducible
-        {
-            get
-            {
-                return _reduced.Value!=this;
-            }
-        }
+		Lazy<IGene> _reduced;
 
-        public IGene AsReduced(bool ensureClone = false)
-        {
-            var r = _reduced.Value;
-            return ensureClone ? r.Clone() : r;
-        }
+		public bool IsReducible
+		{
+			get
+			{
+				var r = _reduced;
+				AssertIsLiving();
+				return r.Value != this;
+			}
+		}
+
+		public IGene AsReduced(bool ensureClone = false)
+		{
+			var r = _reduced;
+			AssertIsLiving();
+			var v = r.Value;
+			return ensureClone ? v.Clone() : v;
+		}
+
+		protected IGene ChildReduce(IReducibleGene child)
+		{
+			// Here's the magic... If the Reduce call returns non-null, then attempt to replace o with (new) g.
+			var g = child.Reduce();
+			if(g!=null) {
+				if(!ReplaceChild(child, g))
+					Sync.Poke(); // Child may have changed internally.
+			}
+			return g;
+		}
+
+		protected virtual IGene ReplaceWithReduced()
+		{
+			return GetChildren().Count == 0 ? new ConstantGene(this.Multiple) : null;
+		}
 
 
-        public virtual IGene Reduce()
-        {
-			if(this.Multiple==0
-			|| double.IsInfinity(this.Multiple)
-			|| double.IsNaN(this.Multiple))
-				return new ConstantGene(this.Multiple);
-				
+		/*
+            REDUCTION:
+            Goal, avoid reference to parent so that nodes can be reused across genes.
+            When calling .Reduce() a gene will be returned as a gene that could replace this one,
+            or the same gene is returned signaling that it's contents were updated.
+        */
+
+		public virtual IGene Reduce()
+		{
+			var m = Multiple;
+			if (m == 0
+			|| double.IsInfinity(m)
+			|| double.IsNaN(m))
+				return new ConstantGene(m);
+
+			var reduced = this;
+			var sync = Sync;
+			var modified = sync.Modifying(() =>
+			{
+				// Inner loop will keep going while changes are still occuring.
+				while (sync.Modifying(() =>
+				{
+					foreach (var o in GetChildren().OfType<IReducibleGene>().ToArray())
+					{
+						ChildReduce(o);
+					}
+
+					ReduceLoop();
+				})) { }
+			});
+
+			return ReplaceWithReduced()
+				?? (modified ? reduced : null);
+		}
+
+
+
+		// Call this at the end of the sub-classes reduce loop.
+		protected abstract void ReduceLoop();
+
+	}
+
+	public abstract class ReducibleGene : Gene, IReducibleGene
+	{
+
+		public ReducibleGene(double multiple = 1) : base(multiple)
+		{
+
+		}
+
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			base.OnDispose(calledExplicitly);
+			_reduced = null;
+		}
+
+		override protected void OnModified()
+		{
+			base.OnModified();
+			if (_reduced == null || _reduced.IsValueCreated)
+				_reduced = Lazy.New(() => this.Clone().Reduce() ?? this); // Use a clone to prevent any threading issues.
+		}
+
+		Lazy<IGene> _reduced;
+
+		public bool IsReducible
+		{
+			get
+			{
+				var r = _reduced;
+				AssertIsLiving();
+				return r.Value != this;
+			}
+		}
+
+		public new ReducibleGene Clone()
+		{
+			return (ReducibleGene)CloneInternal();
+		}
+
+
+		public IGene AsReduced(bool ensureClone = false)
+		{
+			var r = _reduced;
+			AssertIsLiving();
+			var v = r.Value;
+			return ensureClone ? v.Clone() : v;
+		}
+		public virtual IGene Reduce()
+		{
+			var m = Multiple;
+			if (m == 0
+			|| double.IsInfinity(m)
+			|| double.IsNaN(m))
+				return new ConstantGene(m);
+
 			return null;
-        }
-    }
-
-    public abstract class ReducibleGene : Gene, IReducibleGene {
-
-        public ReducibleGene(double multiple = 1) : base(multiple)
-        {
-
-        }
-
-
-        override protected void OnModified()
-        {
-            base.OnModified();
-            if(_reduced==null || _reduced.IsValueCreated)
-                _reduced = Lazy.New(()=>this.Clone().Reduce() ?? this); // Use a clone to prevent any threading issues.
-        }
-
-        Lazy<IGene> _reduced;
-
-        public bool IsReducible
-        {
-            get
-            {
-                return _reduced.Value!=this;
-            }
-        }
-
-        public new ReducibleGene Clone()
-        {
-            return (ReducibleGene)CloneInternal();
-        }
-
-
-        public IGene AsReduced(bool ensureClone = false)
-        {
-            var r = _reduced.Value;
-            return ensureClone ? r.Clone() : r;
-        }
-        public virtual IGene Reduce()
-        {
-			if(this.Multiple==0
-			|| double.IsInfinity(this.Multiple)
-			|| double.IsNaN(this.Multiple))
-				return new ConstantGene(this.Multiple);
-				
-			return null;
-        }
-    }
+		}
+	}
 
 }

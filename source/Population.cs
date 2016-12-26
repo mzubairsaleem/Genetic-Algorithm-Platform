@@ -65,16 +65,11 @@ namespace GeneticAlgorithmPlatform
                     if (e.MoveNext())
                     {
                         var top = e.Current;
-                        if (top.VariationCountdown == 0)
+                        if (top.VariationSpawn(1) == 0)
                         {
-                            top.VariationCountdown = 20;
                             var v = (await _genomeFactory.GenerateVariations(top)).Memoize();
                             Console.WriteLine("Top Variations:", v.Count);
                             Add(v);
-                        }
-                        else
-                        {
-                            top.VariationCountdown--;
                         }
                     }
                 }

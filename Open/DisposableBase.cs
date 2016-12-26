@@ -159,11 +159,13 @@ namespace Open
 			}
 		}
 
-		public void AssertIsLiving()
+		public bool AssertIsLiving()
 		{
 			//Contract.Ensures(!IsDisposed);
 			if (IsDisposed)
 				throw new ObjectDisposedException(this.ToString());
+
+			return true;
 		}
 
 

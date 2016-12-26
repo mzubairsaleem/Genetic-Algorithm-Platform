@@ -65,14 +65,14 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		public bool HasConverged(uint minSamples = 100, float convergence = 1, float tolerance = 0)
+		public bool HasConverged(uint minSamples = 100, double convergence = 1, double tolerance = 0)
 		{
 			if (minSamples > SampleCount) return false;
             var scores = Sync.Reading(()=>this.Select(v=>v.Result.Average).ToArray());
             foreach (var s in scores)
 			{
-				if (s > convergence)
-					throw new Exception("Score has exceeded convergence value.");
+				if (s > convergence + double.Epsilon)
+					throw new Exception("Score has exceeded convergence value: "+s);
 				if (s < convergence - tolerance)
 					return false;
 			}

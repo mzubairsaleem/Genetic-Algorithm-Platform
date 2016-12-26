@@ -31,7 +31,7 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		public int PopulationSize = 50;
-		public int MaxPopulations = 10;
+		public int MaxPopulations = 20;
 		public int TestCount = 5;
 
 
@@ -44,18 +44,21 @@ namespace GeneticAlgorithmPlatform
 
 		IEnumerable<Task> GenerateTests(int count)
 		{
-			foreach (var population in _populations.ToArray())
+			var problems = _problems.ToArray();
+			var population = _populations.First;
+			while (population != null)
 			{
-				foreach (var problem in _problems)
-				{
-					yield return problem.Test(population, count);
-				}
+				foreach (var problem in problems)
+					yield return problem.Test(population.Value, count);
+				population = population.Next;
 			}
+
+
 		}
 
 		public Task Test(int count)
 		{
-			return Task.WhenAll(GenerateTests(count).ToArray());
+			return Task.WhenAll(GenerateTests(count));
 		}
 
 		public Task Test()
@@ -117,18 +120,6 @@ namespace GeneticAlgorithmPlatform
 
 			// Since we have 'variations' added into the pool, we don't want to eliminate any new material that may be useful.
 			var additional = Math.Max(p.Count - PopulationSize, 0);
-
-			Debug.Assert(
-				p.Values.All(
-					g => _problems.All(
-						r =>
-						{
-							var f = r.GetFitnessFor(g);
-							return f == null ? false : f.Any();
-						}
-					)
-				)
-			);
 
 			p.KeepOnly(
 				_problems
@@ -205,22 +196,22 @@ namespace GeneticAlgorithmPlatform
 			await this._onExecute();
 		}
 
-        public void RunOnce()
+		public void RunOnce()
 		{
-            this._onExecute().Wait();
+			this._onExecute().Wait();
 		}
 
-        public async Task RunUntilConvergedAsync()
-        {
-            while(!Converged)
-                await this._onExecute();
-        }
+		public async Task RunUntilConvergedAsync()
+		{
+			while (!Converged)
+				await this._onExecute();
+		}
 
-        public void RunUntilConverged()
-        {
-            while(!Converged)
-                this._onExecute().Wait();
-        }
+		public void RunUntilConverged()
+		{
+			while (!Converged)
+				this._onExecute().Wait();
+		}
 	}
 
 

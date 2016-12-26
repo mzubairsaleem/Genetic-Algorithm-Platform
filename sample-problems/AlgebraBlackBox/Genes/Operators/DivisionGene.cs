@@ -16,14 +16,15 @@ namespace AlgebraBlackBox.Genes
         protected async override Task<double> CalculateWithoutMultiple(double[] values)
         {
             // Allow for special case which will get cleaned up.
-            if (_children.Count == 0) return 1;
-            var results = await Task.WhenAll( _children.Select(s => s.Calculate(values)));
+            var children = GetChildren();
+            if (children.Count == 0) return 1;
+            var results = await Task.WhenAll( children.Select(s => s.Calculate(values)));
             return results.QuotientOf(1);
         }
 
         public new DivisionGene Clone()
         {
-            return new DivisionGene(Multiple, _children.Select(g => g.Clone()));
+            return new DivisionGene(Multiple, GetChildren().Select(g => g.Clone()));
         }
 
         protected override GeneticAlgorithmPlatform.IGene CloneInternal()
@@ -34,14 +35,15 @@ namespace AlgebraBlackBox.Genes
         override protected void ReduceLoop()
         {
             // Pull out clean divisors.
-            foreach(var g in _children.ToArray())
+            var children = GetChildren();
+            foreach(var g in children.ToArray())
             {
                 var m = g.Multiple;
                 if(Multiple%m==0)
                 {
                     g.Multiple = 1;
                     if(g is ConstantGene)
-                        _children.Remove(g);
+                        children.Remove(g);
                     Multiple /= m;
                 }
             }
@@ -49,7 +51,8 @@ namespace AlgebraBlackBox.Genes
 
         protected override IGene ReplaceWithReduced()
         {
-            var d = (_children.Count ==1 ? _children.SingleOrDefault() : null) as DivisionGene;
+            var children = GetChildren();
+            var d = (children.Count ==1 ? children.SingleOrDefault() : null) as DivisionGene;
             if(d!=null && d.Multiple==1) {
                 d.Multiple *= this.Multiple;
                 return d;
