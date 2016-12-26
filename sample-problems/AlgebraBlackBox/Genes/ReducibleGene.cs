@@ -59,8 +59,9 @@ namespace AlgebraBlackBox.Genes
 		{
 			// Here's the magic... If the Reduce call returns non-null, then attempt to replace o with (new) g.
 			var g = child.Reduce();
-			if(g!=null) {
-				if(!ReplaceChild(child, g))
+			if (g != null)
+			{
+				if (!ReplaceChild(child, g))
 					Sync.Poke(); // Child may have changed internally.
 			}
 			return g;
@@ -91,16 +92,22 @@ namespace AlgebraBlackBox.Genes
 			var sync = Sync;
 			var modified = sync.Modifying(() =>
 			{
+				var modCount = 0;
 				// Inner loop will keep going while changes are still occuring.
 				while (sync.Modifying(() =>
 				{
 					foreach (var o in GetChildren().OfType<IReducibleGene>().ToArray())
 					{
-						ChildReduce(o);
+						if (ChildReduce(o) != null)
+							modCount++;
 					}
 
 					ReduceLoop();
-				})) { }
+				}))
+				{
+					modCount++;
+				}
+				return modCount != 0;
 			});
 
 			return ReplaceWithReduced()

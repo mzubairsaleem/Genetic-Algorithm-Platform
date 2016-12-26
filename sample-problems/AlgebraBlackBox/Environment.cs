@@ -71,7 +71,6 @@ namespace AlgebraBlackBox
 					Console.WriteLine("Convergent:"
 						+ c.Select(g => g.ToAlphaParameters(true)));
 
-
 				if (_problems.Count(pr => pr.Convergent.Any()) < this._problems.Count)
 				{
 					var n = this._populations.Last.Value;
