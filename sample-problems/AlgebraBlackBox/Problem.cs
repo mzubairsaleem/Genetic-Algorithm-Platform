@@ -40,16 +40,6 @@ namespace AlgebraBlackBox
 			this._convergent = new ConcurrentDictionary<string, Genome>();
 		}
 
-		// protected getScoreFor(genome:string):number;
-		// protected getScoreFor(genome:AlgebraGenome):number;
-		// protected getScoreFor(genome:any):number
-		// {
-		// 	if(!genome) return 0;
-		// 	if(!Type.isString(genome)) genome = genome.hashReduced;
-		// 	var s = this._fitness[genome];
-		// 	return s && s.score || 0;
-		// }
-
 		public Fitness GetFitnessFor(Genome genome, bool createIfMissing = true)
 		{
 			var key = genome.AsReduced().ToString();

@@ -20,8 +20,7 @@ namespace AlgebraBlackBox.Genes
 			// Allow for special case which will get cleaned up.
             var children = GetChildren();
 			if (children.Count == 0) return 1;
-			var results = await Task.WhenAll(children.Select(s => s.Calculate(values)));
-			return results.Product();
+			return (await Task.WhenAll(children.Select(s => s.Calculate(values))).ConfigureAwait(false)).Product();
 		}
 
 		public new ProductGene Clone()

@@ -52,8 +52,6 @@ namespace GeneticAlgorithmPlatform
 					yield return problem.Test(population.Value, count);
 				population = population.Next;
 			}
-
-
 		}
 
 		public Task Test(int count)
@@ -78,7 +76,6 @@ namespace GeneticAlgorithmPlatform
 		public int Populations
 		{
 			get { return _populations.Count; }
-
 		}
 
 		private long _totalTime = 0;
@@ -193,7 +190,7 @@ namespace GeneticAlgorithmPlatform
 
 		public async Task RunOnceAsync()
 		{
-			await this._onExecute();
+			await this._onExecute().ConfigureAwait(false);
 		}
 
 		public void RunOnce()
@@ -204,7 +201,7 @@ namespace GeneticAlgorithmPlatform
 		public async Task RunUntilConvergedAsync()
 		{
 			while (!Converged)
-				await this._onExecute();
+				await this._onExecute().ConfigureAwait(false);
 		}
 
 		public void RunUntilConverged()

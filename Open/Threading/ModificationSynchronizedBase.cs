@@ -12,12 +12,14 @@ namespace Open.Threading
 		private IModificationSynchronizer _sync;
 		public IModificationSynchronizer Sync
 		{
-			get {
+			get
+			{
 				var s = _sync;
 				AssertIsLiving();
 				return s;
 			}
-			private set {
+			private set
+			{
 				_sync = value;
 			}
 		}
@@ -31,11 +33,13 @@ namespace Open.Threading
 			}
 		}
 
-		bool _syncOwned;
+		protected bool _syncOwned;
 		protected virtual ModificationSynchronizer InitSync(ReaderWriterLockSlim sync = null)
 		{
 			_syncOwned = true;
-			return new ModificationSynchronizer(sync);
+			return sync == null
+				? new ModificationSynchronizer()
+				: new ReadWriteModificationSynchronizer(sync);
 		}
 
 
@@ -75,17 +79,14 @@ namespace Open.Threading
 			if (sync != null)
 			{
 				bool owned = false;
-				lock(sync)
-				{
-					// Allow for wrap-up.
-					if(!sync.IsDisposed) sync.Modifying(() =>
-					{
-						owned = _syncOwned;
-						SetSync(value);
-						return false; // Prevent triggering a Modified event.
+				// Allow for wrap-up.
+				if (!sync.IsDisposed) sync.Modifying(() =>
+				 {
+					 owned = _syncOwned;
+					 SetSync(value);
+					 return false; // Prevent triggering a Modified event.
 					});
-					if (owned) sync.Dispose();
-				}
+				if (owned) sync.Dispose();
 
 			}
 			else
@@ -96,9 +97,10 @@ namespace Open.Threading
 
 		protected override void OnDispose(bool calledExplicitly)
 		{
-			if(calledExplicitly)
+			if (calledExplicitly)
 				SetSyncSynced(null);
-			else {
+			else
+			{
 				// var owned = _syncOwned;
 				// var sync = _sync as IDisposable;
 				SetSync(null);

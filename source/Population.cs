@@ -42,7 +42,7 @@ namespace GeneticAlgorithmPlatform
         public async void Add()
         {
             // Be sure to add randomness in...
-            Add(await _genomeFactory.Generate());
+            Add(await _genomeFactory.Generate().ConfigureAwait(false));
         }
 
         public void Add(IEnumerable<TGenome> genomes)

@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Open.Threading;
 
 namespace Open.Collections
@@ -24,6 +25,11 @@ namespace Open.Collections
 		{
 		}
 
+		protected override ModificationSynchronizer InitSync(ReaderWriterLockSlim sync = null)
+		{
+			_syncOwned = true;
+			return new ReadWriteModificationSynchronizer(sync);
+		}
 
 		protected override void OnDispose(bool calledExplicitly)
 		{

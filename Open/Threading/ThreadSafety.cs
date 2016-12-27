@@ -547,6 +547,7 @@ namespace Open.Threading
                 }
             }
         }
+        
 
         public static void Execute(this SemaphoreSlim target, Action closure)
         {
@@ -609,6 +610,57 @@ namespace Open.Threading
             {
                 target.Wait();
                 return closure();
+            }
+            finally
+            {
+                try
+                {
+                    target.Release();
+                }
+                catch (SemaphoreFullException sfex)
+                {
+                    sfex.WriteToDebug();
+                }
+            }
+        }
+
+        
+        public static async Task<T> ExecuteAsync<T>(this SemaphoreSlim target, Func<T> closure)
+        {
+            if (target == null)
+                throw new ArgumentNullException("target");
+            if (closure == null)
+                throw new ArgumentNullException("closure");
+
+            try
+            {
+                await target.WaitAsync().ConfigureAwait(false);
+                return closure();
+            }
+            finally
+            {
+                try
+                {
+                    target.Release();
+                }
+                catch (SemaphoreFullException sfex)
+                {
+                    sfex.WriteToDebug();
+                }
+            }
+        }
+
+        public static async Task<T> ExecuteAsync<T>(this SemaphoreSlim target, Task<T> task)
+        {
+            if (target == null)
+                throw new ArgumentNullException("target");
+            if (task == null)
+                throw new ArgumentNullException("task");
+
+            try
+            { 
+                await target.WaitAsync().ConfigureAwait(false);
+                return await task;
             }
             finally
             {

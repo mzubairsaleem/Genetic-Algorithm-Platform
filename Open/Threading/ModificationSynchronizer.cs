@@ -17,7 +17,7 @@ namespace Open.Threading
 		bool Modifying(Func<bool> condition, Func<bool> action);
 		bool Modifying(Func<bool> action);
 
-		bool Modifying(Action action);
+		bool Modifying(Action action, bool assumeChange = false);
 
 		bool Modifying<T>(ref T target, T newValue);
 
@@ -26,9 +26,21 @@ namespace Open.Threading
 
 	}
 
-	public class ReadOnlyModificationSynchronizer : IModificationSynchronizer
+
+	public sealed class ReadOnlyModificationSynchronizer : IModificationSynchronizer
 	{
-		public bool Modifying(Action action)
+
+		public void Reading(Action action)
+		{
+			action();
+		}
+
+		public T Reading<T>(Func<T> action)
+		{
+			return action();
+		}
+
+		public bool Modifying(Action action, bool assumeChange = false)
 		{
 			throw new NotSupportedException("Synchronizer is read-only.");
 		}
@@ -48,22 +60,12 @@ namespace Open.Threading
 			throw new NotSupportedException("Synchronizer is read-only.");
 		}
 
-		public void Reading(Action action)
+		public void Poke()
 		{
-			action();
+			// Does nothing.
 		}
 
-		public T Reading<T>(Func<T> action)
-		{
-			return action();
-		}
-
-        public void Poke()
-        {
-            // Does nothing.
-        }
-
-        static ReadOnlyModificationSynchronizer _instance;
+		static ReadOnlyModificationSynchronizer _instance;
 		public static ReadOnlyModificationSynchronizer Instance
 		{
 			get
@@ -73,44 +75,17 @@ namespace Open.Threading
 		}
 	}
 
-	public sealed class ModificationSynchronizer : DisposableBase, IModificationSynchronizer
+
+	public class ModificationSynchronizer : DisposableBase, IModificationSynchronizer
 	{
+		public ModificationSynchronizer()
+		{
+		}
 
 		public event EventHandler Modified;
 
-		int _modifyingDepth = 0;
-		ReaderWriterLockSlim _sync;
-		bool _lockOwned;
-		int _version;
-
-		public ModificationSynchronizer(ReaderWriterLockSlim sync = null)
-		{
-			if (_sync == null) _lockOwned = true;
-			_sync = sync ?? new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-		}
-
-		void Cleanup()
-		{
-			Modified = null;
-			_sync = null;
-		}
-		protected override void OnDispose(bool calledExplicitly)
-		{
-			var s = _sync;
-			if (!calledExplicitly
-			|| !_sync.Write(Cleanup, 10 /* Give any cleanup a chance. */ ))
-				Cleanup();
-			if (_lockOwned)
-			{
-				s.Dispose();
-			}
-
-		}
-
-		// public ReaderWriterLockSlim Synchronizer
-		// {
-		// 	get { return _sync; }
-		// }
+		protected int _modifyingDepth = 0;
+		protected int _version;
 
 		public int Version
 		{
@@ -124,35 +99,134 @@ namespace Open.Threading
 
 		public void Poke()
 		{
-
+			Modifying(() => true);
 		}
 
-		void OnModified()
+
+		protected override void OnBeforeDispose()
+		{
+			Modified = null; // Clean events before swap.
+		}
+
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			Modified = null; // Just in case.
+		}
+
+
+		public virtual void Reading(Action action)
+		{
+			AssertIsLiving();
+			action();
+		}
+
+		public virtual T Reading<T>(Func<T> action)
+		{
+			AssertIsLiving();
+			return action();
+		}
+
+		protected void SignalModified()
 		{
 			var handler = Modified;
 			if (handler != null)
 				handler(this, EventArgs.Empty);
 		}
 
+		public bool Modifying(Func<bool> action)
+		{
+			return Modifying(null, action);
+		}
 
-		public void Reading(Action action)
+		public bool Modifying(Action action, bool assumeChange = false)
+		{
+			return Modifying(() =>
+			{
+				var ver = _version; // Capture the version so that if changes occur indirectly...
+				action();
+				return assumeChange || ver != _version;
+			});
+		}
+
+		public virtual bool Modifying(Func<bool> condition, Func<bool> action)
+		{
+			AssertIsLiving();
+			if (condition != null && !condition())
+				return false;
+
+			var ver = _version; // Capture the version so that if changes occur indirectly...
+			Interlocked.Increment(ref _modifyingDepth);
+			var modified = action();
+			if (modified) IncrementVersion();
+			// At zero depth and version change? Signal.
+			if (Interlocked.Decrement(ref _modifyingDepth) == 0 && ver != _version)
+				SignalModified();
+			return modified;
+		}
+
+		public virtual bool Modifying<T>(ref T target, T newValue)
+		{
+			AssertIsLiving();
+			if (target.Equals(newValue)) return false;
+
+			IncrementVersion();
+			target = newValue;
+
+			return true;
+		}
+	}
+
+
+
+	public sealed class ReadWriteModificationSynchronizer : ModificationSynchronizer
+	{
+
+		ReaderWriterLockSlim _sync;
+		bool _lockOwned;
+
+		public ReadWriteModificationSynchronizer(ReaderWriterLockSlim sync = null)
+		{
+			if (_sync == null) _lockOwned = true;
+			_sync = sync ?? new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+		}
+
+		void Cleanup()
+		{
+			_sync = null;
+		}
+
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			base.OnDispose(calledExplicitly);
+			var s = _sync;
+			if (!calledExplicitly
+			|| !_sync.Write(Cleanup, 10 /* Give any cleanup a chance. */ ))
+				Cleanup();
+			if (_lockOwned)
+			{
+				s.Dispose();
+			}
+		}
+
+
+		public override void Reading(Action action)
 		{
 			AssertIsLiving();
 			_sync.Read(action);
 		}
 
-		public T Reading<T>(Func<T> action)
+		public override T Reading<T>(Func<T> action)
 		{
 			AssertIsLiving();
 			return _sync.ReadValue(action);
 		}
 
-		public bool Modifying(Func<bool> condition, Func<bool> action)
+		public override bool Modifying(Func<bool> condition, Func<bool> action)
 		{
 			AssertIsLiving();
 
 			// Try and early invalidate.
-			if(condition!=null && !_sync.ReadValue(condition))
+			if (condition != null && !_sync.ReadValue(condition))
 				return false;
 
 			bool modified = false;
@@ -161,38 +235,14 @@ namespace Open.Threading
 				AssertIsLiving();
 				if (condition == null || condition())
 				{
-					_sync.Write(() =>
-					{
-						var ver = _version; // Capture the version so that if changes occur indirectly...
-						Interlocked.Increment(ref _modifyingDepth);
-						modified = action();
-						if (modified) IncrementVersion();
-						// At zero depth and version change? Signal.
-						if(Interlocked.Decrement(ref _modifyingDepth) == 0 && ver != _version)
-							OnModified();
-					});
+					modified = _sync.WriteValue(() => base.Modifying(null, action));
 				}
 			});
 			return modified;
 		}
 
-		public bool Modifying(Func<bool> action)
-		{
-			return Modifying(null, action);
-		}
 
-		// When using a delegate that doesn't have a boolean return, assume that changes occured.
-		public bool Modifying(Action action)
-		{
-			return Modifying(() =>
-			{
-				var ver = Version; // Capture the version so that if changes occur indirectly...
-				action();
-				return ver != Version;
-			});
-		}
-
-		public bool Modifying<T>(ref T target, T newValue)
+		public override bool Modifying<T>(ref T target, T newValue)
 		{
 			AssertIsLiving();
 			if (target.Equals(newValue)) return false;
@@ -224,7 +274,7 @@ namespace Open.Threading
 				if (changed)
 				{
 					// Events will be triggered but this thread will still have the upgradable read.
-					OnModified();
+					SignalModified();
 				}
 			}
 			finally
@@ -234,5 +284,5 @@ namespace Open.Threading
 			return changed;
 		}
 
-    }
+	}
 }

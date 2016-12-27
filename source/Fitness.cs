@@ -11,14 +11,13 @@ namespace GeneticAlgorithmPlatform
 
     public class SingleFitness : IComparable<SingleFitness>
 	{
-		private ProcedureResult _result;
-
+		ProcedureResult _result;
+		object _sync = new Object();
 		public SingleFitness(IEnumerable<double> scores = null) : base()
 		{
 			if (scores != null)
 				Add(scores);
 		}
-
 
 		public ProcedureResult Result
 		{
@@ -27,28 +26,29 @@ namespace GeneticAlgorithmPlatform
 
 
 		public void Add(double value, int count = 1)
-		{            
-            if(count!=0) lock(this)
-            {
-                _result = _result.Add(value, count);
-            }
+		{
+			if (count != 0)
+			{
+				// Ensures 1 update at a time.
+				lock(_sync) _result = _result.Add(value, count);
+			}
 		}
 
-        public void Add(IEnumerable<double> values)
-        {
-            double sum = 0;
-            int count = 0;
-            foreach(var value in values)
-            {
-                sum += value;
-                count++;
-            }
-            Add(sum,count);
-        }
+		public void Add(IEnumerable<double> values)
+		{
+			double sum = 0;
+			int count = 0;
+			foreach (var value in values)
+			{
+				sum += value;
+				count++;
+			}
+			Add(sum, count);
+		}
 
 		public int CompareTo(SingleFitness b)
 		{
-            return _result.CompareTo(b._result);
+			return _result.CompareTo(b._result);
 		}
 
 	}
@@ -61,18 +61,18 @@ namespace GeneticAlgorithmPlatform
 			get
 			{
 				if (Count == 0) return 0;
-				return Sync.Reading(()=>this.Min(s => s.Result.Count));
+				return Sync.Reading(() => this.Min(s => s.Result.Count));
 			}
 		}
 
 		public bool HasConverged(uint minSamples = 100, double convergence = 1, double tolerance = 0)
 		{
 			if (minSamples > SampleCount) return false;
-            var scores = Sync.Reading(()=>this.Select(v=>v.Result.Average).ToArray());
-            foreach (var s in scores)
+			var scores = Sync.Reading(() => this.Select(v => v.Result.Average).ToArray());
+			foreach (var s in scores)
 			{
 				if (s > convergence + double.Epsilon)
-					throw new Exception("Score has exceeded convergence value: "+s);
+					throw new Exception("Score has exceeded convergence value: " + s);
 				if (s < convergence - tolerance)
 					return false;
 			}
@@ -84,7 +84,7 @@ namespace GeneticAlgorithmPlatform
 		{
 			get
 			{
-				return Sync.Reading(()=>this.Select(v=>v.Result.Average).ToArray());
+				return Sync.Reading(() => this.Select(v => v.Result.Average).ToArray());
 			}
 		}
 

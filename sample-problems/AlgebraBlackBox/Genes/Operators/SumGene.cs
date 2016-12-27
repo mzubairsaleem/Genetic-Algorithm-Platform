@@ -19,7 +19,7 @@ namespace AlgebraBlackBox.Genes
         {
             using (var results = GetChildren().Select(s => s.Calculate(values)).Memoize())
             {
-                return results.Any() ? (await Task.WhenAll(results)).Sum() : 0;
+                return results.Any() ? (await Task.WhenAll(results).ConfigureAwait(false)).Sum() : 0;
             }
         }
 

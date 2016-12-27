@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace Open
 {
-    public sealed class DisposeHelper
+	public sealed class DisposeHelper
 	{
 		// Since all write operations are done through Interlocked, no need for volatile.
 		private int _disposeState;
@@ -60,7 +60,7 @@ namespace Open
 						BeforeDispose = null;
 
 						var db = target as DisposableBase;
-						if (db!=null)
+						if (db != null)
 							db.FireBeforeDispose();
 					}
 				}
@@ -78,7 +78,7 @@ namespace Open
 				// Then do internal cleanup.
 				try
 				{
-					if(OnDispose!=null)
+					if (OnDispose != null)
 						OnDispose(calledExplicitly);
 				}
 				catch (Exception onDisposeException)
@@ -100,7 +100,7 @@ namespace Open
 			// take this object off the finalization queue
 			// and prevent finalization code for this object
 			// from executing a second time.
-			if(calledExplicitly)
+			if (calledExplicitly)
 				GC.SuppressFinalize(target);
 
 		}
@@ -126,13 +126,24 @@ namespace Open
 
 		protected void Dispose(bool calledExplicitly)
 		{
-			var dh = Interlocked.Exchange(ref DisposingHelper, null);
-			if (dh != null)
+			try
 			{
-				dh.Dispose(this, OnDispose, calledExplicitly);
+				OnBeforeDispose();
+			}
+			finally
+			{
+				var dh = Interlocked.Exchange(ref DisposingHelper, null);
+				if (dh != null)
+				{
+					dh.Dispose(this, OnDispose, calledExplicitly);
+				}
 			}
 		}
 
+		// Can occur multiple times.
+		protected virtual void OnBeforeDispose() { }
+
+		// Occurs only once.
 		protected abstract void OnDispose(bool calledExplicitly);
 
 		// Being called by the GC...
@@ -153,7 +164,8 @@ namespace Open
 
 		public bool IsDisposed
 		{
-			get {
+			get
+			{
 				var dh = DisposingHelper;
 				return dh == null || !dh.IsLiving;
 			}
@@ -184,28 +196,28 @@ namespace Open
 
 		public static void DisposeAll(this IEnumerable<IDisposable> target)
 		{
-			if(target==null)
+			if (target == null)
 				throw new ArgumentNullException("target");
-			
+
 			foreach (var d in target)
 			{
-				if(d!=null)
+				if (d != null)
 					d.Dispose();
 			}
 		}
 
 		public static void SmartDispose(this IDisposable target)
 		{
-			if(target!=null)
+			if (target != null)
 				target.Dispose();
 		}
 
 		public static void SmartDispose<T>(this ICollection<T> target)
 		{
-			if(target!=null)
+			if (target != null)
 			{
 				target.Clear();
-				if(target is IDisposable)
+				if (target is IDisposable)
 				{
 					((IDisposable)target).Dispose();
 				}

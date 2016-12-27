@@ -38,7 +38,7 @@ namespace AlgebraBlackBox.Genes
 
 		protected async override Task<double> CalculateWithoutMultiple(double[] values)
 		{
-			return Math.Sqrt(await GetChildren().Single().Calculate(values));
+			return Math.Sqrt(await GetChildren().Single().Calculate(values).ConfigureAwait(false));
 		}
 
 		public new SquareRootGene Clone()
