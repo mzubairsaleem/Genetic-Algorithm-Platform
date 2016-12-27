@@ -24,7 +24,8 @@ namespace GeneticAlgorithmPlatform
         {
             Task.WaitAny(
                 Enumerable.Range(1,1)
-                .Select(i=>(new AlgebraBlackBox.Environment(SqrtA2B2AB)).RunUntilConvergedAsync()).ToArray()
+                    .Select(i=>(new AlgebraBlackBox.Environment(SqrtA2B2AB)).RunUntilConvergedAsync())
+                    .ToArray()
             );
         }
 

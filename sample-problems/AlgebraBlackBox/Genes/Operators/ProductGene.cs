@@ -97,7 +97,6 @@ namespace AlgebraBlackBox.Genes
 					pReduced.Multiple = 1;
 				}
 
-
 			}
 
 			// Collapse products within products.
@@ -134,36 +133,6 @@ namespace AlgebraBlackBox.Genes
 					ReplaceChild(last, last.Single()); // It should only be single.. If not, we have a serious problem somewhere else.
 				}
 
-			}
-
-			// Look for squares that have been rooted.
-			foreach (var sr in children
-				.OfType<SquareRootGene>()
-				.Where(g => g.SingleOrDefault() is ProductGene && g.Count > 1))
-			{
-
-				foreach (var p in sr
-					.GroupBy(g => g.ToStringContents())
-					.Where(g => g.Count() > 1))
-				{
-					var genes = p.ToList();
-
-					while (genes.Count > 1)
-					{
-						// Step 1 pull out the extra one.
-						var last = genes.Last();
-						Debug.Assert(last.Multiple == 1, "Should have already been pulled out.");
-						genes.Remove(last);
-						sr.Remove(last);
-
-						// Step 2 replace the square root container with the product.
-						last = genes.Last();
-						Debug.Assert(last.Multiple == 1, "Should have already been pulled out.");
-						genes.Remove(last);
-						Add(last); // Extract and include in the product.
-					}
-
-				}
 			}
 
 		}
