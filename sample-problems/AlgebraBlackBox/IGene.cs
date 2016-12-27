@@ -34,6 +34,12 @@ namespace AlgebraBlackBox
     {
         public static int Compare(this IGene a, IGene b)
         {
+            if(a.Multiple<0 && b.Multiple>0)
+                return 1;
+                
+            if(a.Multiple>0 && b.Multiple<0)
+                return -1;
+
             // Constants should trail at the end.
             if (a is ConstantGene && !(b is ConstantGene))
                 return 1;

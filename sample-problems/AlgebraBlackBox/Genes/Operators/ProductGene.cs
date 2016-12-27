@@ -111,14 +111,13 @@ namespace AlgebraBlackBox.Genes
 
 			// Look for groupings...
 			foreach (var p in children
+				.OfType<SquareRootGene>()
 				.GroupBy(g => g.ToStringContents())
 				.Where(g => g.Count() > 1))
 			{
 
 				// Multiplying more than 1 square root of the same value together?
-				var genes = p
-					.OfType<SquareRootGene>()
-					.ToList();
+				var genes = p.ToList();
 
 				while (genes.Count > 1)
 				{
@@ -134,8 +133,6 @@ namespace AlgebraBlackBox.Genes
 					genes.Remove(last);
 					ReplaceChild(last, last.Single()); // It should only be single.. If not, we have a serious problem somewhere else.
 				}
-
-				break;
 
 			}
 

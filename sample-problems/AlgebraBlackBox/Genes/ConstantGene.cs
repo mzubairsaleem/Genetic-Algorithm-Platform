@@ -15,6 +15,11 @@ namespace AlgebraBlackBox.Genes
 			return string.Empty;
 		}
 
+		protected override string ToStringInternal()
+		{
+			return Multiple.ToString();
+		}
+
 		public new ConstantGene Clone()
 		{
 			return new ConstantGene(Multiple);
