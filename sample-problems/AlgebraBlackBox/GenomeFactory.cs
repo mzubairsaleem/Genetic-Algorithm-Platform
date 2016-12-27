@@ -387,11 +387,12 @@ namespace AlgebraBlackBox
 				});
 			}
 
-			public static Genome Split(Genome source, IGene gene)
+			public static Genome Square(Genome source, IGene gene)
 			{
 				return ApplyClone(source, gene, (g, newGenome) =>
 				{
-					var newFn = Operators.GetRandomOperationGene(Operators.DIVIDE); // excluding divide
+					var newFn = new ProductGene(g.Multiple);
+					g.Multiple = 1;
 					newFn.Add(g);
 					newFn.Add(g.Clone());
 					newGenome.Replace(g, newFn);
@@ -486,7 +487,7 @@ namespace AlgebraBlackBox
 							// Split it...
 							case 2:
 								return MutationCatalog
-									.Split(target, gene);
+									.Square(target, gene);
 
 							// Apply a function
 							case 3:
