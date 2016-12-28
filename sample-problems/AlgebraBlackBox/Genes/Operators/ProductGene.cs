@@ -19,7 +19,7 @@ namespace AlgebraBlackBox.Genes
 			// Allow for special case which will get cleaned up.
 			var children = GetChildren();
 			if (children.Count == 0) return 1d;
-			return children.Any(c=>c.Multiple==0)
+			return children.Any(c => c.Multiple == 0)
 				? 0d
 				: (await Task.WhenAll(children.Select(s => s.CalculateAsync(values)))).Product();
 		}
@@ -29,23 +29,27 @@ namespace AlgebraBlackBox.Genes
 			// Allow for special case which will get cleaned up.
 			var children = GetChildren();
 			if (children.Count == 0) return 1d;
-			return children.Any(c=>c.Multiple==0)
+			return children.Any(c => c.Multiple == 0)
 				? 0d
 				: children.Select(s => s.Calculate(values)).Product();
 		}
 
+		ProductGene CloneThis()
+		{
+			return new ProductGene(Multiple, CloneChildren());
+		}
 		public new ProductGene Clone()
 		{
-			return new ProductGene(Multiple, GetChildren().Select(g => g.Clone()));
+			return CloneThis();
 		}
 
 		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
 		{
-			return this.Clone();
+			return CloneThis();
 		}
 		bool MigrateMultiples()
 		{
-            var children = GetChildren();
+			var children = GetChildren();
 			if (children.Any(c => c.Multiple == 0))
 			{
 				// Any multiple of zero? Reset the entire collection;
@@ -77,7 +81,7 @@ namespace AlgebraBlackBox.Genes
 		protected override void ReduceLoop()
 		{
 
-			if(MigrateMultiples()) return;
+			if (MigrateMultiples()) return;
 
 			var children = GetChildren();
 			foreach (var p in children.OfType<DivisionGene>().ToArray())
@@ -119,7 +123,7 @@ namespace AlgebraBlackBox.Genes
 				children.Remove(p);
 			}
 
-			if(MigrateMultiples()) return;
+			if (MigrateMultiples()) return;
 
 			// Look for groupings...
 			foreach (var p in children

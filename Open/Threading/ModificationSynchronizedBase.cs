@@ -34,12 +34,14 @@ namespace Open.Threading
 		}
 
 		protected bool _syncOwned;
-		protected virtual ModificationSynchronizer InitSync(ReaderWriterLockSlim sync = null)
+		protected virtual ModificationSynchronizer InitSync(object sync = null)
 		{
 			_syncOwned = true;
 			return sync == null
 				? new ModificationSynchronizer()
-				: new ReadWriteModificationSynchronizer(sync);
+				: sync is ReaderWriterLockSlim
+					? (ModificationSynchronizer)(new ReadWriteModificationSynchronizer((ReaderWriterLockSlim)sync))
+					: (ModificationSynchronizer)(new SimpleLockingModificationSynchronizer());
 		}
 
 
@@ -85,7 +87,7 @@ namespace Open.Threading
 					 owned = _syncOwned;
 					 SetSync(value);
 					 return false; // Prevent triggering a Modified event.
-					});
+				 });
 				if (owned) sync.Dispose();
 
 			}
@@ -123,6 +125,7 @@ namespace Open.Threading
 
 		public void Freeze()
 		{
+			return;
 			var sync = _sync as ModificationSynchronizer;
 			if (sync != null)
 			{

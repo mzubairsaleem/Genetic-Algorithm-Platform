@@ -35,9 +35,19 @@ namespace AlgebraBlackBox.Genes
 			}
 		}
 
+		SumGene CloneThis()
+		{
+			return new SumGene(Multiple, CloneChildren());
+		}
+
 		public new SumGene Clone()
 		{
-			return new SumGene(Multiple, GetChildren().Select(g => g.Clone()));
+			return CloneThis();
+		}
+
+		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
+		{
+			return CloneThis();
 		}
 
 		protected override string ToStringInternal()
@@ -148,9 +158,6 @@ namespace AlgebraBlackBox.Genes
 			return base.ReplaceWithReduced();
 		}
 
-		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
-		{
-			return this.Clone();
-		}
+
 	}
 }

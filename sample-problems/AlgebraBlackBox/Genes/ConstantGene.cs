@@ -27,7 +27,7 @@ namespace AlgebraBlackBox.Genes
 
         protected override GeneticAlgorithmPlatform.IGene CloneInternal()
         {
-			return this.Clone();
+			return new ConstantGene(Multiple);
         }
 
 		static readonly Task<double> T1d = Task.FromResult(1d);

@@ -29,14 +29,19 @@ namespace AlgebraBlackBox.Genes
 			return children.Select(s => s.Calculate(values)).QuotientOf(1);
 		}
 
+		DivisionGene CloneThis()
+		{
+			return new DivisionGene(Multiple, CloneChildren());
+		}
+
 		public new DivisionGene Clone()
 		{
-			return new DivisionGene(Multiple, GetChildren().Select(g => g.Clone()));
+			return CloneThis();
 		}
 
 		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
 		{
-			return this.Clone();
+			return CloneThis();
 		}
 
 		override protected void ReduceLoop()

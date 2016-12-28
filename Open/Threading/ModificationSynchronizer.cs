@@ -176,7 +176,64 @@ namespace Open.Threading
 		}
 	}
 
+	public sealed class SimpleLockingModificationSynchronizer : ModificationSynchronizer
+	{
 
+		readonly object _sync = new Object();
+
+		public SimpleLockingModificationSynchronizer(object sync = null)
+		{
+			_sync = sync ?? new Object();
+		}
+
+
+
+		public override void Reading(Action action)
+		{
+			AssertIsLiving();
+			lock(_sync) action();
+		}
+
+		public override T Reading<T>(Func<T> action)
+		{
+			AssertIsLiving();
+			lock(_sync) return action();
+		}
+
+		public override bool Modifying(Func<bool> condition, Func<bool> action)
+		{
+			bool modified = false;
+			ThreadSafety.LockConditional(
+				_sync,
+				() => AssertIsLiving() && (condition == null || condition()),
+				() => { modified = base.Modifying(null, action); }
+			);
+			return modified;
+		}
+
+
+		public override bool Modifying<T>(ref T target, T newValue)
+		{
+			AssertIsLiving();
+			if (target.Equals(newValue)) return false;
+
+			bool changed;
+			lock (_sync)
+			{
+				AssertIsLiving();
+				var ver = _version; // Capture the version so that if changes occur indirectly...
+				changed = !target.Equals(newValue);
+				if (changed)
+				{
+					IncrementVersion();
+					target = newValue;
+					SignalModified();
+				}
+			}
+			return changed;
+		}
+
+	}
 
 	public sealed class ReadWriteModificationSynchronizer : ModificationSynchronizer
 	{

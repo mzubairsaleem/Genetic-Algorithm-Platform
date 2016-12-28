@@ -25,10 +25,10 @@ namespace Open.Collections
 		{
 		}
 
-		protected override ModificationSynchronizer InitSync(ReaderWriterLockSlim sync = null)
+		protected override ModificationSynchronizer InitSync(object sync = null)
 		{
 			_syncOwned = true;
-			return new ReadWriteModificationSynchronizer(sync);
+			return new ReadWriteModificationSynchronizer(sync as ReaderWriterLockSlim);
 		}
 
 		protected override void OnDispose(bool calledExplicitly)

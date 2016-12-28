@@ -47,14 +47,19 @@ namespace AlgebraBlackBox.Genes
 			return "{" + ID + "}";
 		}
 
-		public new ParameterGene Clone()
+		ParameterGene CloneThis()
 		{
 			return new ParameterGene(ID) { Multiple = Multiple };
 		}
 
+		public new ParameterGene Clone()
+		{
+			return CloneThis();
+		}
+
 		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
 		{
-			return this.Clone();
+			return CloneThis();
 		}
 
 		protected override Task<double> CalculateWithoutMultipleAsync(double[] values)

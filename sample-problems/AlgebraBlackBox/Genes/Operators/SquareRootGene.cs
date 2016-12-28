@@ -46,14 +46,17 @@ namespace AlgebraBlackBox.Genes
 			return Math.Sqrt(GetChildren().Single().Calculate(values));
 		}
 
+		SquareRootGene CloneThis()
+		{
+			return new SquareRootGene(Multiple, CloneChildren());
+		}
 		public new SquareRootGene Clone()
 		{
-			return new SquareRootGene(Multiple, GetChildren().Select(g => g.Clone()));
+			return CloneThis();
 		}
-
 		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
 		{
-			return this.Clone();
+			return CloneThis();
 		}
 
 		protected override void ReduceLoop()

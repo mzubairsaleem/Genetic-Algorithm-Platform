@@ -1,0 +1,18 @@
+			Console.Write("Entry: ");
+			Console.Write(++_entryCount);
+			Console.WriteLine(" " + this.GetType());				// var r = ++_recursionDepth;
+				// Console.Write("Entry: ");
+				// Console.Write(++_entryCount);
+				// for (var i = 0; i < r; i++) Console.Write("\t");
+				
+				Console.WriteLine(this.GetType());
+								_recursionDepth--;
+				Console.Write("Exit:  ");
+				Console.WriteLine(++_exitCount);
+				
+			Console.Write("Exit:  ");
+			Console.WriteLine(++_exitCount);
+		static int _entryCount = 0;
+		static int _exitCount = 0;
+
+		static int _recursionDepth = 0;
