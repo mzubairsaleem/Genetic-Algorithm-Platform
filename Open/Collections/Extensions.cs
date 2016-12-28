@@ -581,54 +581,16 @@ namespace Open.Collections
 		#endregion
 
 
-		/// <summary>
-		/// Tries to acquire a value from a non-generic dictionary.
-		/// NOT THREAD SAFE: Use only when a dictionary local or is assured single threaded.
-		/// </summary>
-		/// <returns>True if a value was acquired.</returns>
-		public static bool TryGetValue<T>(this IDictionary target, object key, out T value)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
 
-			if (target.Contains(key))
-			{
-				var result = target[key];
-				value = result == null ? default(T) : (T)result;
-				return true;
-			}
-
-			value = default(T);
-			return false;
-		}
 
 
 		/// <summary>
 		/// Thread safe value for syncronizing acquiring a value from a non-generic dictionary.
 		/// </summary>
 		/// <returns>True if a value was acquired.</returns>
-		public static bool TryGetValueSynchronized<T>(this IDictionary target, object key, out T value)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			T result = default(T);
-			bool success = ThreadSafety.SynchronizeRead(target, key, () =>
-				ThreadSafety.SynchronizeRead(target, () =>
-					target.TryGetValue(key, out result)
-				)
-			);
-
-			value = result;
-
-			return success;
-		}
-
-		/// <summary>
-		/// Thread safe value for syncronizing acquiring a value from a non-generic dictionary.
-		/// </summary>
-		/// <returns>True if a value was acquired.</returns>
-		public static bool TryGetValueSynchronized<TKey, TValue>(this IDictionary<TKey, TValue> target, TKey key, out TValue value)
+		public static bool TryGetValueSynchronized<TKey, TValue>(
+			this IDictionary<TKey, TValue> target,
+			TKey key, out TValue value)
 		{
 			if (target == null) throw new NullReferenceException();
 			if (key == null) throw new ArgumentNullException("key");
@@ -646,37 +608,8 @@ namespace Open.Collections
 		}
 
 		/// <summary>
-		/// Attempts to acquire a specified type from a non-generic dictonary.
+		/// Attempts to acquire a specified type from a generic dictonary.
 		/// </summary>
-		public static T GetValueTypeSynchronized<T>(this IDictionary target, object key, bool throwIfNotExists = false)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			object value = target.GetValueSynchronized(key, throwIfNotExists);
-			try
-			{
-				return value == null ? default(T) : (T)value;
-			}
-			catch (InvalidCastException) { }
-
-			return default(T);
-		}
-
-		public static object GetValueSynchronized(this IDictionary target, object key, bool throwIfNotExists = false)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			object value;
-			var exists = target.TryGetValueSynchronized(key, out value);
-
-			if (!exists && throwIfNotExists)
-				throw new KeyNotFoundException(key.ToString());
-
-			return exists ? value : null;
-		}
-
 		public static TValue GetValueSynchronized<TKey, TValue>(this IDictionary<TKey, TValue> target, TKey key, bool throwIfNotExists = true)
 		{
 			if (target == null) throw new NullReferenceException();
@@ -726,33 +659,6 @@ namespace Open.Collections
 		/// <returns>
 		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
 		/// </returns>
-		public static bool TryAddSynchronized(
-			this IDictionary target,
-			object key,
-			object value,
-			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			bool added = false;
-			ThreadSafety.SynchronizeReadWriteKeyAndObject(
-				target, key, ref added,
-			() => !target.Contains(key),
-			() =>
-			{
-				target.Add(key, value);
-				return true;
-			}, millisecondsTimeout, false);
-			return added;
-		}
-
-		/// <summary>
-		/// Attempts to add a value by synchronizing the collection.
-		/// </summary>
-		/// <returns>
-		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
-		/// </returns>
 		public static bool TryAddSynchronized<TKey, T>(
 			this IDictionary<TKey, T> target,
 			TKey key,
@@ -774,32 +680,6 @@ namespace Open.Collections
 			return added;
 		}
 
-		/// <summary>
-		/// Attempts to add a value by synchronizing the collection.
-		/// </summary>
-		/// <returns>
-		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
-		/// </returns>
-		public static bool TryAddSynchronized(
-			this IDictionary target,
-			object key,
-			Func<object> valueFactory,
-			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			bool added = false;
-			ThreadSafety.SynchronizeReadWriteKeyAndObject(
-				target, key, ref added,
-			() => !target.Contains(key),
-			() =>
-			{
-				target.Add(key, valueFactory());
-				return true;
-			}, millisecondsTimeout, false);
-			return added;
-		}
 
 		/// <summary>
 		/// Attempts to add a value by synchronizing the collection.
@@ -828,31 +708,6 @@ namespace Open.Collections
 			return added;
 		}
 
-		/// <summary>
-		/// Attempts to add a value by synchronizing the collection.
-		/// </summary>
-		/// <returns>
-		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
-		/// </returns>
-		public static bool RemoveSynchronized(
-			this IDictionary target,
-			object key,
-			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			bool removed = false;
-			ThreadSafety.SynchronizeReadWriteKeyAndObject(
-				target, key, ref removed,
-			() => target.Contains(key),
-			() =>
-			{
-				target.Remove(key);
-				return true;
-			}, millisecondsTimeout, false);
-			return removed;
-		}
 
 		/// <summary>
 		/// Attempts to add a value by synchronizing the collection.
@@ -860,7 +715,7 @@ namespace Open.Collections
 		/// <returns>
 		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
 		/// </returns>
-		public static bool RemoveSynchronized<TKey, T>(
+		public static bool TryRemoveSynchronized<TKey, T>(
 			this IDictionary<TKey, T> target,
 			TKey key,
 			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
@@ -873,6 +728,35 @@ namespace Open.Collections
 				target, key, ref removed,
 			() => target.ContainsKey(key),
 			() => target.Remove(key),
+				millisecondsTimeout, false);
+			return removed;
+		}
+
+				/// <summary>
+		/// Attempts to add a value by synchronizing the collection.
+		/// </summary>
+		/// <returns>
+		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
+		/// </returns>
+		public static bool TryRemoveSynchronized<TKey, T>(
+			this IDictionary<TKey, T> target,
+			TKey key,
+			out T value,
+			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			value = default(T);
+			bool removed = false;
+			ThreadSafety.SynchronizeReadWriteKeyAndObject(
+				target, key, ref value,
+			() => target.ContainsKey(key),
+			() => {
+				var r = target[key];
+				removed = target.Remove(key);
+				return removed ? r : default(T);
+			},
 				millisecondsTimeout, false);
 			return removed;
 		}
@@ -906,20 +790,6 @@ namespace Open.Collections
 			return target.TryGetValue(key, out value) ? value : defaultValue;
 		}
 
-		/// <summary>
-		/// Attempts to get a value from a dictionary and if no value is present, it returns the provided defaultValue.
-		/// </summary>
-		public static T GetOrDefault<T>(
-			this IDictionary target,
-			object key,
-			T defaultValue)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			T value;
-			return target.TryGetValue(key, out value) ? value : defaultValue;
-		}
 
 		/// <summary>
 		/// Attempts to get a value from a dictionary and if no value is present, it returns the response of the valueFactory.
@@ -937,21 +807,6 @@ namespace Open.Collections
 			return target.TryGetValue(key, out value) ? value : valueFactory(key);
 		}
 
-		/// <summary>
-		/// Attempts to get a value from a dictionary and if no value is present, it returns the response of the valueFactory.
-		/// </summary>
-		public static T GetOrDefault<T>(
-			this IDictionary target,
-			object key,
-			Func<object, T> valueFactory)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-			if (valueFactory == null) throw new ArgumentNullException("valueFactory");
-
-			T value;
-			return target.TryGetValue(key, out value) ? value : valueFactory(key);
-		}
 
 		/// <summary>
 		/// Tries to acquire a value from the dictionary.  If no value is present it adds it using the valueFactory response.
@@ -979,43 +834,6 @@ namespace Open.Collections
 		public static T GetOrAdd<TKey, T>(
 			this IDictionary<TKey, T> target,
 			TKey key,
-			T value)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-
-			T v;
-			if (!target.TryGetValue(key, out v))
-				target.Add(key, v = value);
-			return v;
-		}
-
-		/// <summary>
-		/// Tries to acquire a value from the dictionary.  If no value is present it adds it using the valueFactory response.
-		/// NOT THREAD SAFE: Use only when a dictionary local or is assured single threaded.
-		/// </summary>
-		public static T GetOrAdd<T>(
-			this IDictionary target,
-			object key,
-			Func<object, T> valueFactory)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-			if (valueFactory == null) throw new ArgumentNullException("valueFactory");
-
-			T value;
-			if (!target.TryGetValue(key, out value))
-				target.Add(key, value = valueFactory(key));
-			return value;
-		}
-
-		/// <summary>
-		/// Tries to acquire a value from the dictionary.  If no value is present it adds the value provided.
-		/// NOT THREAD SAFE: Use only when a dictionary local or is assured single threaded.
-		/// </summary>
-		public static T GetOrAdd<T>(
-			this IDictionary target,
-			object key,
 			T value)
 		{
 			if (target == null) throw new NullReferenceException();
@@ -1058,35 +876,6 @@ namespace Open.Collections
 		}
 
 
-		/// <summary>
-		/// Thread safe method for synchronizing acquiring a value from the dictionary.  If no value is present it adds the value provided.
-		/// If the millisecondTimeout is reached the value is still returned but the collection is unchanged.
-		/// </summary>
-		public static T GetOrAddSynchronized<T>(
-			this IDictionary target,
-			object key,
-			T value,
-			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS,
-			bool throwsOnTimeout = true)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
-
-			T result = default(T);
-			// Uses threadsafe means to acquire value.
-			Func<bool> condition = () => !target.TryGetValue(key, out result);
-			Action render = () =>
-			{
-				result = value;
-				target.Add(key, result); // A lock is required when adding a value.  AKA 'changing the collection'.
-			};
-
-			if (!ThreadSafety.SynchronizeReadWrite(target, condition, render, millisecondsTimeout, throwsOnTimeout))
-				return value; // Value doesn'T exist and timeout exceeded? Return the add value...
-
-			return result;
-		}
 
 		/// <summary>
 		/// Thread safe method for synchronizing acquiring a value from the dictionary.  If no value is present it adds it using the valueFactory response.
@@ -1120,37 +909,6 @@ namespace Open.Collections
 			// 4) Value is checked for without a lock and if acquired returns it using the 'condition' query.
 			// 5) The value is then rendered using the ensureRendered query without locking the entire collection.  This allows for other values to be added.
 			// 6) The rendered value is then used to add to the collection if the value is missing, locking the collection if an add is necessary.
-
-			return result;
-		}
-
-
-		/// <summary>
-		/// Thread safe method for synchronizing acquiring a value from the dictionary.  If no value is present it adds it using the valueFactory response.
-		/// If the millisecondTimeout is reached the valueFactory is executed and the value is still returned but the collection is unchanged.
-		/// </summary>
-		public static T GetOrAddSynchronized<T>(
-			this IDictionary target,
-			object key,
-			Func<object, T> valueFactory,
-			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
-		{
-			if (target == null) throw new NullReferenceException();
-			if (key == null) throw new ArgumentNullException("key");
-			if (valueFactory == null) throw new ArgumentNullException("valueFactory");
-			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
-
-			T result = default(T);
-			Func<bool> condition = () => !ThreadSafety.SynchronizeRead(target, () => target.TryGetValue(key, out result));
-
-			// Once a per value write lock is established, execute the scheduler, and syncronize adding...
-			Action render = () => target.GetOrAddSynchronized(key, result = valueFactory(key), millisecondsTimeout);
-
-			if (!ThreadSafety.SynchronizeReadWrite(target, key, condition, render, millisecondsTimeout, false))
-				render(); // Timeout failed? Lock insert anyway and move on...
-
-			// ^^^ What actually happens...
-			// See previous method explaination.
 
 			return result;
 		}
@@ -2392,6 +2150,307 @@ namespace Open.Collections
 					return i;
 			return -1;
 		}
+
+	}
+}
+
+namespace Open.Collections.NonGeneric
+{
+	public static class Extensions
+	{
+		const int SYNC_TIMEOUT_DEFAULT_MILLISECONDS = 10000;
+	
+
+		/// <summary>
+		/// Attempts to add a value by synchronizing the collection.
+		/// </summary>
+		/// <returns>
+		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
+		/// </returns>
+		public static bool TryAddSynchronized(
+			this IDictionary target,
+			object key,
+			object value,
+			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			bool added = false;
+			ThreadSafety.SynchronizeReadWriteKeyAndObject(
+				target, key, ref added,
+			() => !target.Contains(key),
+			() =>
+			{
+				target.Add(key, value);
+				return true;
+			}, millisecondsTimeout, false);
+			return added;
+		}
+
+		/// <summary>
+		/// Attempts to add a value by synchronizing the collection.
+		/// </summary>
+		/// <returns>
+		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
+		/// </returns>
+		public static bool TryAddSynchronized(
+			this IDictionary target,
+			object key,
+			Func<object> valueFactory,
+			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			bool added = false;
+			ThreadSafety.SynchronizeReadWriteKeyAndObject(
+				target, key, ref added,
+			() => !target.Contains(key),
+			() =>
+			{
+				target.Add(key, valueFactory());
+				return true;
+			}, millisecondsTimeout, false);
+			return added;
+		}
+
+
+		/// <summary>
+		/// Attempts to add a value by synchronizing the collection.
+		/// </summary>
+		/// <returns>
+		/// Returns true if a value was added.  False if value already exists or a lock could not be acquired.
+		/// </returns>
+		public static bool RemoveSynchronized(
+			this IDictionary target,
+			object key,
+			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			bool removed = false;
+			ThreadSafety.SynchronizeReadWriteKeyAndObject(
+				target, key, ref removed,
+			() => target.Contains(key),
+			() =>
+			{
+				target.Remove(key);
+				return true;
+			}, millisecondsTimeout, false);
+			return removed;
+		}
+
+		
+		/// <summary>
+		/// Tries to acquire a value from the dictionary.  If no value is present it adds it using the valueFactory response.
+		/// NOT THREAD SAFE: Use only when a dictionary local or is assured single threaded.
+		/// </summary>
+		public static T GetOrAdd<T>(
+			this IDictionary target,
+			object key,
+			Func<object, T> valueFactory)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+			if (valueFactory == null) throw new ArgumentNullException("valueFactory");
+
+			T value;
+			if (!target.TryGetValue(key, out value))
+				target.Add(key, value = valueFactory(key));
+			return value;
+		}
+
+		/// <summary>
+		/// Tries to acquire a value from the dictionary.  If no value is present it adds the value provided.
+		/// NOT THREAD SAFE: Use only when a dictionary local or is assured single threaded.
+		/// </summary>
+		public static T GetOrAdd<T>(
+			this IDictionary target,
+			object key,
+			T value)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			T v;
+			if (!target.TryGetValue(key, out v))
+				target.Add(key, v = value);
+			return v;
+		}
+
+
+		/// <summary>
+		/// Tries to acquire a value from a non-generic dictionary.
+		/// NOT THREAD SAFE: Use only when a dictionary local or is assured single threaded.
+		/// </summary>
+		/// <returns>True if a value was acquired.</returns>
+		public static bool TryGetValue<T>(this IDictionary target, object key, out T value)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			if (target.Contains(key))
+			{
+				var result = target[key];
+				value = result == null ? default(T) : (T)result;
+				return true;
+			}
+
+			value = default(T);
+			return false;
+		}
+
+
+		/// <summary>
+		/// Thread safe value for syncronizing acquiring a value from a non-generic dictionary.
+		/// </summary>
+		/// <returns>True if a value was acquired.</returns>
+		public static bool TryGetValueSynchronized<T>(this IDictionary target, object key, out T value)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			T result = default(T);
+			bool success = ThreadSafety.SynchronizeRead(target, key, () =>
+				ThreadSafety.SynchronizeRead(target, () =>
+					target.TryGetValue(key, out result)
+				)
+			);
+
+			value = result;
+
+			return success;
+		}
+
+
+		/// <summary>
+		/// Attempts to acquire a specified type from a non-generic dictonary.
+		/// </summary>
+		public static T GetValueTypeSynchronized<T>(this IDictionary target, object key, bool throwIfNotExists = false)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			object value = target.GetValueSynchronized(key, throwIfNotExists);
+			try
+			{
+				return value == null ? default(T) : (T)value;
+			}
+			catch (InvalidCastException) { }
+
+			return default(T);
+		}
+
+		public static object GetValueSynchronized(this IDictionary target, object key, bool throwIfNotExists = false)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			object value;
+			var exists = target.TryGetValueSynchronized(key, out value);
+
+			if (!exists && throwIfNotExists)
+				throw new KeyNotFoundException(key.ToString());
+
+			return exists ? value : null;
+		}
+		
+		
+		/// <summary>
+		/// Attempts to get a value from a dictionary and if no value is present, it returns the response of the valueFactory.
+		/// </summary>
+		public static T GetOrDefault<T>(
+			this IDictionary target,
+			object key,
+			Func<object, T> valueFactory)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+			if (valueFactory == null) throw new ArgumentNullException("valueFactory");
+
+			T value;
+			return target.TryGetValue(key, out value) ? value : valueFactory(key);
+		}
+
+		/// <summary>
+		/// Attempts to get a value from a dictionary and if no value is present, it returns the provided defaultValue.
+		/// </summary>
+		public static T GetOrDefault<T>(
+			this IDictionary target,
+			object key,
+			T defaultValue)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+
+			T value;
+			return target.TryGetValue(key, out value) ? value : defaultValue;
+		}
+
+		
+		/// <summary>
+		/// Thread safe method for synchronizing acquiring a value from the dictionary.  If no value is present it adds the value provided.
+		/// If the millisecondTimeout is reached the value is still returned but the collection is unchanged.
+		/// </summary>
+		public static T GetOrAddSynchronized<T>(
+			this IDictionary target,
+			object key,
+			T value,
+			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS,
+			bool throwsOnTimeout = true)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
+
+			T result = default(T);
+			// Uses threadsafe means to acquire value.
+			Func<bool> condition = () => !target.TryGetValue(key, out result);
+			Action render = () =>
+			{
+				result = value;
+				target.Add(key, result); // A lock is required when adding a value.  AKA 'changing the collection'.
+			};
+
+			if (!ThreadSafety.SynchronizeReadWrite(target, condition, render, millisecondsTimeout, throwsOnTimeout))
+				return value; // Value doesn'T exist and timeout exceeded? Return the add value...
+
+			return result;
+		}
+
+		
+		/// <summary>
+		/// Thread safe method for synchronizing acquiring a value from the dictionary.  If no value is present it adds it using the valueFactory response.
+		/// If the millisecondTimeout is reached the valueFactory is executed and the value is still returned but the collection is unchanged.
+		/// </summary>
+		public static T GetOrAddSynchronized<T>(
+			this IDictionary target,
+			object key,
+			Func<object, T> valueFactory,
+			int millisecondsTimeout = SYNC_TIMEOUT_DEFAULT_MILLISECONDS)
+		{
+			if (target == null) throw new NullReferenceException();
+			if (key == null) throw new ArgumentNullException("key");
+			if (valueFactory == null) throw new ArgumentNullException("valueFactory");
+			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
+
+			T result = default(T);
+			Func<bool> condition = () => !ThreadSafety.SynchronizeRead(target, () => target.TryGetValue(key, out result));
+
+			// Once a per value write lock is established, execute the scheduler, and syncronize adding...
+			Action render = () => target.GetOrAddSynchronized(key, result = valueFactory(key), millisecondsTimeout);
+
+			if (!ThreadSafety.SynchronizeReadWrite(target, key, condition, render, millisecondsTimeout, false))
+				render(); // Timeout failed? Lock insert anyway and move on...
+
+			// ^^^ What actually happens...
+			// See previous method explaination.
+
+			return result;
+		}
+
 
 	}
 }

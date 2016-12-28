@@ -22,6 +22,9 @@ namespace GeneticAlgorithmPlatform
          */
         void Freeze();
 
+        // True if frozen.
+        bool IsReadOnly {get;}
+
         bool Equivalent(IGenome other);
      
     }

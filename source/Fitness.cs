@@ -3,13 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Open.Arithmetic;
 using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public class SingleFitness : IComparable<SingleFitness>
+	public class SingleFitness
+	// : IComparable<SingleFitness>
 	{
 		ProcedureResult _result;
 		object _sync = new Object();
@@ -30,7 +32,7 @@ namespace GeneticAlgorithmPlatform
 			if (count != 0)
 			{
 				// Ensures 1 update at a time.
-				lock(_sync) _result = _result.Add(value, count);
+				lock (_sync) _result = _result.Add(value, count);
 			}
 		}
 
@@ -46,10 +48,14 @@ namespace GeneticAlgorithmPlatform
 			Add(sum, count);
 		}
 
-		public int CompareTo(SingleFitness b)
-		{
-			return _result.CompareTo(b._result);
-		}
+		// public int CompareTo(SingleFitness b)
+		// {
+		// 	if (this == b) return 0;
+		// 	if (b == null)
+		// 		throw new ArgumentNullException("other");
+			
+		// 	return _result.CompareTo(b._result);
+		// }
 
 	}
 
@@ -119,29 +125,50 @@ namespace GeneticAlgorithmPlatform
 			this.AddTheseScores(scores);
 		}
 
+		static long FitnessCount = 0;
+		long _id = Interlocked.Increment(ref FitnessCount);
 
-
+		// Some cases enumerables are easier to sort in ascending than descnding.
+		const int DIRECTION = -1;
 		public int CompareTo(Fitness other)
 		{
-			var len = Count;
-			Debug.Assert(len == other.Count);
-			for (var i = 0; i < len; i++)
+			if (this == other) return 0;
+			if (other == null)
+				throw new ArgumentNullException("other");
+			int len = Count, otherLen = other.Count;
+			if (len != 0 || otherLen != 0)
 			{
-				if (this.Count < other.Count) return -1;
-				if (this.Count > other.Count) return +1;
+				// If unseen? Should be of greater importance..
+				if (len == 0 && otherLen != 0) return +DIRECTION;
+				if (len != 0 && otherLen == 0) return -DIRECTION;
+				Debug.Assert(len == other.Count, "Fitnesses must be compatible.");
 
-				var a = this[i].Result;
-				var b = other[i].Result;
-				var aA = a.Average;
-				var bA = b.Average;
+				// In non-debug, all for the lesser scored to be of lesser importance.
+				if (len < otherLen) return -DIRECTION;
+				if (len > otherLen) return +DIRECTION;
 
-				if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -1;
-				if (aA > bA || !double.IsNaN(aA) && double.IsNaN(bA)) return +1;
+				for (var i = 0; i < len; i++)
+				{
+					var a = this[i].Result;
+					var b = other[i].Result;
+					var aA = a.Average;
+					var bA = b.Average;
 
-				if (a.Count < b.Count) return -1;
-				if (a.Count > b.Count) return +1;
+					// Standard A less than B.
+					if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -DIRECTION;
+					// Standard A greater than B.
+					if (aA > bA || !double.IsNaN(aA) && double.IsNaN(bA)) return +DIRECTION;
+
+					// Who has the most samples?
+					if (a.Count < b.Count) return -DIRECTION;
+					if (a.Count > b.Count) return +DIRECTION;
+				}
 			}
-			return 0;
+
+			if (_id < other._id) return +DIRECTION;
+			if (_id > other._id) return -DIRECTION;
+
+			throw new Exception("Impossible? Interlocked failed?");
 		}
 
 

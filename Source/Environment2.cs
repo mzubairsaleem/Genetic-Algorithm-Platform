@@ -4,11 +4,14 @@
  */
 
 
+
 namespace GeneticAlgorithmPlatform
 {
     public class Environment2
 	{
 
+
+		// BlockingCollection<IGenome> ReadyForTesting;
 		
 		void Poke()
 		{

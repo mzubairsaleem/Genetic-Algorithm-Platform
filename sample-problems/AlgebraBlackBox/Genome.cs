@@ -7,7 +7,7 @@ using Open.Threading;
 
 namespace AlgebraBlackBox
 {
-    public class Genome : GeneticAlgorithmPlatform.Genome<IGene>, IEquatable<Genome>, IReducible<Genome>
+	public class Genome : GeneticAlgorithmPlatform.Genome<IGene>, IEquatable<Genome>, IReducible<Genome>
 	{
 		public Genome(IGene root) : base(root)
 		{
@@ -28,7 +28,10 @@ namespace AlgebraBlackBox
 				_reduced = Lazy.New(() =>
 				{
 					var r = Root as IReducibleGene;
-					return r != null && r.IsReducible ? new Genome(r.AsReduced()) : this;
+					if (r == null || !r.IsReducible) return this;
+					var g = new Genome(r.AsReduced());
+					g.Freeze();
+					return g;
 				}); // Use a clone to prevent any threading issues.
 			_variations = null;
 		}
@@ -127,16 +130,21 @@ namespace AlgebraBlackBox
 		public Genome AsReduced(bool ensureClone = false)
 		{
 			var r = _reduced.Value;
-			return ensureClone ? r.Clone() : r;
+			if (ensureClone)
+			{
+				r = r.Clone();
+				r.Freeze();
+			}
+			return r;
 		}
 
 
 		public override GeneticAlgorithmPlatform.IGenome NextVariation()
-		{			
+		{
 			var source = _variations;
-			if(source==null) return null;
-			var e = LazyInitializer.EnsureInitialized(ref _varationEnumerator,()=>source.GetEnumerator());
-			if(e.MoveNext()) return e.Current;
+			if (source == null) return null;
+			var e = LazyInitializer.EnsureInitialized(ref _varationEnumerator, () => source.GetEnumerator());
+			if (e.MoveNext()) return e.Current;
 			Interlocked.Exchange(ref _varationEnumerator, null);
 			return NextVariation();
 		}
@@ -153,8 +161,8 @@ namespace AlgebraBlackBox
 
 		public void RegisterVariations(IEnumerable<Genome> variations)
 		{
-			if(this.IsReadOnly)
-				throw new ArgumentException("Cannot register variations after frozen.","variations");
+			if (this.IsReadOnly && _variations!=null)
+				throw new ArgumentException("Cannot register variations after frozen.", "variations");
 			_variations = variations.Memoize();
 		}
 

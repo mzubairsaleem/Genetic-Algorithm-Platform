@@ -296,7 +296,7 @@ namespace Open.Threading
 
         public static bool SynchronizeReadWrite<TSync>(
             TSync syncObject,
-            object key, Func<bool, bool> condition, Action closure,
+            object key, Func<bool> condition, Action closure,
             int? millisecondsTimeout = null, bool throwsOnTimeout = true) where TSync : class
         {
             ValidateSyncObject(syncObject);
@@ -316,7 +316,7 @@ namespace Open.Threading
 
         public static bool SynchronizeReadWrite<TSync, T>(
             TSync syncObject,
-            object key, ref T result, Func<bool, bool> condition, Func<T> closure,
+            object key, ref T result, Func<bool> condition, Func<T> closure,
             int? millisecondsTimeout = null, bool throwsOnTimeout = true) where TSync : class
         {
             ValidateSyncObject(syncObject);
@@ -332,40 +332,6 @@ namespace Open.Threading
                     .ReadWriteConditionalOptimized(key, ref result,
                         condition, closure, millisecondsTimeout, throwsOnTimeout);
 
-        }
-
-        public static bool SynchronizeReadWrite<TSync>(
-            TSync syncObject,
-            object key, Func<bool> condition, Action closure,
-            int? millisecondsTimeout = null, bool throwsOnTimeout = true) where TSync : class
-        {
-            ValidateSyncObject(syncObject);
-            if (key == null)
-                throw new ArgumentNullException("key");
-            if (condition == null)
-                throw new ArgumentNullException("condition");
-            if (closure == null)
-                throw new ArgumentNullException("closure");
-            ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
-
-            return SynchronizeReadWrite(syncObject, key, (isWriteLock) => condition(), closure, millisecondsTimeout, throwsOnTimeout);
-        }
-
-        public static bool SynchronizeReadWrite<TSync, T>(
-            TSync syncObject,
-            object key, ref T result, Func<bool> condition, Func<T> closure,
-            int? millisecondsTimeout = null, bool throwsOnTimeout = true) where TSync : class
-        {
-            ValidateSyncObject(syncObject);
-            if (key == null)
-                throw new ArgumentNullException("key");
-            if (condition == null)
-                throw new ArgumentNullException("condition");
-            if (closure == null)
-                throw new ArgumentNullException("closure");
-            ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
-
-            return SynchronizeReadWrite(syncObject, key, ref result, (isWriteLock) => condition(), closure, millisecondsTimeout, throwsOnTimeout);
         }
 
         public static bool SynchronizeReadWriteKeyAndObject<TSync>(
@@ -432,7 +398,7 @@ namespace Open.Threading
                 throw new ArgumentNullException("closure");
             ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
 
-            return SynchronizeReadWrite(syncObject, syncObject, (isWriteLock) => condition(), closure, millisecondsTimeout, throwsOnTimeout);
+            return SynchronizeReadWrite(syncObject, syncObject, condition, closure, millisecondsTimeout, throwsOnTimeout);
         }
 
         public static bool SynchronizeReadWrite<TSync, T>(
@@ -447,7 +413,7 @@ namespace Open.Threading
                 throw new ArgumentNullException("closure");
             ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
 
-            return SynchronizeReadWrite(syncObject, syncObject, ref result, (isWriteLock) => condition(), closure, millisecondsTimeout, throwsOnTimeout);
+            return SynchronizeReadWrite(syncObject, syncObject, ref result, condition, closure, millisecondsTimeout, throwsOnTimeout);
         }
 
         public static T SynchronizeRead<TSync, T>(TSync syncObject, object key, Func<T> closure, int? millisecondsTimeout = null) where TSync : class

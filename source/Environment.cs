@@ -49,7 +49,7 @@ namespace GeneticAlgorithmPlatform
 			while (population != null)
 			{
 				foreach (var problem in problems)
-					yield return problem.Test(population.Value, count);
+					yield return problem.Test(population.Value.Values, count);
 				population = population.Next;
 			}
 		}
@@ -198,15 +198,15 @@ namespace GeneticAlgorithmPlatform
 			this._onExecute().Wait();
 		}
 
-		public async Task RunUntilConvergedAsync()
+		public async Task RunUntilConvergedAsync(uint maxGenerations = uint.MaxValue)
 		{
-			while (!Converged)
+			while (!Converged && this._generations<maxGenerations)
 				await this._onExecute().ConfigureAwait(false);
 		}
 
-		public void RunUntilConverged()
+		public void RunUntilConverged(uint maxGenerations = uint.MaxValue)
 		{
-			while (!Converged)
+			while (!Converged && this._generations<maxGenerations)
 				this._onExecute().Wait();
 		}
 	}
