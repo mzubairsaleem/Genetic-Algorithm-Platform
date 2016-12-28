@@ -27,7 +27,7 @@ namespace AlgebraBlackBox
 
 		public Genome[] Ranked()
 		{
-			return ThreadSafety.SynchronizeRead(_rankedPool,()=>_rankedPool.Values.ToArray());
+			return ThreadSafety.SynchronizeRead(_rankedPool, () => _rankedPool.Values.ToArray());
 		}
 
 
@@ -56,14 +56,12 @@ namespace AlgebraBlackBox
 		{
 			if (!genome.IsReadOnly)
 				throw new InvalidOperationException("Cannot recall fitness for an unfrozen genome.");
-			//var reduced = genome.AsReduced();
-			var key = genome
-				//.AsReduced()
-				.ToString();
+			var reduced = genome.AsReduced();
+			var key = reduced.ToString();
 			if (createIfMissing) return _fitness.GetOrAdd(key, k => Lazy.New(() =>
 			{
 				var f = new Fitness();
-				_rankedPool.TryAddSynchronized(f, genome); // Used to feed next in rank or claim for testing.
+				//_rankedPool.TryAddSynchronized(f, reduced); // Used to feed next in rank or claim for testing.
 				return f;
 			})).Value;
 
@@ -80,12 +78,7 @@ namespace AlgebraBlackBox
 					Genome = g,
 					Fitness = GetFitnessFor(g)
 				})
-				.Where(g =>
-				{
-					var fitness = g.Fitness;
-					return fitness.Sync.Reading(
-						() => fitness.Scores.All(s => !double.IsNaN(s)));
-				})
+				.Where(g=>g.Fitness.Count>0)
 				.OrderBy(g => g.Fitness)
 				.ThenBy(g => g.Genome.Hash.Length)
 				.Select(g => g.Genome);
@@ -183,8 +176,9 @@ namespace AlgebraBlackBox
 		{
 			Genome result = null;
 			ThreadSafety.SynchronizeReadWrite(_rankedPool,
-				()=>_rankedPool.Any(),
-				()=>{
+				() => _rankedPool.Any(),
+				() =>
+				{
 					var first = _rankedPool.First();
 					_rankedPool.Remove(first.Key);
 					result = first.Value;
@@ -254,28 +248,127 @@ namespace AlgebraBlackBox
 		// 	}
 		// }
 
-		async Task<Fitness> Test(Genome g, List<double> correct, List<double[]> samples)
+		async Task<Fitness> ProcessTestAsync(Genome g, List<double> correct, List<double[]> samples)
 		{
 			var fitness = GetFitnessFor(g);
 			var len = correct.Count;
 			var divergence = new double[correct.Count];
 			var calc = new double[correct.Count];
 			var NaNcount = 0;
+
+			// #if DEBUG
+			// 			var gRed = g.AsReduced();
+			// #endif
+
 			for (var i = 0; i < len; i++)
 			{
-				var result = await g.Calculate(samples[i]);
-				if(double.IsNaN(result)) NaNcount++;
+				var result = await g.CalculateAsync(samples[i]);
+				// #if DEBUG
+				// 				if (gRed != g)
+				// 				{
+				// 					var s = samples[i];
+				// 					var rr = await gRed.Calculate(s);
+				// 					if (!g.Genes.OfType<ParameterGene>().Any(gg=>gg.ID>1) // For debugging/testing IDs greater than 1 are invalid so ignore.
+				// 						&& !result.IsRelativeNearEqual(rr, 1E-7))
+				// 					{
+				// 						var message = String.Format(
+				// 	@"Reduction calculation doesn't match!!! {0} => {1}
+				// 	Sample: {2}
+				// 	result: {3} != {4}", g, gRed, s.JoinToString(", "), result, rr);
+				// 						if (!result.IsNaN())
+				// 							Debug.Fail(message);
+				// 						else
+				// 							Debug.WriteLine(message);
+				// 					}
+				// 				}
+				// #endif
+				if (double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
 				divergence[i] = -Math.Abs(result - correct[i]);
 			}
 
-			if(NaNcount!=0)
+			if (NaNcount != 0)
 			{
 				// We do not yet handle NaN values gracefully yet so avoid correlation.
 				fitness.AddScores(
-					NaNcount==len // All NaN basically = fail.  Don't waste time trying to correlate.
-					? double.NegativeInfinity
-					: -2,
+					NaNcount == len // All NaN basically = fail.  Don't waste time trying to correlate.
+						? double.NegativeInfinity
+						: -2,
+					double.NegativeInfinity);
+				return fitness;
+			}
+
+			var c = correct.Correlation(calc);
+			var d = divergence.Average() + 1;
+
+			fitness.AddScores(
+				(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
+				(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
+			);
+
+			var key = g
+				//.AsReduced()
+				.ToString();
+			if (fitness.HasConverged())
+			{
+				_convergent[key] = g;
+			}
+			else
+			{
+				Genome v;
+				_convergent.TryRemove(key, out v);
+			}
+
+			return fitness;
+		}
+
+
+		Fitness ProcessTest(Genome g, List<double> correct, List<double[]> samples)
+		{
+			var fitness = GetFitnessFor(g);
+			var len = correct.Count;
+			var divergence = new double[correct.Count];
+			var calc = new double[correct.Count];
+			var NaNcount = 0;
+
+			// #if DEBUG
+			// 			var gRed = g.AsReduced();
+			// #endif
+
+			for (var i = 0; i < len; i++)
+			{
+				var result = g.Calculate(samples[i]);
+				// #if DEBUG
+				// 				if (gRed != g)
+				// 				{
+				// 					var s = samples[i];
+				// 					var rr = await gRed.Calculate(s);
+				// 					if (!g.Genes.OfType<ParameterGene>().Any(gg=>gg.ID>1) // For debugging/testing IDs greater than 1 are invalid so ignore.
+				// 						&& !result.IsRelativeNearEqual(rr, 1E-7))
+				// 					{
+				// 						var message = String.Format(
+				// 	@"Reduction calculation doesn't match!!! {0} => {1}
+				// 	Sample: {2}
+				// 	result: {3} != {4}", g, gRed, s.JoinToString(", "), result, rr);
+				// 						if (!result.IsNaN())
+				// 							Debug.Fail(message);
+				// 						else
+				// 							Debug.WriteLine(message);
+				// 					}
+				// 				}
+				// #endif
+				if (double.IsNaN(result)) NaNcount++;
+				calc[i] = result;
+				divergence[i] = -Math.Abs(result - correct[i]);
+			}
+
+			if (NaNcount != 0)
+			{
+				// We do not yet handle NaN values gracefully yet so avoid correlation.
+				fitness.AddScores(
+					NaNcount == len // All NaN basically = fail.  Don't waste time trying to correlate.
+						? double.NegativeInfinity
+						: -2,
 					double.NegativeInfinity);
 				return fitness;
 			}
@@ -357,7 +450,24 @@ namespace AlgebraBlackBox
 		// 		});
 		// }
 
-		Task ProcessTest(IEnumerable<Genome> genes)
+		async Task ProcessTestAsync(IEnumerable<Genome> genes)
+		{
+			await Task.WhenAll(
+				TestPrep((correct, samples) =>
+					genes.Select(g => ProcessTestAsync(g, correct, samples))
+				).ToArray()
+				).ConfigureAwait(false);
+		}
+
+		void ProcessTest(IEnumerable<Genome> genes)
+		{
+			TestPrep(
+				(correct, samples) =>
+					genes.Select(g => ProcessTest(g, correct, samples))
+			).ToArray();
+		}
+
+		T TestPrep<T>(Func<List<double>, List<double[]>, T> handler)
 		{
 			// Need a way to diversify the number of parameter samples...
 			var f = this._actualFormula;
@@ -375,35 +485,38 @@ namespace AlgebraBlackBox
 					correct.Add(f(a, b));
 				}
 			}
-			#if DEBUG
-			if(correct.All(v=>double.IsNaN(v)))
+
+#if DEBUG
+			if (correct.All(v => double.IsNaN(v)))
 				throw new Exception("Formula cannot render allways NaN.");
-			#endif
+#endif
 
-			return Task.WhenAll(genes.Select(g => Test(g, correct, samples)).ToArray());
-
+			return handler(correct, samples);
 		}
 
-		IEnumerable<Task> ProcessTest(IEnumerable<Genome> p, int count)
+		IEnumerable<Task> ProcessTestAsync(IEnumerable<Genome> p, int count)
 		{
 			for (var i = 0; i < count; i++)
 			{
-				yield return ProcessTest(p);
+				yield return ProcessTestAsync(p);
 			}
 		}
 
-		public Task Test(IEnumerable<Genome> p, int count = 1)
+		void ProcessTest(IEnumerable<Genome> p, int count)
+		{
+			for (var i = 0; i < count; i++)
+			{
+				ProcessTest(p);
+			}
+		}
+
+		public Task TestAsync(IEnumerable<Genome> p, int count = 1)
 		{
 			if (p == null)
 				throw new ArgumentNullException("p");
 
 			// TODO: Need to find a way to dynamically implement more than 2 params... (discover significant params)
-			return Task.WhenAll(ProcessTest(p, count));
-		}
-
-		public Task<Genome> GetNextTopGenome()
-		{
-			throw new NotImplementedException();
+			return Task.WhenAll(ProcessTestAsync(p, count));
 		}
 
 		public void GetConvergent(BufferBlock<Genome> queue)
@@ -411,10 +524,15 @@ namespace AlgebraBlackBox
 			throw new NotImplementedException();
 		}
 
-		public Task<Fitness> Test(Genome genome)
+		public void Test(IEnumerable<Genome> p, int count = 1)
 		{
-			throw new NotImplementedException();
+			if (p == null)
+				throw new ArgumentNullException("p");
+
+			// TODO: Need to find a way to dynamically implement more than 2 params... (discover significant params)
+			ProcessTest(p, count);
 		}
+
 	}
 
 

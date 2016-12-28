@@ -11,7 +11,8 @@ namespace AlgebraBlackBox
 
         bool SetMultiple(double value);
 
-        Task<double> Calculate(double[] values);
+        double Calculate(double[] values);
+        Task<double> CalculateAsync(double[] values);
 
         string ToStringContents();
 

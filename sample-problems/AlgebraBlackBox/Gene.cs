@@ -31,14 +31,26 @@ namespace AlgebraBlackBox
 			AssertIsLiving();
 			return Sync.Modifying(ref _multiple, value);
 		}
-		public virtual async Task<double> Calculate(double[] values)
+
+		public double Calculate(double[] values)
 		{
 			AssertIsLiving();
-			var calc = await CalculateWithoutMultiple(values);
-			return Multiple * calc;
+			var m = Multiple;
+			if (m == 0) return 0; // zero==zero even if the underlying calc is NaN.
+			return m * CalculateWithoutMultiple(values);
 		}
 
-		protected abstract Task<double> CalculateWithoutMultiple(double[] values);
+		public async Task<double> CalculateAsync(double[] values)
+		{
+			AssertIsLiving();
+			var m = Multiple;
+			if (m == 0) return 0; // zero==zero even if the underlying calc is NaN.
+			var calc = await CalculateWithoutMultipleAsync(values);
+			return m * calc;
+		}
+
+		protected abstract double CalculateWithoutMultiple(double[] values);
+		protected abstract Task<double> CalculateWithoutMultipleAsync(double[] values);
 
 		protected string MultiplePrefix
 		{
@@ -131,14 +143,26 @@ namespace AlgebraBlackBox
 		}
 
 
-		public virtual async Task<double> Calculate(double[] values)
+		public double Calculate(double[] values)
 		{
 			AssertIsLiving();
-			var calc = await CalculateWithoutMultiple(values);
-			return Multiple * calc;
+			var m = Multiple;
+			if (m == 0) return 0; // zero==zero even if the underlying calc is NaN.
+			return m * CalculateWithoutMultiple(values);
 		}
 
-		protected abstract Task<double> CalculateWithoutMultiple(double[] values);
+		public async Task<double> CalculateAsync(double[] values)
+		{
+			AssertIsLiving();
+			var m = Multiple;
+			if (m == 0) return 0; // zero==zero even if the underlying calc is NaN.
+			var calc = await CalculateWithoutMultipleAsync(values);
+			return m * calc;
+		}
+
+		protected abstract double CalculateWithoutMultiple(double[] values);
+		protected abstract Task<double> CalculateWithoutMultipleAsync(double[] values);
+
 
 
 		public virtual int CompareTo(IGene other)

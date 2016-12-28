@@ -35,9 +35,8 @@ namespace AlgebraBlackBox
 		}
 
 
-		public override async Task<Genome> Generate(IEnumerable<Genome> source = null)
+		public override Genome Generate(IEnumerable<Genome> source = null)
 		{
-
 			var attempts = 0;
 			Genome genome = null;
 			string hash = null;
@@ -53,7 +52,7 @@ namespace AlgebraBlackBox
 					var tries = 10;//200;
 					do
 					{
-						genome = await MutateAsync(source.RandomSelectOne(), m);
+						genome = Mutate(source.RandomSelectOne(), m);
 						hash = genome.Hash;
 						attempts++;
 					}
@@ -97,7 +96,7 @@ namespace AlgebraBlackBox
 						var t = Math.Min(_previousGenomes.Count * 2, 100); // A local maximum.
 						do
 						{
-							genome = await MutateAsync(_previousGenomes.Values.RandomSelectOne(), m);
+							genome = Mutate(_previousGenomes.Values.RandomSelectOne(), m);
 							hash = genome.Hash;
 							attempts++;
 						}
@@ -113,9 +112,6 @@ namespace AlgebraBlackBox
 					// else
 					// 	genome = null; // Failed... Converged? No solutions? Saturated?
 				}
-
-
-
 			}
 
 			//console.log("Generate attempts:",attempts);
@@ -138,6 +134,12 @@ namespace AlgebraBlackBox
 			return genome;
 
 		}
+
+		
+        public override Task<Genome> GenerateAsync(IEnumerable<Genome> source = null)
+        {
+			return Task.FromResult(Generate(source));
+        }
 
 
 		public static Genome ApplyClone(Genome source, int geneIndex, Action<IGene, Genome> handler)
@@ -275,6 +277,8 @@ namespace AlgebraBlackBox
 		{
 			public static Genome MutateSign(Genome source, IGene gene)
 			{
+				var isRoot = source.Root == gene;
+				var parentIsSquareRoot = source.FindParent(gene) is SquareRootGene;
 				return ApplyClone(source, gene, g =>
 				{
 					switch (RandomUtilities.Random.Next(3))
@@ -282,12 +286,26 @@ namespace AlgebraBlackBox
 						case 0:
 							// Alter Sign
 							g.Multiple *= -1;
+							if (parentIsSquareRoot)
+							{
+								// Sorry, not gonna mess with unreal (sqrt neg numbers yet).
+								if (RandomUtilities.Random.Next(2) == 0)
+									goto case 1;
+								else
+									goto case 2;
+							}
 							break;
 						case 1:
+							// Don't zero the root. (makes no sense)
+							if (isRoot && g.Multiple == -1)
+								goto case 2;
 							// Increase multiple.
 							g.Multiple += 1;
 							break;
 						case 2:
+							// Don't zero the root or make the internal multiple negative.
+							if (isRoot && g.Multiple == +1 || parentIsSquareRoot && g.Multiple <= 0)
+								goto case 1;
 							// Decrease multiple.
 							g.Multiple -= 1;
 							break;
@@ -575,27 +593,28 @@ namespace AlgebraBlackBox
 
 		}
 
-		public override Task<Genome> MutateAsync(Genome source, uint mutations = 1)
+		public override Genome Mutate(Genome source, uint mutations = 1)
 		{
-			return Task.Run(() =>
+			Genome genome = null;
+			for (uint i = 0; i < mutations; i++)
 			{
-				Genome genome = null;
-				for (uint i = 0; i < mutations; i++)
+				uint tries = 3;
+				do
 				{
-					uint tries = 3;
-					do
-					{
-						genome = Freeze(MutateInternal(source));
-					}
-					while (genome == null && --tries != 0);
-					// Reuse the clone as the source 
-					if (genome == null) break; // No mutation possible? :/
-					source = genome;
+					genome = Freeze(MutateInternal(source));
 				}
-				return genome;
-			});
-
+				while (genome == null && --tries != 0);
+				// Reuse the clone as the source 
+				if (genome == null) break; // No mutation possible? :/
+				source = genome;
+			}
+			return genome;
 		}
 
-	}
+		public override Task<Genome> MutateAsync(Genome source, uint mutations = 1)
+		{
+			return Task.FromResult(Mutate(source, mutations));
+		}
+
+    }
 }

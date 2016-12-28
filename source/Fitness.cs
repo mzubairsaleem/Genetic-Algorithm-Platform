@@ -31,6 +31,7 @@ namespace GeneticAlgorithmPlatform
 		{
 			if (count != 0)
 			{
+				Debug.Assert(!double.IsNaN(value), "Adding a NaN value will completely invalidate the fitness value.");
 				// Ensures 1 update at a time.
 				lock (_sync) _result = _result.Add(value, count);
 			}
@@ -53,7 +54,7 @@ namespace GeneticAlgorithmPlatform
 		// 	if (this == b) return 0;
 		// 	if (b == null)
 		// 		throw new ArgumentNullException("other");
-			
+
 		// 	return _result.CompareTo(b._result);
 		// }
 

@@ -95,10 +95,16 @@ namespace AlgebraBlackBox
 			return new Genome(Root.Clone());
 		}
 
-		public Task<double> Calculate(double[] values)
+		public double Calculate(double[] values)
 		{
 			return Root.Calculate(values);
 		}
+
+		public Task<double> CalculateAsync(double[] values)
+		{
+			return Root.CalculateAsync(values);
+		}
+		
 
 
 		public string ToAlphaParameters(bool reduced = false)

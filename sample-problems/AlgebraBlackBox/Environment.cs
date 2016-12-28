@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using Open.Collections;
 
 namespace AlgebraBlackBox
@@ -21,9 +20,9 @@ namespace AlgebraBlackBox
 				.Add(new Problem(actualFormula));
 		}
 
-		protected override async Task _onExecute()
+		protected override void _onExecute()
 		{
-			await base._onExecute();
+			base._onExecute();
 
 			var p = this._populations
 				//.AsParallel()
@@ -67,12 +66,13 @@ namespace AlgebraBlackBox
 				}
 
 				var c = _problems.SelectMany(pr => pr.Convergent).ToArray();
-				if (c.Length != 0) {
+				if (c.Length != 0)
+				{
 					Console.WriteLine("");
 					Console.WriteLine("Convergent:");
-					foreach(var converged in c)
+					foreach (var converged in c)
 					{
-						Console.WriteLine("\t"+converged.ToAlphaParameters(true));
+						Console.WriteLine("\t" + converged.ToAlphaParameters(true));
 					}
 				}
 

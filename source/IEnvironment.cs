@@ -15,14 +15,16 @@ namespace GeneticAlgorithmPlatform
         /**
          * Initiates a cycle of testing with the current populations and problems.
          */
-        Task Test(int count = 1);
+        Task TestAsync(int count = 1);
 
         /**
          * Spawns a new population. Optionally does so using the source provided.
          * @param populationSize
          * @param source
          */
-        Task<Population<TGenome>> Spawn(int populationSize, IEnumerable<TGenome> source = null);
+        Population<TGenome> Spawn(int populationSize, IEnumerable<TGenome> source = null);
+        Task<Population<TGenome>> SpawnAsync(int populationSize, IEnumerable<TGenome> source = null);
+        
     }
 
 }

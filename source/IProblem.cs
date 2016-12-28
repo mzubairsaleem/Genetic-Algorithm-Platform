@@ -19,8 +19,10 @@ namespace GeneticAlgorithmPlatform
         IEnumerable<TGenome> Rank(IEnumerable<TGenome> population);
         // Some outlying survivors may be tied in their fitness and there needs to be a way to retain them without a hard trim.
 
-        Task Test(IEnumerable<TGenome> population, int count = 1);
+        void Test(IEnumerable<TGenome> population, int count = 1);
+        Task TestAsync(IEnumerable<TGenome> population, int count = 1);
 
-        Task<Fitness> Test(TGenome genome);
+        // Fitness Test(TGenome genome);
+        // Task<Fitness> TestAsync(TGenome genome);
     }
 }

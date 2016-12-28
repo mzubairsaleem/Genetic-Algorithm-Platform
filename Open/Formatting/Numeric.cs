@@ -124,6 +124,24 @@ namespace Open.Formatting
 		}
 
 		/// <summary>
+		/// Shortcut for validating a if a decimal addValue is close enough to another addValue using the given tolerance tolerance.
+		/// </summary>
+		public static bool IsRelativeNearEqual(this double a, double b, double tolerance)
+		{
+			if(a.IsNearEqual(b,tolerance)) return true;
+			if(double.IsNaN(a) || double.IsNaN(b)) return false;
+			var aS = a.ToString();
+			var bS = b.ToString();
+			if(aS==bS) return true;
+			var i = aS.IndexOf(".");
+			var divisor = Math.Pow(10,i+1);
+			a /= divisor;
+			b /= divisor;
+			var result = a.IsNearEqual(b, tolerance);
+			return result;
+		}
+
+		/// <summary>
 		/// Validates if values are equal within epsilon tolerance.
 		/// </summary>
 		public static bool IsPreciseEqual(this double a, double b, bool stringValidate = false)

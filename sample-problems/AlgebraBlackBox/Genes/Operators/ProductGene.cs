@@ -14,25 +14,36 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-
-		protected async override Task<double> CalculateWithoutMultiple(double[] values)
+		protected async override Task<double> CalculateWithoutMultipleAsync(double[] values)
 		{
 			// Allow for special case which will get cleaned up.
-            var children = GetChildren();
-			if (children.Count == 0) return 1;
-			return (await Task.WhenAll(children.Select(s => s.Calculate(values))).ConfigureAwait(false)).Product();
+			var children = GetChildren();
+			if (children.Count == 0) return 1d;
+			return children.Any(c=>c.Multiple==0)
+				? 0d
+				: (await Task.WhenAll(children.Select(s => s.CalculateAsync(values)))).Product();
+		}
+
+		protected override double CalculateWithoutMultiple(double[] values)
+		{
+			// Allow for special case which will get cleaned up.
+			var children = GetChildren();
+			if (children.Count == 0) return 1d;
+			return children.Any(c=>c.Multiple==0)
+				? 0d
+				: children.Select(s => s.Calculate(values)).Product();
 		}
 
 		public new ProductGene Clone()
 		{
-            return new ProductGene(Multiple, GetChildren().Select(g => g.Clone()));	
+			return new ProductGene(Multiple, GetChildren().Select(g => g.Clone()));
 		}
 
 		protected override GeneticAlgorithmPlatform.IGene CloneInternal()
 		{
 			return this.Clone();
 		}
-		void MigrateMultiples()
+		bool MigrateMultiples()
 		{
             var children = GetChildren();
 			if (children.Any(c => c.Multiple == 0))
@@ -40,34 +51,35 @@ namespace AlgebraBlackBox.Genes
 				// Any multiple of zero? Reset the entire collection;
 				Clear();
 				Multiple = 0;
+				return true;
 			}
-			else
+
+			// Extract any multiples so we don't have to worry about them later.
+			foreach (var c in children.OfType<ConstantGene>().ToArray())
 			{
-				// Extract any multiples so we don't have to worry about them later.
-				foreach (var c in children.OfType<ConstantGene>().ToArray())
+				var m = c.Multiple;
+				Remove(c);
+				this.Multiple *= m;
+			}
+			foreach (var c in children)
+			{
+				var m = c.Multiple;
+				if (m != 1d)
 				{
-					var m = c.Multiple;
-					Remove(c);
 					this.Multiple *= m;
-				}
-				foreach (var c in children)
-				{
-					var m = c.Multiple;
-					if (m != 1d)
-					{
-						this.Multiple *= m;
-						c.Multiple = 1d;
-					}
+					c.Multiple = 1d;
 				}
 			}
+
+			return false;
 		}
 
 		protected override void ReduceLoop()
 		{
 
-			MigrateMultiples();
+			if(MigrateMultiples()) return;
 
-            var children = GetChildren();
+			var children = GetChildren();
 			foreach (var p in children.OfType<DivisionGene>().ToArray())
 			{
 				Debug.Assert(p.Multiple == 1, "Should have already been pulled out.");
@@ -107,6 +119,8 @@ namespace AlgebraBlackBox.Genes
 				children.Remove(p);
 			}
 
+			if(MigrateMultiples()) return;
+
 			// Look for groupings...
 			foreach (var p in children
 				.OfType<SquareRootGene>()
@@ -138,7 +152,7 @@ namespace AlgebraBlackBox.Genes
 
 		protected override IGene ReplaceWithReduced()
 		{
-            var children = GetChildren();
+			var children = GetChildren();
 			if (children.Count == 1)
 			{
 				var c = children.Single();

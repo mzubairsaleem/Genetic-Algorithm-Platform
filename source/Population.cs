@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
 {
-    public class Population<TGenome> : ConcurrentDictionary<string, TGenome>
+	public class Population<TGenome> : ConcurrentDictionary<string, TGenome>
 	where TGenome : IGenome
 
 	{
@@ -46,7 +46,7 @@ namespace GeneticAlgorithmPlatform
 		public async void Add()
 		{
 			// Be sure to add randomness in...
-			Add(await _genomeFactory.Generate().ConfigureAwait(false));
+			Add(await _genomeFactory.GenerateAsync().ConfigureAwait(false));
 		}
 
 		public void Add(IEnumerable<TGenome> genomes)
@@ -56,8 +56,7 @@ namespace GeneticAlgorithmPlatform
 					Add(g);
 		}
 
-
-		public async Task Populate(int count, IEnumerable<TGenome> rankedGenomes = null)
+		void AddVariation(IEnumerable<TGenome> rankedGenomes = null)
 		{
 			if (rankedGenomes != null)
 			{
@@ -73,11 +72,28 @@ namespace GeneticAlgorithmPlatform
 					}
 				}
 			}
+		}
+
+		public void Populate(int count, IEnumerable<TGenome> rankedGenomes = null)
+		{
+			AddVariation(rankedGenomes);
 
 			// Then add mutations from best in source.
 			for (var i = 0; i < count; i++)
 			{
-				Add(await _genomeFactory.Generate(rankedGenomes));
+				Add(_genomeFactory.Generate(rankedGenomes));
+			}
+
+		}
+
+		public async Task PopulateAsync(int count, IEnumerable<TGenome> rankedGenomes = null)
+		{
+			AddVariation(rankedGenomes);
+
+			// Then add mutations from best in source.
+			for (var i = 0; i < count; i++)
+			{
+				Add(await _genomeFactory.GenerateAsync(rankedGenomes));
 			}
 
 		}

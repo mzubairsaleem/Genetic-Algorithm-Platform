@@ -30,9 +30,15 @@ namespace AlgebraBlackBox.Genes
 			return this.Clone();
         }
 
-        protected override Task<double> CalculateWithoutMultiple(double[] values)
+		static readonly Task<double> T1d = Task.FromResult(1d);
+        protected override Task<double> CalculateWithoutMultipleAsync(double[] values)
         {
-			return Task.Run(()=>Multiple);
+			return T1d;
+        }
+
+		protected override double CalculateWithoutMultiple(double[] values)
+        {
+			return 1d;
         }
 
 		public bool Equivalent(IGene other)

@@ -57,22 +57,23 @@ namespace AlgebraBlackBox.Genes
 			return this.Clone();
 		}
 
-		protected override Task<double> CalculateWithoutMultiple(double[] values)
+		protected override Task<double> CalculateWithoutMultipleAsync(double[] values)
 		{
-			AssertIsLiving();
-			return Task.Run(() =>
-			{
-				var id = ID;
-				return id < values.Length ? values[id] : double.NaN;
-			});
+			return Task.FromResult(CalculateWithoutMultiple(values));
 		}
 
+		protected override double CalculateWithoutMultiple(double[] values)
+		{
+			AssertIsLiving();
+			var id = ID;
+			return id < values.Length ? values[id] : double.NaN;
+		}
 
 		public bool Equivalent(IGene other)
 		{
-			if(other==this) return true;
+			if (other == this) return true;
 			var pg = other as ParameterGene;
-			return pg!=null && ID == pg.ID && Multiple == other.Multiple;
+			return pg != null && ID == pg.ID && Multiple == other.Multiple;
 		}
 
 	}

@@ -36,9 +36,14 @@ namespace AlgebraBlackBox.Genes
 			base.Add(target);
 		}
 
-		protected async override Task<double> CalculateWithoutMultiple(double[] values)
+		protected async override Task<double> CalculateWithoutMultipleAsync(double[] values)
 		{
-			return Math.Sqrt(await GetChildren().Single().Calculate(values).ConfigureAwait(false));
+			return Math.Sqrt(await GetChildren().Single().CalculateAsync(values).ConfigureAwait(false));
+		}
+
+		protected override double CalculateWithoutMultiple(double[] values)
+		{
+			return Math.Sqrt(GetChildren().Single().Calculate(values));
 		}
 
 		public new SquareRootGene Clone()
@@ -54,7 +59,7 @@ namespace AlgebraBlackBox.Genes
 		protected override void ReduceLoop()
 		{
 			var child = GetChildren().FirstOrDefault();
-            if(child==null) return;            
+			if (child == null) return;
 			if (child.Multiple > 3)
 			{
 				// First migrate any possible multiple.
@@ -73,18 +78,21 @@ namespace AlgebraBlackBox.Genes
 
 		protected override IGene ReplaceWithReduced()
 		{
-            var child = GetChildren().FirstOrDefault();
-            if(child==null) return null;       
+			var child = GetChildren().FirstOrDefault();
+			if (child == null) return null;
 
-            if(child.Multiple==0)
-                return new ConstantGene(0);
+			if (child.Multiple == 0)
+				return new ConstantGene(0);
+			
+			if(child.Multiple != 1) // Can't make a perfect square?
+				return null;
 
 			var product = child as ProductGene;
 			if (product != null)
 			{
 
 				ProductGene wrapper = null;
-				// Look for squares...
+				// Look for perfect squares...
 				foreach (var p in product.Children.ToArray()
 					.GroupBy(g => g.ToStringContents())
 					.Where(g => g.Count() > 1))
@@ -114,9 +122,21 @@ namespace AlgebraBlackBox.Genes
 
 				if (wrapper != null)
 				{
-                    if(product.Children.Any())
-                        wrapper.Add(this); // Assumes that the caller will replace this node with the wrapper.
-                    return wrapper;
+					if (product.Children.Any())
+					{
+						wrapper.Add(this); // Assumes that the caller will replace this node with the wrapper.
+					}
+					else if (product.Multiple != 1)
+					{
+						ReplaceChild(product, new ConstantGene(product.Multiple));
+						wrapper.Add(this);
+					}
+					else
+					{
+						wrapper.Multiple = product.Multiple * this.Multiple;
+					}
+
+					return wrapper;
 				}
 
 			}

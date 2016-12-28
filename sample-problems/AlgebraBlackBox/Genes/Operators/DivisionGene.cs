@@ -13,12 +13,20 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-		protected async override Task<double> CalculateWithoutMultiple(double[] values)
+		protected async override Task<double> CalculateWithoutMultipleAsync(double[] values)
 		{
 			// Allow for special case which will get cleaned up.
 			var children = GetChildren();
 			if (children.Count == 0) return 1;
-            return (await Task.WhenAll(children.Select(s => s.Calculate(values))).ConfigureAwait(false)).QuotientOf(1);
+            return (await Task.WhenAll(children.Select(s => s.CalculateAsync(values))).ConfigureAwait(false)).QuotientOf(1);
+		}
+
+		protected override double CalculateWithoutMultiple(double[] values)
+		{
+			// Allow for special case which will get cleaned up.
+			var children = GetChildren();
+			if (children.Count == 0) return 1;
+			return children.Select(s => s.Calculate(values)).QuotientOf(1);
 		}
 
 		public new DivisionGene Clone()
@@ -38,6 +46,15 @@ namespace AlgebraBlackBox.Genes
 			foreach (var g in children.ToArray())
 			{
 				var m = g.Multiple;
+
+				// Pull out negatives first.
+				if(m<0)
+				{
+					m *= -1;
+					g.Multiple *= m;
+					Multiple *= -1;
+				}
+
 				if (Multiple % m == 0)
 				{
 					g.Multiple = 1;

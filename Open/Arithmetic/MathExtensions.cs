@@ -109,6 +109,7 @@ namespace Open.Arithmetic
 			var result = 1d;
 			foreach (var s in source)
 			{
+				if(s==0) return 0; // Any value of zero in a product will render zero so don't check for NaN.
 				any = true;
 				result *= s;
 			}
@@ -124,10 +125,15 @@ namespace Open.Arithmetic
             var result = double.NaN;
             foreach (var s in source)
             {
-                if (index == 0)
+                if (index == 0){
+					if(s==0) return 0;
+					if(double.IsNaN(s)) return double.NaN;	
                     result = s;
-                else
-                    result /= s;
+				}
+                else {
+					if(double.IsNaN(s)) return double.NaN;	
+                    result /= s;				
+				}
 
                 index++;
             }
@@ -142,6 +148,7 @@ namespace Open.Arithmetic
             var result = numerator;
             foreach (var s in divisors)
             {
+				if(s==0 || double.IsNaN(s)) return double.NaN;	
                 result /= s;
                 any = true;
             }
@@ -157,6 +164,7 @@ namespace Open.Arithmetic
 			var result = 0d;
 			foreach (var s in source)
 			{
+				if(double.IsNaN(s)) return double.NaN;	
 				if (!any)
 					result = s;
 				else

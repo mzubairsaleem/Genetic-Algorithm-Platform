@@ -69,7 +69,7 @@ namespace AlgebraBlackBox.Genes
 
 		protected virtual IGene ReplaceWithReduced()
 		{
-			return GetChildren().Count == 0 ? new ConstantGene(this.Multiple) : null;
+			return GetChildren().Count == 0 ? new ConstantGene(Multiple) : null;
 		}
 
 

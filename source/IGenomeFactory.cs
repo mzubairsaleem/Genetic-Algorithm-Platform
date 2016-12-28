@@ -11,7 +11,9 @@ namespace GeneticAlgorithmPlatform
     public interface IGenomeFactory<TGenome>
      where TGenome : IGenome
     {
-        Task<TGenome> Generate(IEnumerable<TGenome> source = null);
+        TGenome Generate(IEnumerable<TGenome> source = null);
+        Task<TGenome> GenerateAsync(IEnumerable<TGenome> source = null);
+        TGenome Mutate(TGenome source, uint mutations = 1);
         Task<TGenome> MutateAsync(TGenome source, uint mutations = 1);
         uint MaxGenomeTracking { get; set; }
         string[] PreviousGenomes { get; }

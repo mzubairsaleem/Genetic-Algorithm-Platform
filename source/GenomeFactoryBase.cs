@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace GeneticAlgorithmPlatform
 {
 
-	public abstract class GenomeFactoryBase<TGenome>
+    public abstract class GenomeFactoryBase<TGenome>
 	: IGenomeFactory<TGenome>
 	where TGenome : IGenome
 	{
@@ -67,9 +67,9 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		protected abstract IEnumerable<TGenome> GenerateVariations(TGenome source);
-
-		public abstract Task<TGenome> Generate(IEnumerable<TGenome> source);
-
+		public abstract TGenome Generate(IEnumerable<TGenome> source);
+        public abstract Task<TGenome> GenerateAsync(IEnumerable<TGenome> source = null);
+        public abstract TGenome Mutate(TGenome source, uint mutations = 1);
 		public abstract Task<TGenome> MutateAsync(TGenome source, uint mutations);
 
 		public void Add(TGenome genome)
@@ -80,6 +80,8 @@ namespace GeneticAlgorithmPlatform
 				_previousGenomesOrder.Enqueue(hash);
 			}
 		}
-	}
+
+
+    }
 }
 
