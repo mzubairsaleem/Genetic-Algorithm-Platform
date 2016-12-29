@@ -31,7 +31,7 @@ namespace AlgebraBlackBox
 	{
 
 		SortedList<Fitness, Genome> _rankedPool;
-		
+
 		// We use a lazy to ensure 100% concurrency since ConcurrentDictionary is optimistic;
 		ConcurrentDictionary<string, Lazy<Fitness>> _fitness;
 		ConcurrentDictionary<string, Genome> _convergent;
@@ -132,6 +132,45 @@ namespace AlgebraBlackBox
 			return p;
 		}
 
+		public Genome TakeNextTop()
+		{
+			return PeekNextTop((kvp, lt) =>
+				// We have a write lock? YES! Remove from list! Return false if not possible so that the take returns null.
+				lt == LockType.Write
+					? kvp.HasValue && _rankedPool.Remove(kvp.Value.Key)
+					: true);
+		}
+
+		// When upgradeLockCondition returns true the lock will progressively be upgraded from Read, ReadUpgradeable, to Write.
+		protected Genome PeekNextTop(Func<KeyValuePair<Fitness, Genome>?, LockType, bool> upgradeLockCondition)
+		{
+			KeyValuePair<Fitness, Genome>? kvp = null;
+			Func<LockType, bool> condition = lockType =>
+			{
+				switch (lockType)
+				{
+					case LockType.Read:
+					// This is just an invalidation test. The lock will be lost after this and then reacquired as an upgradable read lock.
+					case LockType.ReadUpgradeable:
+						var e = _rankedPool.GetEnumerator();
+						if (e.MoveNext()) kvp = e.Current;
+						else kvp = null;
+						return upgradeLockCondition(kvp, lockType);
+					case LockType.Write:
+						// If we get this far, then 'g' is already acquired and we don't need to re-create a new enumerator.
+						var c = upgradeLockCondition(kvp, lockType);
+						if(!c) kvp = null; // If the above condition returns false, then that's a signal for failure and we should return null at the end.
+						return c;
+				}
+				return false; // Should never occur because there are only 3 lock types.
+			};
+			ThreadSafety.SynchronizeReadWrite(_rankedPool,
+				condition, () => { condition(LockType.Write); });
+
+			return kvp.HasValue ? kvp.Value.Value : null;
+		}
+
+
 		// public Task<double> Correlation(
 		// 	double[] aSample, double[] bSample,
 		// 	Genome gA, Genome gB)
@@ -181,19 +220,7 @@ namespace AlgebraBlackBox
 			return result.OrderBy(v => v).ToArray();
 		}
 
-		public Genome TakeNextTop()
-		{
-			Genome result = null;
-			ThreadSafety.SynchronizeReadWrite(_rankedPool,
-				() => _rankedPool.Any(),
-				() =>
-				{
-					var first = _rankedPool.First();
-					_rankedPool.Remove(first.Key);
-					result = first.Value;
-				});
-			return result;
-		}
+
 
 		// async Task GetOwnership(Genome g, Fitness fitness)
 		// {
@@ -274,32 +301,32 @@ namespace AlgebraBlackBox
 			var calc = new double[correct.Count];
 			var NaNcount = 0;
 
-			#if DEBUG
-						var gRed = g.AsReduced();
-			#endif
+#if DEBUG
+			var gRed = g.AsReduced();
+#endif
 
 			for (var i = 0; i < len; i++)
 			{
 				var result = await g.CalculateAsync(samples[i]);
-				#if DEBUG
-								if (gRed != g)
-								{
-									var s = samples[i];
-									var rr = await gRed.CalculateAsync(s);
-									if (!g.Genes.OfType<ParameterGene>().Any(gg=>gg.ID>1) // For debugging/testing IDs greater than 1 are invalid so ignore.
-										&& !result.IsRelativeNearEqual(rr, 7))
-									{
-										var message = String.Format(
-					@"Reduction calculation doesn't match!!! {0} => {1}
+#if DEBUG
+				if (gRed != g)
+				{
+					var s = samples[i];
+					var rr = await gRed.CalculateAsync(s);
+					if (!g.Genes.OfType<ParameterGene>().Any(gg => gg.ID > 1) // For debugging/testing IDs greater than 1 are invalid so ignore.
+						&& !result.IsRelativeNearEqual(rr, 7))
+					{
+						var message = String.Format(
+	@"Reduction calculation doesn't match!!! {0} => {1}
 					Sample: {2}
 					result: {3} != {4}", g, gRed, s.JoinToString(", "), result, rr);
-										if (!result.IsNaN())
-											Debug.Fail(message);
-										else
-											Debug.WriteLine(message);
-									}
-								}
-				#endif
+						if (!result.IsNaN())
+							Debug.Fail(message);
+						else
+							Debug.WriteLine(message);
+					}
+				}
+#endif
 				if (double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
 				divergence[i] = -Math.Abs(result - correct[i]);
