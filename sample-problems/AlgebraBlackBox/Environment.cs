@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Open.Collections;
 
 namespace AlgebraBlackBox
@@ -20,9 +21,9 @@ namespace AlgebraBlackBox
 				.Add(new Problem(actualFormula));
 		}
 
-		protected override void _onExecute()
+		protected override async Task _onExecute()
 		{
-			base._onExecute();
+			await base._onExecute();
 
 			var p = this._populations
 				//.AsParallel()

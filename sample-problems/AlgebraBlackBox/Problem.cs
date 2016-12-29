@@ -20,29 +20,22 @@ namespace AlgebraBlackBox
 
 	public delegate double Formula(params double[] p);
 
+	///<summary>
+	/// The 'Problem' class is important for tracking fitness results and deciding how well a genome is peforming.
+	/// It's possible to have multiple 'problems' being measured at once so each Problem class has to keep a rank of the genomes.
+	///</summary>
 	public class Problem : GeneticAlgorithmPlatform.IProblem<Genome>
 	{
 
 		SortedList<Fitness, Genome> _rankedPool;
-
-		public Genome[] Ranked()
-		{
-			return ThreadSafety.SynchronizeRead(_rankedPool, () => _rankedPool.Values.ToArray());
-		}
-
-
+		
 		// We use a lazy to ensure 100% concurrency since ConcurrentDictionary is optimistic;
-		private ConcurrentDictionary<string, Lazy<Fitness>> _fitness;
-		private Formula _actualFormula;
+		ConcurrentDictionary<string, Lazy<Fitness>> _fitness;
+		ConcurrentDictionary<string, Genome> _convergent;
+		ConcurrentDictionary<string, bool> _junkYard;
 
-		protected ConcurrentDictionary<string, Genome> _convergent;
-		public ICollection<Genome> Convergent
-		{
-			get
-			{
-				return this._convergent.Values;
-			}
-		}
+		Formula _actualFormula;
+
 
 		public Problem(Formula actualFormula)
 		{
@@ -67,6 +60,19 @@ namespace AlgebraBlackBox
 
 			Lazy<Fitness> value;
 			return _fitness.TryGetValue(key, out value) ? value.Value : null;
+		}
+
+		public ICollection<Genome> Convergent
+		{
+			get
+			{
+				return this._convergent.Values;
+			}
+		}
+
+		public Genome[] Ranked()
+		{
+			return ThreadSafety.SynchronizeRead(_rankedPool, () => _rankedPool.Values.ToArray());
 		}
 
 		public IEnumerable<Genome> Rank(IEnumerable<Genome> population)

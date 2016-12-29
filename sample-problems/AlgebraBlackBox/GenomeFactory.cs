@@ -138,7 +138,7 @@ namespace AlgebraBlackBox
 		
         public override Task<Genome> GenerateAsync(IEnumerable<Genome> source = null)
         {
-			return Task.FromResult(Generate(source));
+			return Task.Run(()=>Generate(source));
         }
 
 
@@ -613,7 +613,7 @@ namespace AlgebraBlackBox
 
 		public override Task<Genome> MutateAsync(Genome source, uint mutations = 1)
 		{
-			return Task.FromResult(Mutate(source, mutations));
+			return Task.Run(()=>Mutate(source, mutations));
 		}
 
     }

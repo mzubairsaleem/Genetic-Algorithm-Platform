@@ -43,7 +43,7 @@ namespace GeneticAlgorithmPlatform
 				TryAdd(ts, potential);
 			}
 		}
-		public async void Add()
+		public async Task Add()
 		{
 			// Be sure to add randomness in...
 			Add(await _genomeFactory.GenerateAsync().ConfigureAwait(false));
