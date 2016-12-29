@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace AlgebraBlackBox.Genes
@@ -89,7 +90,6 @@ namespace AlgebraBlackBox.Genes
 
 		public IGene Reduce()
 		{
-			return null;
 			var m = Multiple;
 			if (m == 0
 			|| double.IsInfinity(m)
@@ -114,12 +114,24 @@ namespace AlgebraBlackBox.Genes
 				}))
 				{
 					modCount++;
+					if(modCount>1000)
+					{
+						if(Debugger.IsAttached)
+							Debugger.Break();
+						else {
+							var message = "Potential infinite reduction loop in "+this.GetType();
+							Console.WriteLine("");
+							Console.WriteLine("==========================================================");
+							Console.WriteLine(message);
+							throw new Exception(message);
+						}
+					}
 				}
 				return modCount != 0;
 			});
 
-			return ReplaceWithReduced()
-				?? (modified ? reduced : null);
+			return ReplaceWithReduced() ??
+				(modified ? reduced : null);
 		}
 
 

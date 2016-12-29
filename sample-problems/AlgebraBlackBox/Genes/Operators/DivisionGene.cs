@@ -49,7 +49,7 @@ namespace AlgebraBlackBox.Genes
 				if (m < 0)
 				{
 					m *= -1;
-					g.Multiple *= m;
+					g.Multiple = m;
 					Multiple *= -1;
 				}
 
