@@ -6,12 +6,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using AlgebraBlackBox.Genes;
 using Open;
 using Open.Arithmetic;
 using Open.Collections;
+using Open.Formatting;
 using Open.Threading;
 using Fitness = GeneticAlgorithmPlatform.Fitness;
 
@@ -32,7 +35,7 @@ namespace AlgebraBlackBox
 		// We use a lazy to ensure 100% concurrency since ConcurrentDictionary is optimistic;
 		ConcurrentDictionary<string, Lazy<Fitness>> _fitness;
 		ConcurrentDictionary<string, Genome> _convergent;
-		ConcurrentDictionary<string, bool> _junkYard;
+		// ConcurrentDictionary<string, bool> _junkYard;
 
 		Formula _actualFormula;
 
@@ -271,32 +274,32 @@ namespace AlgebraBlackBox
 			var calc = new double[correct.Count];
 			var NaNcount = 0;
 
-			// #if DEBUG
-			// 			var gRed = g.AsReduced();
-			// #endif
+			#if DEBUG
+						var gRed = g.AsReduced();
+			#endif
 
 			for (var i = 0; i < len; i++)
 			{
 				var result = await g.CalculateAsync(samples[i]);
-				// #if DEBUG
-				// 				if (gRed != g)
-				// 				{
-				// 					var s = samples[i];
-				// 					var rr = await gRed.Calculate(s);
-				// 					if (!g.Genes.OfType<ParameterGene>().Any(gg=>gg.ID>1) // For debugging/testing IDs greater than 1 are invalid so ignore.
-				// 						&& !result.IsRelativeNearEqual(rr, 1E-7))
-				// 					{
-				// 						var message = String.Format(
-				// 	@"Reduction calculation doesn't match!!! {0} => {1}
-				// 	Sample: {2}
-				// 	result: {3} != {4}", g, gRed, s.JoinToString(", "), result, rr);
-				// 						if (!result.IsNaN())
-				// 							Debug.Fail(message);
-				// 						else
-				// 							Debug.WriteLine(message);
-				// 					}
-				// 				}
-				// #endif
+				#if DEBUG
+								if (gRed != g)
+								{
+									var s = samples[i];
+									var rr = await gRed.CalculateAsync(s);
+									if (!g.Genes.OfType<ParameterGene>().Any(gg=>gg.ID>1) // For debugging/testing IDs greater than 1 are invalid so ignore.
+										&& !result.IsRelativeNearEqual(rr, 7))
+									{
+										var message = String.Format(
+					@"Reduction calculation doesn't match!!! {0} => {1}
+					Sample: {2}
+					result: {3} != {4}", g, gRed, s.JoinToString(", "), result, rr);
+										if (!result.IsNaN())
+											Debug.Fail(message);
+										else
+											Debug.WriteLine(message);
+									}
+								}
+				#endif
 				if (double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
 				divergence[i] = -Math.Abs(result - correct[i]);
