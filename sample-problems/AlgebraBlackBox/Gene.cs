@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using GeneticAlgorithmPlatform;
 
@@ -160,11 +162,31 @@ namespace AlgebraBlackBox
 			return m * calc;
 		}
 
-		protected abstract double CalculateWithoutMultiple(double[] values);
-		protected abstract Task<double> CalculateWithoutMultipleAsync(double[] values);
+		protected double CalculateWithoutMultiple(double[] values)
+		{
+			if(GetChildren().Count==0) return DefaultIfNoChildren();			
+			return ProcessChildValues(CalculateChildren(values));
+		}
 
+		protected Task<double> CalculateWithoutMultipleAsync(double[] values)
+		{
+			if(GetChildren().Count==0) return Task.FromResult(DefaultIfNoChildren());
+			return Task.WhenAll(CalculateChildrenAsync(values))
+				.ContinueWith(task=>ProcessChildValues(task.Result));
+		}
 
+		protected abstract double DefaultIfNoChildren();
+		protected abstract double ProcessChildValues(IEnumerable<double> values);
 
+		protected IEnumerable<double> CalculateChildren(double[] values)
+		{
+			return GetChildren().Select(s => s.Calculate(values));
+		}
+		protected IEnumerable<Task<double>> CalculateChildrenAsync(double[] values)
+		{
+			return GetChildren().Select(s => s.CalculateAsync(values));
+		}
+		
 		public virtual int CompareTo(IGene other)
 		{
 			return this.Compare(other);

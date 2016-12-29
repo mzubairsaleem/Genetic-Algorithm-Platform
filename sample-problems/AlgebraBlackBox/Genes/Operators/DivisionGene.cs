@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Open.Arithmetic;
 
 namespace AlgebraBlackBox.Genes
 {
-	public class DivisionGene : OperatorGeneBase
+    public class DivisionGene : OperatorGeneBase
 	{
 		public const char Symbol = '/';
 
@@ -13,21 +12,15 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-		protected async override Task<double> CalculateWithoutMultipleAsync(double[] values)
-		{
-			// Allow for special case which will get cleaned up.
-			var children = GetChildren();
-			if (children.Count == 0) return 1;
-            return (await Task.WhenAll(children.Select(s => s.CalculateAsync(values))).ConfigureAwait(false)).QuotientOf(1);
-		}
+        protected override double DefaultIfNoChildren()
+        {
+            return 1d; // This means 'not divided by anything'.
+        }
 
-		protected override double CalculateWithoutMultiple(double[] values)
-		{
-			// Allow for special case which will get cleaned up.
-			var children = GetChildren();
-			if (children.Count == 0) return 1;
-			return children.Select(s => s.Calculate(values)).QuotientOf(1);
-		}
+        protected override double ProcessChildValues(IEnumerable<double> values)
+        {
+			return values.QuotientOf(1);
+        }
 
 		DivisionGene CloneThis()
 		{
@@ -53,7 +46,7 @@ namespace AlgebraBlackBox.Genes
 				var m = g.Multiple;
 
 				// Pull out negatives first.
-				if(m<0)
+				if (m < 0)
 				{
 					m *= -1;
 					g.Multiple *= m;
@@ -93,5 +86,5 @@ namespace AlgebraBlackBox.Genes
 			return ToStringContents();
 		}
 
-	}
+    }
 }

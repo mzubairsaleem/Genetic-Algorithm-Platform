@@ -83,11 +83,11 @@ namespace GeneticAlgorithmPlatform
 			_getDescendants = null;
 		}
 
-		override protected ModificationSynchronizer InitSync(ReaderWriterLockSlim rwlock = null)
+		override protected ModificationSynchronizer InitSync(object sync = null)
 		{
-			ModificationSynchronizer sync;
-			_children = new ThreadSafeTrackedList<T>(out sync);
-			return sync;
+			ModificationSynchronizer s;
+			_children = new ThreadSafeTrackedList<T>(out s);
+			return s;
 		}
 
 		private ThreadSafeTrackedList<T> _children;

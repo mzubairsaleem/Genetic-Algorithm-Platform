@@ -21,6 +21,7 @@ namespace AlgebraBlackBox
 		}
 
 
+
 		protected override void OnModified()
 		{
 			base.OnModified();
@@ -28,9 +29,13 @@ namespace AlgebraBlackBox
 				_reduced = Lazy.New(() =>
 				{
 					var r = Root as IReducibleGene;
-					if (r == null || !r.IsReducible) return this;
-					var g = new Genome(r.AsReduced());
+					if (r == null) return this;
+					// Be careful not to call .IsReducible in here as it may recurse.
+					var root = r.AsReduced();
+					if (root == Root) return this;
+					var g = new Genome(root);
 					g.Freeze();
+
 					return g;
 				}); // Use a clone to prevent any threading issues.
 			_variations = null;
@@ -104,7 +109,7 @@ namespace AlgebraBlackBox
 		{
 			return Root.CalculateAsync(values);
 		}
-		
+
 
 
 		public string ToAlphaParameters(bool reduced = false)
@@ -135,6 +140,7 @@ namespace AlgebraBlackBox
 
 		public Genome AsReduced(bool ensureClone = false)
 		{
+
 			var r = _reduced.Value;
 			if (ensureClone)
 			{
@@ -167,7 +173,7 @@ namespace AlgebraBlackBox
 
 		public void RegisterVariations(IEnumerable<Genome> variations)
 		{
-			if (this.IsReadOnly && _variations!=null)
+			if (this.IsReadOnly && _variations != null)
 				throw new ArgumentException("Cannot register variations after frozen.", "variations");
 			_variations = variations.Memoize();
 		}

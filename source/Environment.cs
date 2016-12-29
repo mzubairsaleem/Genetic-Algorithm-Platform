@@ -94,15 +94,13 @@ namespace GeneticAlgorithmPlatform
 
 		protected virtual void _onExecute()
 		{
-			Console.WriteLine("Generation: {0}", ++_generations);
-
-			Stopwatch sw;
+			long time;
+			Stopwatch sw = Stopwatch.StartNew();
 
 			var allGenes = _populations.SelectMany(g => g.Values).ToArray();
 			// Get ranked population for each problem and merge it into a weaved enumeration.
 			var previousP = _problems.Select(r => r.Rank(allGenes));
 
-			sw = Stopwatch.StartNew();
 			Population<TGenome> p = Spawn(
 				PopulationSize, (allGenes.Any() && previousP.Any()) ?
 					Triangular.Disperse.Decreasing(
@@ -121,11 +119,15 @@ namespace GeneticAlgorithmPlatform
 			// 	this._populations.add(elite);
 			// }
 
+			Console.WriteLine("Generation: {0}", ++_generations);
 			Console.WriteLine("Populations: {0}", _populations.Count);
-			Console.WriteLine("Selection/Ranking (ms): {0}", sw.ElapsedMilliseconds);
+			time = sw.ElapsedMilliseconds;
+			_totalTime += time;
+			Console.WriteLine("Selection/Ranking (ms): {0}", time);
 			sw = Stopwatch.StartNew();
-		
-			Test();
+
+			// Test();
+			TestAsync().Wait();
 
 			// Since we have 'variations' added into the pool, we don't want to eliminate any new material that may be useful.
 			var additional = Math.Max(p.Count - PopulationSize, 0);
@@ -141,7 +143,7 @@ namespace GeneticAlgorithmPlatform
 
 
 			Console.WriteLine("Testing/Cleanup (ms): {0}", sw.ElapsedMilliseconds);
-			var time = sw.ElapsedMilliseconds;
+			time = sw.ElapsedMilliseconds;
 			_totalTime += time;
 			Console.Write("Time: {0} current / ", time);
 			Console.Write("{0} total", _totalTime);

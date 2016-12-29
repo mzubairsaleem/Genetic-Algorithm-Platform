@@ -10,6 +10,11 @@ namespace AlgebraBlackBox.Genes
         {
         }
 
+        protected override double DefaultIfNoChildren()
+        {
+            throw new InvalidOperationException("Cannot calculate a FunctionGene with no child.");
+        }
+
         public new FunctionGene Clone()
         {
             throw new NotImplementedException();

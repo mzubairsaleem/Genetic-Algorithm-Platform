@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Open.Arithmetic;
 using Open.Collections;
 
 namespace AlgebraBlackBox.Genes
 {
-	public class SumGene : OperatorGeneBase
+    public class SumGene : OperatorGeneBase
 	{
 		public const char Symbol = '+';
 
@@ -15,24 +14,14 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-		protected async override Task<double> CalculateWithoutMultipleAsync(double[] values)
-		{
-			using (var results =
-                GetChildren()
-                .Select(s => s.CalculateAsync(values)).Memoize())
-			{
-				return results.Any() ? (await Task.WhenAll(results).ConfigureAwait(false)).Sum() : 0;
-			}
-		}
+        protected override double DefaultIfNoChildren()
+        {
+            return 0;
+        }
 
-		protected override double CalculateWithoutMultiple(double[] values)
+		protected override double ProcessChildValues(IEnumerable<double> values)
 		{
-			using (var results =
-                GetChildren()
-                .Select(s => s.Calculate(values)).Memoize())
-			{
-				return results.Any() ? results.Sum() : 0;
-			}
+			return values.Sum();
 		}
 
 		SumGene CloneThis()
@@ -159,5 +148,5 @@ namespace AlgebraBlackBox.Genes
 		}
 
 
-	}
+    }
 }

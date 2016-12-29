@@ -4,6 +4,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace AlgebraBlackBox.Genes
@@ -28,6 +29,12 @@ namespace AlgebraBlackBox.Genes
 			base.OnModified();
 			if (_reduced == null || _reduced.IsValueCreated)
 				_reduced = Lazy.New(() => this.Clone().Reduce() ?? this); // Use a clone to prevent any threading issues.
+		}
+
+		// Having this method makes it easier to debug.
+		protected IEnumerable<IGene> CloneChildren()
+		{
+			return GetChildren().Select(g => g.Clone());
 		}
 
 		public new ReducibleGeneNode Clone()
@@ -82,6 +89,7 @@ namespace AlgebraBlackBox.Genes
 
 		public IGene Reduce()
 		{
+			return null;
 			var m = Multiple;
 			if (m == 0
 			|| double.IsInfinity(m)

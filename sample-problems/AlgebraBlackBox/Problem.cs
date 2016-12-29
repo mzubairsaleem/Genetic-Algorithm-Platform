@@ -18,7 +18,7 @@ using Fitness = GeneticAlgorithmPlatform.Fitness;
 namespace AlgebraBlackBox
 {
 
-    public delegate double Formula(params double[] p);
+	public delegate double Formula(params double[] p);
 
 	public class Problem : GeneticAlgorithmPlatform.IProblem<Genome>
 	{
@@ -61,7 +61,7 @@ namespace AlgebraBlackBox
 			if (createIfMissing) return _fitness.GetOrAdd(key, k => Lazy.New(() =>
 			{
 				var f = new Fitness();
-				//_rankedPool.TryAddSynchronized(f, reduced); // Used to feed next in rank or claim for testing.
+				_rankedPool.TryAddSynchronized(f, reduced); // Used to feed next in rank or claim for testing.
 				return f;
 			})).Value;
 
@@ -78,7 +78,7 @@ namespace AlgebraBlackBox
 					Genome = g,
 					Fitness = GetFitnessFor(g)
 				})
-				.Where(g=>g.Fitness.Count>0)
+				.Where(g => g.Fitness.Count > 0)
 				.OrderBy(g => g.Fitness)
 				.ThenBy(g => g.Genome.Hash.Length)
 				.Select(g => g.Genome);
@@ -248,6 +248,15 @@ namespace AlgebraBlackBox
 		// 	}
 		// }
 
+
+		Task ProcessTestAsync(IEnumerable<Genome> genomes)
+		{
+			return Task.WhenAll(
+				TestPrep((correct, samples) =>
+					genomes.Select(g => ProcessTestAsync(g, correct, samples))
+			).ToArray());
+		}
+
 		async Task<Fitness> ProcessTestAsync(Genome g, List<double> correct, List<double[]> samples)
 		{
 			var fitness = GetFitnessFor(g);
@@ -307,7 +316,7 @@ namespace AlgebraBlackBox
 			);
 
 			var key = g
-				//.AsReduced()
+				.AsReduced()
 				.ToString();
 			if (fitness.HasConverged())
 			{
@@ -322,10 +331,20 @@ namespace AlgebraBlackBox
 			return fitness;
 		}
 
+		void ProcessTest(IEnumerable<Genome> genomes)
+		{
+			TestPrep(
+				(correct, samples) =>
+				{
+					Parallel.ForEach(genomes, g => ProcessTest(g, correct, samples));
+					return true;
+				});
+		}
 
 		Fitness ProcessTest(Genome g, List<double> correct, List<double[]> samples)
 		{
 			var fitness = GetFitnessFor(g);
+
 			var len = correct.Count;
 			var divergence = new double[correct.Count];
 			var calc = new double[correct.Count];
@@ -382,7 +401,7 @@ namespace AlgebraBlackBox
 			);
 
 			var key = g
-				//.AsReduced()
+				.AsReduced()
 				.ToString();
 			if (fitness.HasConverged())
 			{
@@ -433,7 +452,7 @@ namespace AlgebraBlackBox
 		// 			Task.Run(() =>
 		// 			{
 		// 				var key = g
-		// 					//.AsReduced()
+		// 					.AsReduced()
 		// 					.ToString();
 		// 				if (fitness.HasConverged())
 		// 				{
@@ -450,22 +469,7 @@ namespace AlgebraBlackBox
 		// 		});
 		// }
 
-		async Task ProcessTestAsync(IEnumerable<Genome> genes)
-		{
-			await Task.WhenAll(
-				TestPrep((correct, samples) =>
-					genes.Select(g => ProcessTestAsync(g, correct, samples))
-				).ToArray()
-				).ConfigureAwait(false);
-		}
 
-		void ProcessTest(IEnumerable<Genome> genes)
-		{
-			TestPrep(
-				(correct, samples) =>
-					genes.Select(g => ProcessTest(g, correct, samples))
-			).ToArray();
-		}
 
 		T TestPrep<T>(Func<List<double>, List<double[]>, T> handler)
 		{

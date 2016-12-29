@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace AlgebraBlackBox.Genes
 {
-	public class SquareRootGene : FunctionGene
+    public class SquareRootGene : FunctionGene
 	{
 		public const char Symbol = 'S';
 		protected SquareRootGene(double multiple, IEnumerable<IGene> children) : base(Symbol, multiple, children)
@@ -36,14 +35,9 @@ namespace AlgebraBlackBox.Genes
 			base.Add(target);
 		}
 
-		protected async override Task<double> CalculateWithoutMultipleAsync(double[] values)
+		protected override double ProcessChildValues(IEnumerable<double> values)
 		{
-			return Math.Sqrt(await GetChildren().Single().CalculateAsync(values).ConfigureAwait(false));
-		}
-
-		protected override double CalculateWithoutMultiple(double[] values)
-		{
-			return Math.Sqrt(GetChildren().Single().Calculate(values));
+			return Math.Sqrt(values.Single());
 		}
 
 		SquareRootGene CloneThis()

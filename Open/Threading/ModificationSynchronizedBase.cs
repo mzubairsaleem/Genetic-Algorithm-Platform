@@ -125,7 +125,6 @@ namespace Open.Threading
 
 		public void Freeze()
 		{
-			return;
 			var sync = _sync as ModificationSynchronizer;
 			if (sync != null)
 			{
