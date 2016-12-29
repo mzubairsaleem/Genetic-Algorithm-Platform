@@ -126,19 +126,16 @@ namespace Open.Formatting
 		/// <summary>
 		/// Shortcut for validating a if a decimal addValue is close enough to another addValue using the given tolerance tolerance.
 		/// </summary>
-		public static bool IsRelativeNearEqual(this double a, double b, double tolerance)
+		public static bool IsRelativeNearEqual(this double a, double b, uint minDecimalPlaces)
 		{
+			var tolerance = 1/Math.Pow(10,minDecimalPlaces);
 			if(a.IsNearEqual(b,tolerance)) return true;
 			if(double.IsNaN(a) || double.IsNaN(b)) return false;
-			var aS = a.ToString();
-			var bS = b.ToString();
-			if(aS==bS) return true;
-			var i = aS.IndexOf(".");
-			var divisor = Math.Pow(10,i+1);
+			var d = Math.Min(a.DecimalPlaces(),b.DecimalPlaces());
+			var divisor = Math.Pow(10,minDecimalPlaces-d);
 			a /= divisor;
 			b /= divisor;
-			var result = a.IsNearEqual(b, tolerance);
-			return result;
+			return a.IsNearEqual(b,tolerance);
 		}
 
 		/// <summary>
