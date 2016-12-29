@@ -35,7 +35,7 @@ namespace AlgebraBlackBox
 		// We use a lazy to ensure 100% concurrency since ConcurrentDictionary is optimistic;
 		ConcurrentDictionary<string, Lazy<Fitness>> _fitness;
 		ConcurrentDictionary<string, Genome> _convergent;
-		// ConcurrentDictionary<string, bool> _junkYard;
+		ConcurrentDictionary<string, bool> _rejected;
 
 		Formula _actualFormula;
 
