@@ -14,18 +14,19 @@ using Open.Diagnostics;
 
 namespace Open.Threading
 {
+	public enum LockType
+	{
+		Read,
+		ReadUpgradeable,
+		Write
+	}
+
 	/// <summary>
 	/// Utility class for synchronizing read write access to different resources in the same domain/scope.
 	/// This essentially has it's own garbage collector to prevent building up memory/references to unused locks.
 	/// </summary>
 	public class ReadWriteHelper<TKey> : DeferredCleanupBase
 	{
-		private enum LockType
-		{
-			Read,
-			ReadUpgradeable,
-			Write
-		}
 
 		private class ReaderWriterLockTracker : DisposableBase
 		{
@@ -451,7 +452,7 @@ namespace Open.Threading
 
 		/// <summary>
 		/// Method for synchronizing write access.  Starts by executing the condition without a lock.
-		/// Note: Passing a boolean to the condition when a lock is acquired helps if it is important to the cosuming logic to avoid recursive locking.
+		/// Note: Passing a bool to the condition when a lock is acquired helps if it is important to the cosuming logic to avoid recursive locking.
 		/// </summary>
 		/// <param name="condition">Takes a bool where false means no lock and true means a write lock.  Returns true if it should execute the query Action. ** NOT THREAD SAFE</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
@@ -477,24 +478,24 @@ namespace Open.Threading
 
 		/// <summary>
 		/// Method for synchronizing write access.  Starts by executing the condition with a read lock.  Then if necessary after releasing the read lock, acquires a write lock.
-		/// Note: Passing a boolean to the condition when a lock is acquired helps if it is important to the cosuming logic to avoid recursive locking.
+		/// Note: Passing a LockType to the condition when a lock is acquired helps if it is important to the cosuming logic to avoid recursive locking.
 		/// </summary>
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public bool ReadWriteConditional(
-			TKey key, Func<bool, bool> condition, Action closure,
+			TKey key, Func<LockType, bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if (condition == null)
 				throw new ArgumentNullException("condition");
 
 			bool c = false;
-			var lockHeld = Read(key, () => c = condition(false), millisecondsTimeout, throwsOnTimeout);
+			var lockHeld = Read(key, () => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
 			if (lockHeld && c)
 			{
 				lockHeld = Write(key, () =>
 				{
-					if (condition(true))
+					if (condition(LockType.Write))
 						closure();
 				},
 				millisecondsTimeout, throwsOnTimeout);
@@ -505,13 +506,13 @@ namespace Open.Threading
 
 		/// <summary>
 		/// Method for synchronizing write access.  Starts by executing the condition with a read lock.  Then if necessary after releasing the read lock, acquires a write lock.
-		/// Note: Passing a boolean to the condition when a lock is acquired helps if it is important to the cosuming logic to avoid recursive locking.
+		/// Note: Passing a LockType to the condition when a lock is acquired helps if it is important to the cosuming logic to avoid recursive locking.
 		/// </summary>
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public bool ReadWriteConditional<T>(
 			ref T result,
-			TKey key, Func<bool, bool> condition, Func<T> closure,
+			TKey key, Func<LockType, bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if (condition == null)
@@ -519,12 +520,12 @@ namespace Open.Threading
 
 			var r = result;
 			bool c = false, written = false;
-			var lockHeld = Read(key, () => c = condition(false), millisecondsTimeout, throwsOnTimeout);
+			var lockHeld = Read(key, () => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
 			if (lockHeld && c)
 			{
 				lockHeld = Write(key, out written, () =>
 				{
-					var w = condition(true);
+					var w = condition(LockType.Write);
 					if (w) r = closure();
 					return w;
 				},
@@ -604,15 +605,15 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public bool ReadWriteConditionalOptimized(
-			TKey key, Func<bool> condition, Action closure,
+			TKey key, Func<LockType, bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if (condition == null)
 				throw new ArgumentNullException("condition");
 
 			bool c = false;
-			var lockHeld = Read(key, () => c = condition(), millisecondsTimeout, throwsOnTimeout);
-			return lockHeld && (!c || ReadUpgradeableWriteConditional(key, condition, closure, millisecondsTimeout, throwsOnTimeout));
+			var lockHeld = Read(key, () => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
+			return lockHeld && (!c || ReadUpgradeableWriteConditional(key, () => condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
 		}
 
 		/// <summary>
@@ -622,17 +623,16 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public bool ReadWriteConditionalOptimized<T>(
-			TKey key, ref T result, Func<bool> condition, Func<T> closure,
+			TKey key, ref T result, Func<LockType, bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if (condition == null)
 				throw new ArgumentNullException("condition");
 
 			bool c = false;
-			var lockHeld = Read(key, () => c = condition(), millisecondsTimeout, throwsOnTimeout);
-			return lockHeld && (!c || ReadUpgradeableWriteConditional(ref result, key, condition, closure, millisecondsTimeout, throwsOnTimeout));
+			var lockHeld = Read(key, () => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
+			return lockHeld && (!c || ReadUpgradeableWriteConditional(ref result, key, () => condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
 		}
-
 		#endregion
 
 

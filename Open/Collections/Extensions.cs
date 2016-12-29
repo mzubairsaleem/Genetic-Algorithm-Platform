@@ -549,7 +549,7 @@ namespace Open.Collections
 			if (target == null) throw new NullReferenceException();
 
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(target, value,
-				() => !target.Contains(value),
+				lockType => !target.Contains(value),
 				() => target.Add(value));
 		}
 
@@ -671,7 +671,7 @@ namespace Open.Collections
 			bool added = false;
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(
 				target, key, ref added,
-			() => !target.ContainsKey(key),
+			lockType => !target.ContainsKey(key),
 			() =>
 			{
 				target.Add(key, value);
@@ -699,7 +699,7 @@ namespace Open.Collections
 			bool added = false;
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(
 				target, key, ref added,
-			() => !target.ContainsKey(key),
+			lockType => !target.ContainsKey(key),
 			() =>
 			{
 				target.Add(key, valueFactory());
@@ -726,13 +726,13 @@ namespace Open.Collections
 			bool removed = false;
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(
 				target, key, ref removed,
-			() => target.ContainsKey(key),
-			() => target.Remove(key),
+				lockType => target.ContainsKey(key),
+				() => target.Remove(key),
 				millisecondsTimeout, false);
 			return removed;
 		}
 
-				/// <summary>
+		/// <summary>
 		/// Attempts to add a value by synchronizing the collection.
 		/// </summary>
 		/// <returns>
@@ -751,13 +751,14 @@ namespace Open.Collections
 			bool removed = false;
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(
 				target, key, ref value,
-			() => target.ContainsKey(key),
-			() => {
-				var r = target[key];
-				removed = target.Remove(key);
-				return removed ? r : default(T);
-			},
-				millisecondsTimeout, false);
+				lockType => target.ContainsKey(key),
+				() =>
+				{
+					var r = target[key];
+					removed = target.Remove(key);
+					return removed ? r : default(T);
+				},
+					millisecondsTimeout, false);
 			return removed;
 		}
 
@@ -862,7 +863,7 @@ namespace Open.Collections
 			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			T result = default(T);
-			Func<bool> condition = () => !target.TryGetValue(key, out result);
+			Func<LockType, bool> condition = lockType => !target.TryGetValue(key, out result);
 			Action render = () =>
 			{
 				result = value;
@@ -893,7 +894,8 @@ namespace Open.Collections
 			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			T result = default(T);
-			Func<bool> condition = () => !ThreadSafety.SynchronizeRead(target, () => target.TryGetValue(key, out result));
+			// Note, the following sync read is on the TARGET and not the key. See below.
+			Func<LockType, bool> condition = lockType => !ThreadSafety.SynchronizeRead(target, () => target.TryGetValue(key, out result));
 
 			// Once a per value write lock is established, execute the scheduler, and syncronize adding...
 			Action render = () => target.GetOrAddSynchronized(key, result = valueFactory(key), millisecondsTimeout);
@@ -1077,7 +1079,7 @@ namespace Open.Collections
 			if (key == null) throw new ArgumentNullException("key");
 
 			ThreadSafety.SynchronizeReadWrite(target,
-				() => !target.ContainsKey(key),
+				lockType => !target.ContainsKey(key),
 				() => target.Add(key, defaultValue));
 		}
 
@@ -1107,7 +1109,7 @@ namespace Open.Collections
 			if (defaultValueFactory == null) throw new ArgumentNullException("defaultValueFactory");
 
 			ThreadSafety.SynchronizeReadWrite(target, key,
-				() => !target.ContainsKey(key),
+				lockType => !target.ContainsKey(key),
 				() => target.EnsureDefaultSynchronized(key, defaultValueFactory));
 		}
 
@@ -2159,7 +2161,7 @@ namespace Open.Collections.NonGeneric
 	public static class Extensions
 	{
 		const int SYNC_TIMEOUT_DEFAULT_MILLISECONDS = 10000;
-	
+
 
 		/// <summary>
 		/// Attempts to add a value by synchronizing the collection.
@@ -2179,12 +2181,12 @@ namespace Open.Collections.NonGeneric
 			bool added = false;
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(
 				target, key, ref added,
-			() => !target.Contains(key),
-			() =>
-			{
-				target.Add(key, value);
-				return true;
-			}, millisecondsTimeout, false);
+				lockType => !target.Contains(key),
+				() =>
+				{
+					target.Add(key, value);
+					return true;
+				}, millisecondsTimeout, false);
 			return added;
 		}
 
@@ -2206,12 +2208,12 @@ namespace Open.Collections.NonGeneric
 			bool added = false;
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(
 				target, key, ref added,
-			() => !target.Contains(key),
-			() =>
-			{
-				target.Add(key, valueFactory());
-				return true;
-			}, millisecondsTimeout, false);
+				lockType => !target.Contains(key),
+				() =>
+				{
+					target.Add(key, valueFactory());
+					return true;
+				}, millisecondsTimeout, false);
 			return added;
 		}
 
@@ -2233,16 +2235,16 @@ namespace Open.Collections.NonGeneric
 			bool removed = false;
 			ThreadSafety.SynchronizeReadWriteKeyAndObject(
 				target, key, ref removed,
-			() => target.Contains(key),
-			() =>
-			{
-				target.Remove(key);
-				return true;
-			}, millisecondsTimeout, false);
+				lockType => target.Contains(key),
+				() =>
+				{
+					target.Remove(key);
+					return true;
+				}, millisecondsTimeout, false);
 			return removed;
 		}
 
-		
+
 		/// <summary>
 		/// Tries to acquire a value from the dictionary.  If no value is present it adds it using the valueFactory response.
 		/// NOT THREAD SAFE: Use only when a dictionary local or is assured single threaded.
@@ -2356,8 +2358,8 @@ namespace Open.Collections.NonGeneric
 
 			return exists ? value : null;
 		}
-		
-		
+
+
 		/// <summary>
 		/// Attempts to get a value from a dictionary and if no value is present, it returns the response of the valueFactory.
 		/// </summary>
@@ -2389,7 +2391,7 @@ namespace Open.Collections.NonGeneric
 			return target.TryGetValue(key, out value) ? value : defaultValue;
 		}
 
-		
+
 		/// <summary>
 		/// Thread safe method for synchronizing acquiring a value from the dictionary.  If no value is present it adds the value provided.
 		/// If the millisecondTimeout is reached the value is still returned but the collection is unchanged.
@@ -2407,7 +2409,7 @@ namespace Open.Collections.NonGeneric
 
 			T result = default(T);
 			// Uses threadsafe means to acquire value.
-			Func<bool> condition = () => !target.TryGetValue(key, out result);
+			Func<LockType, bool> condition = lockType => !target.TryGetValue(key, out result);
 			Action render = () =>
 			{
 				result = value;
@@ -2420,7 +2422,7 @@ namespace Open.Collections.NonGeneric
 			return result;
 		}
 
-		
+
 		/// <summary>
 		/// Thread safe method for synchronizing acquiring a value from the dictionary.  If no value is present it adds it using the valueFactory response.
 		/// If the millisecondTimeout is reached the valueFactory is executed and the value is still returned but the collection is unchanged.
@@ -2437,7 +2439,7 @@ namespace Open.Collections.NonGeneric
 			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			T result = default(T);
-			Func<bool> condition = () => !ThreadSafety.SynchronizeRead(target, () => target.TryGetValue(key, out result));
+			Func<LockType, bool> condition = lockType => !ThreadSafety.SynchronizeRead(target, () => target.TryGetValue(key, out result));
 
 			// Once a per value write lock is established, execute the scheduler, and syncronize adding...
 			Action render = () => target.GetOrAddSynchronized(key, result = valueFactory(key), millisecondsTimeout);
@@ -2446,7 +2448,7 @@ namespace Open.Collections.NonGeneric
 				render(); // Timeout failed? Lock insert anyway and move on...
 
 			// ^^^ What actually happens...
-			// See previous method explaination.
+			// See previous (generic) method explaination.
 
 			return result;
 		}
