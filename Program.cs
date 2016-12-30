@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -22,12 +20,11 @@ namespace GeneticAlgorithmPlatform
         }
         public static void Main(string[] args)
         {
-            // (new AlgebraBlackBox.Environment(SqrtA2B2AB)).RunUntilConverged();
-            Task.WaitAny(
-                Enumerable.Range(1,1)
-                    .Select(i=>(new AlgebraBlackBox.Environment(SqrtA2B2AB)).RunUntilConvergedAsync())
-                    .ToArray()
-            );
+            var e = new AlgebraBlackBox.Environment(SqrtA2B2);
+            var converged = e.WaitForAnyConvergedAsync();
+            converged.Wait();
+            Console.Write("Converged: ");
+            Console.WriteLine(converged);
         }
 
         static void PerfTest()

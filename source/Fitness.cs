@@ -63,6 +63,8 @@ namespace GeneticAlgorithmPlatform
 	public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable<Fitness>
 	{
 
+		
+
 		public int SampleCount
 		{
 			get
