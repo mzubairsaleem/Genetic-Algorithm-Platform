@@ -11,7 +11,8 @@ namespace GeneticAlgorithmPlatform
     public interface IProblem<TGenome>
          where TGenome : IGenome
     {
-        TGenome TakeNextTop();
+        TGenome TakeNextTopGenome();
+        void ReturnGenomeToRanking(TGenome genome);
         void GetConvergent(BufferBlock<TGenome> queue);
         ICollection<TGenome> Convergent { get; }
         Fitness GetFitnessFor(TGenome genome, bool createIfMissing = false);

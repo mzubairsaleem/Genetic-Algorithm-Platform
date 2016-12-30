@@ -132,9 +132,9 @@ namespace AlgebraBlackBox
 			return p;
 		}
 
-		public Genome TakeNextTop()
+		public Genome TakeNextTopGenome()
 		{
-			return PeekNextTop((kvp, lt) =>
+			return PeekNextTopGenome((kvp, lt) =>
 				// We have a write lock? YES! Remove from list! Return false if not possible so that the take returns null.
 				lt == LockType.Write
 					? kvp.HasValue && _rankedPool.Remove(kvp.Value.Key)
@@ -142,7 +142,7 @@ namespace AlgebraBlackBox
 		}
 
 		// When upgradeLockCondition returns true the lock will progressively be upgraded from Read, ReadUpgradeable, to Write.
-		protected Genome PeekNextTop(Func<KeyValuePair<Fitness, Genome>?, LockType, bool> upgradeLockCondition)
+		protected Genome PeekNextTopGenome(Func<KeyValuePair<Fitness, Genome>?, LockType, bool> upgradeLockCondition = null)
 		{
 			KeyValuePair<Fitness, Genome>? kvp = null;
 			Func<LockType, bool> condition = lockType =>
@@ -150,12 +150,12 @@ namespace AlgebraBlackBox
 				switch (lockType)
 				{
 					case LockType.Read:
-					// This is just an invalidation test. The lock will be lost after this and then reacquired as an upgradable read lock.
+					// LockType.Read: This is just an invalidation test. The lock will be lost after this and then reacquired as an upgradable read lock.
 					case LockType.ReadUpgradeable:
 						var e = _rankedPool.GetEnumerator();
 						if (e.MoveNext()) kvp = e.Current;
 						else kvp = null;
-						return upgradeLockCondition(kvp, lockType);
+						return upgradeLockCondition == null ? false : upgradeLockCondition(kvp, lockType);
 					case LockType.Write:
 						// If we get this far, then 'g' is already acquired and we don't need to re-create a new enumerator.
 						var c = upgradeLockCondition(kvp, lockType);
@@ -170,42 +170,23 @@ namespace AlgebraBlackBox
 			return kvp.HasValue ? kvp.Value.Value : null;
 		}
 
+		protected void ReorderRanking(Genome genome)
+		{
+			var fitness = GetFitnessFor(genome);
+			if( _rankedPool.TryRemoveSynchronized(fitness))
+				ReturnGenomeToRanking(fitness,genome);				
+		}
 
-		// public Task<double> Correlation(
-		// 	double[] aSample, double[] bSample,
-		// 	Genome gA, Genome gB)
-		// {
-		// 	return Task.Run(() =>
-		// 	{
-		// 		var len = aSample.Length * bSample.Length;
+		protected void ReturnGenomeToRanking(Fitness fitness, Genome genome)
+		{
+			if(!_rankedPool.TryAddSynchronized(fitness,genome))
+				throw new Exception("Could not return (add) a genome to ranking.");
+		}
 
-		// 		var gA_result = new double[len];
-		// 		var gB_result = new double[len];
-		// 		var i = 0;
-
-		// 		foreach (var a in aSample)
-		// 		{
-		// 			foreach (var b in bSample)
-		// 			{
-		// 				var p = new double[] { a, b }; // Could be using Tuples?
-		// 				var r1 = gA.Calculate(p);
-		// 				var r2 = gB.Calculate(p);
-		// 				Task.WaitAll(r1, r2);
-		// 				gA_result[i] = r1.Result;
-		// 				gB_result[i] = r2.Result;
-		// 				i++;
-		// 			}
-		// 		}
-
-		// 		return gA_result.Correlation(gB_result);
-		// 	});
-		// }
-
-
-		// // compare(a:AlgebraGenome, b:AlgebraGenome):boolean
-		// // {
-		// // 	return this.correlation(this.sample(), this.sample(), a, b)>0.9999999;
-		// // }
+		public void ReturnGenomeToRanking(Genome genome)
+		{
+			ReturnGenomeToRanking(GetFitnessFor(genome),genome);
+		}
 
 
 		//noinspection JSMethodCanBeStatic
@@ -221,79 +202,15 @@ namespace AlgebraBlackBox
 		}
 
 
-
-		// async Task GetOwnership(Genome g, Fitness fitness)
-		// {
-		// 	// Since the Fitness is being worked on, be sure to pull it off the heap.
-		// 	Genome rankedG = null;
-		// 	while (rankedG == null)
-		// 	{
-		// 		if (_rankedPool.TryRemoveSynchronized(fitness, out rankedG))
-		// 		{
-		// 			if (rankedG != g)
-		// 			{
-		// 				Debug.Fail("Duplicate Genomes!");
-		// 			}
-		// 		}
-		// 		else
-		// 		{
-		// 			await Task.Yield();
-		// 		}
-		// 	}
-		// }
-
-		// public async Task<T> TakeOwnership<T>(Genome g, Task<T> closure)
-		// {
-		// 	var fitness = GetFitnessFor(g);
-		// 	T result;
-		// 	try
-		// 	{
-		// 		await GetOwnership(g, fitness);
-		// 		result = await closure;//.ConfigureAwait(false);
-		// 	}
-		// 	finally
-		// 	{
-		// 		if (!_rankedPool.TryAddSynchronized(fitness, g))
-		// 		{
-		// 			Debug.Fail("Unable to re-add " + g + " into ranked pool.");
-		// 		}
-		// 		else
-		// 		{
-		// 			// Debug.WriteLine("Re-added " + g + " back into pool.");
-		// 		}
-		// 	}
-		// 	return result;
-		// }
-
-		// public async Task TakeOwnership(Genome g, Task closure)
-		// {
-		// 	var fitness = GetFitnessFor(g);
-		// 	try
-		// 	{
-		// 		await GetOwnership(g, fitness);
-		// 		await closure.ConfigureAwait(false);
-		// 	}
-		// 	finally
-		// 	{
-		// 		if (!_rankedPool.TryAddSynchronized(fitness, g))
-		// 		{
-		// 			Debug.Fail("Unable to re-add gene into ranked pool.");
-		// 		} else {
-		// 			Debug.WriteLine("Re-added "+g+" back into pool.");
-		// 		}
-		// 	}
-		// }
-
-
 		Task ProcessTestAsync(IEnumerable<Genome> genomes)
 		{
 			return Task.WhenAll(
 				TestPrep((correct, samples) =>
-					genomes.Select(g => ProcessTestAsync(g, correct, samples))
+					genomes.Select(g => ProcessTest(g, correct, samples, true))
 			).ToArray());
 		}
 
-		async Task<Fitness> ProcessTestAsync(Genome g, List<double> correct, List<double[]> samples)
+		async Task<Fitness> ProcessTest(Genome g, List<double> correct, List<double[]> samples, bool useAsync)
 		{
 			var fitness = GetFitnessFor(g);
 			var len = correct.Count;
@@ -301,32 +218,31 @@ namespace AlgebraBlackBox
 			var calc = new double[correct.Count];
 			var NaNcount = 0;
 
-#if DEBUG
+			#if DEBUG
 			var gRed = g.AsReduced();
-#endif
+			#endif
 
 			for (var i = 0; i < len; i++)
 			{
-				var result = await g.CalculateAsync(samples[i]);
-#if DEBUG
+				var s = samples[i];
+				var result = useAsync ? await g.CalculateAsync(s) : g.Calculate(s);
+				#if DEBUG
 				if (gRed != g)
 				{
-					var s = samples[i];
-					var rr = await gRed.CalculateAsync(s);
+					var rr = useAsync ? await gRed.CalculateAsync(s) : gRed.Calculate(s);
 					if (!g.Genes.OfType<ParameterGene>().Any(gg => gg.ID > 1) // For debugging/testing IDs greater than 1 are invalid so ignore.
 						&& !result.IsRelativeNearEqual(rr, 7))
 					{
 						var message = String.Format(
-	@"Reduction calculation doesn't match!!! {0} => {1}
-					Sample: {2}
-					result: {3} != {4}", g, gRed, s.JoinToString(", "), result, rr);
+							"Reduction calculation doesn't match!!! {0} => {1}\n\tSample: {2}\n\tresult: {3} != {4}",
+							g, gRed, s.JoinToString(", "), result, rr);
 						if (!result.IsNaN())
 							Debug.Fail(message);
 						else
 							Debug.WriteLine(message);
 					}
 				}
-#endif
+				#endif
 				if (double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
 				divergence[i] = -Math.Abs(result - correct[i]);
@@ -372,140 +288,10 @@ namespace AlgebraBlackBox
 			TestPrep(
 				(correct, samples) =>
 				{
-					Parallel.ForEach(genomes, g => ProcessTest(g, correct, samples));
+					Parallel.ForEach(genomes, g => ProcessTest(g, correct, samples, false).RunSynchronously());
 					return true;
 				});
 		}
-
-		Fitness ProcessTest(Genome g, List<double> correct, List<double[]> samples)
-		{
-			var fitness = GetFitnessFor(g);
-
-			var len = correct.Count;
-			var divergence = new double[correct.Count];
-			var calc = new double[correct.Count];
-			var NaNcount = 0;
-
-			// #if DEBUG
-			// 			var gRed = g.AsReduced();
-			// #endif
-
-			for (var i = 0; i < len; i++)
-			{
-				var result = g.Calculate(samples[i]);
-				// #if DEBUG
-				// 				if (gRed != g)
-				// 				{
-				// 					var s = samples[i];
-				// 					var rr = await gRed.Calculate(s);
-				// 					if (!g.Genes.OfType<ParameterGene>().Any(gg=>gg.ID>1) // For debugging/testing IDs greater than 1 are invalid so ignore.
-				// 						&& !result.IsRelativeNearEqual(rr, 1E-7))
-				// 					{
-				// 						var message = String.Format(
-				// 	@"Reduction calculation doesn't match!!! {0} => {1}
-				// 	Sample: {2}
-				// 	result: {3} != {4}", g, gRed, s.JoinToString(", "), result, rr);
-				// 						if (!result.IsNaN())
-				// 							Debug.Fail(message);
-				// 						else
-				// 							Debug.WriteLine(message);
-				// 					}
-				// 				}
-				// #endif
-				if (double.IsNaN(result)) NaNcount++;
-				calc[i] = result;
-				divergence[i] = -Math.Abs(result - correct[i]);
-			}
-
-			if (NaNcount != 0)
-			{
-				// We do not yet handle NaN values gracefully yet so avoid correlation.
-				fitness.AddScores(
-					NaNcount == len // All NaN basically = fail.  Don't waste time trying to correlate.
-						? double.NegativeInfinity
-						: -2,
-					double.NegativeInfinity);
-				return fitness;
-			}
-
-			var c = correct.Correlation(calc);
-			var d = divergence.Average() + 1;
-
-			fitness.AddScores(
-				(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
-				(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
-			);
-
-			var key = g
-				.AsReduced()
-				.ToString();
-			if (fitness.HasConverged())
-			{
-				_convergent[key] = g;
-			}
-			else
-			{
-				Genome v;
-				_convergent.TryRemove(key, out v);
-			}
-
-			return fitness;
-		}
-
-		// For the most part is not as performant when low sample count and short calculation times.
-		// But keep this here for reference.
-		// Task<Fitness> ParallelTest(Genome g, List<double> correct, List<double[]> samples)
-		// {
-		// 	var len = correct.Count;
-		// 	var divergence = new double[correct.Count];
-		// 	var calc = new double[correct.Count];
-
-		// 	return Task
-
-		// 		.WhenAll(
-		// 			Enumerable.Range(0, len)
-		// 			.Select(i =>
-		// 				g.Calculate(samples[i])
-		// 					.ContinueWith(task =>
-		// 					{
-		// 						var result = task.Result;
-		// 						calc[i] = result;
-		// 						divergence[i] = -Math.Abs(result - correct[i]);
-		// 					}))
-		// 			.ToArray())
-
-		// 		.ContinueWith(task =>
-		// 		{
-		// 			var c = correct.Correlation(calc);
-		// 			var d = divergence.Average() + 1;
-
-		// 			var fitness = GetFitnessFor(g);
-		// 			fitness.AddScores(
-		// 				(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
-		// 				(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
-		// 			);
-
-		// 			Task.Run(() =>
-		// 			{
-		// 				var key = g
-		// 					.AsReduced()
-		// 					.ToString();
-		// 				if (fitness.HasConverged())
-		// 				{
-		// 					_convergent[key] = g;
-		// 				}
-		// 				else
-		// 				{
-		// 					Genome v;
-		// 					_convergent.TryRemove(key, out v);
-		// 				}
-		// 			});
-
-		// 			return fitness;
-		// 		});
-		// }
-
-
 
 		T TestPrep<T>(Func<List<double>, List<double[]>, T> handler)
 		{
@@ -526,10 +312,8 @@ namespace AlgebraBlackBox
 				}
 			}
 
-#if DEBUG
-			if (correct.All(v => double.IsNaN(v)))
+			if (Debugger.IsAttached && correct.All(v => double.IsNaN(v)))
 				throw new Exception("Formula cannot render allways NaN.");
-#endif
 
 			return handler(correct, samples);
 		}
@@ -572,6 +356,63 @@ namespace AlgebraBlackBox
 			// TODO: Need to find a way to dynamically implement more than 2 params... (discover significant params)
 			ProcessTest(p, count);
 		}
+
+
+		/*
+			// For the most part is not as performant when low sample count and short calculation times.
+			// But keep this here for reference.
+			Task<Fitness> ParallelTest(Genome g, List<double> correct, List<double[]> samples)
+			{
+				var len = correct.Count;
+				var divergence = new double[correct.Count];
+				var calc = new double[correct.Count];
+
+				return Task
+
+					.WhenAll(
+						Enumerable.Range(0, len)
+						.Select(i =>
+							g.Calculate(samples[i])
+								.ContinueWith(task =>
+								{
+									var result = task.Result;
+									calc[i] = result;
+									divergence[i] = -Math.Abs(result - correct[i]);
+								}))
+						.ToArray())
+
+					.ContinueWith(task =>
+					{
+						var c = correct.Correlation(calc);
+						var d = divergence.Average() + 1;
+
+						var fitness = GetFitnessFor(g);
+						fitness.AddScores(
+							(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
+							(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
+						);
+
+						Task.Run(() =>
+						{
+							var key = g
+								.AsReduced()
+								.ToString();
+							if (fitness.HasConverged())
+							{
+								_convergent[key] = g;
+							}
+							else
+							{
+								Genome v;
+								_convergent.TryRemove(key, out v);
+							}
+						});
+
+						return fitness;
+					});
+			}
+		*/
+
 
 	}
 

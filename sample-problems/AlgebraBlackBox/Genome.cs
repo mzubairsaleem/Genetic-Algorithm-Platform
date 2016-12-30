@@ -178,5 +178,42 @@ namespace AlgebraBlackBox
 			_variations = variations.Memoize();
 		}
 
+
+		// public Task<double> Correlation(
+		// 	double[] aSample, double[] bSample,
+		// 	Genome gA, Genome gB)
+		// {
+		// 	return Task.Run(() =>
+		// 	{
+		// 		var len = aSample.Length * bSample.Length;
+
+		// 		var gA_result = new double[len];
+		// 		var gB_result = new double[len];
+		// 		var i = 0;
+
+		// 		foreach (var a in aSample)
+		// 		{
+		// 			foreach (var b in bSample)
+		// 			{
+		// 				var p = new double[] { a, b }; // Could be using Tuples?
+		// 				var r1 = gA.Calculate(p);
+		// 				var r2 = gB.Calculate(p);
+		// 				Task.WaitAll(r1, r2);
+		// 				gA_result[i] = r1.Result;
+		// 				gB_result[i] = r2.Result;
+		// 				i++;
+		// 			}
+		// 		}
+
+		// 		return gA_result.Correlation(gB_result);
+		// 	});
+		// }
+
+
+		// // compare(a:AlgebraGenome, b:AlgebraGenome):boolean
+		// // {
+		// // 	return this.correlation(this.sample(), this.sample(), a, b)>0.9999999;
+		// // }
+
 	}
 }
