@@ -27,8 +27,11 @@ namespace AlgebraBlackBox
 	/// The 'Problem' class is important for tracking fitness results and deciding how well a genome is peforming.
 	/// It's possible to have multiple 'problems' being measured at once so each Problem class has to keep a rank of the genomes.
 	///</summary>
-	public class Problem : GeneticAlgorithmPlatform.IProblem<Genome>
+	public sealed class Problem : GeneticAlgorithmPlatform.IProblem<Genome>
 	{
+
+		Formula _actualFormula;
+
 
 		SortedList<Fitness, Genome> _rankedPool;
 
@@ -37,8 +40,7 @@ namespace AlgebraBlackBox
 		ConcurrentDictionary<string, Genome> _convergent;
 		ConcurrentDictionary<string, bool> _rejected;
 
-		Formula _actualFormula;
-
+		ConcurrentQueue<Fitness> _reorderQueue;
 
 		public Problem(Formula actualFormula)
 		{
@@ -142,7 +144,7 @@ namespace AlgebraBlackBox
 		}
 
 		// When upgradeLockCondition returns true the lock will progressively be upgraded from Read, ReadUpgradeable, to Write.
-		protected Genome PeekNextTopGenome(Func<KeyValuePair<Fitness, Genome>?, LockType, bool> upgradeLockCondition = null)
+		Genome PeekNextTopGenome(Func<KeyValuePair<Fitness, Genome>?, LockType, bool> upgradeLockCondition = null)
 		{
 			KeyValuePair<Fitness, Genome>? kvp = null;
 			Func<LockType, bool> condition = lockType =>
@@ -170,14 +172,20 @@ namespace AlgebraBlackBox
 			return kvp.HasValue ? kvp.Value.Value : null;
 		}
 
-		protected void ReorderRanking(Genome genome)
+		
+
+		void ReorderRanking(Fitness fitness, Genome genome)
 		{
-			var fitness = GetFitnessFor(genome);
 			if( _rankedPool.TryRemoveSynchronized(fitness))
 				ReturnGenomeToRanking(fitness,genome);				
 		}
 
-		protected void ReturnGenomeToRanking(Fitness fitness, Genome genome)
+		public void ReorderRanking(Genome genome)
+		{
+			ReorderRanking(GetFitnessFor(genome),genome);
+		}
+
+		void ReturnGenomeToRanking(Fitness fitness, Genome genome)
 		{
 			if(!_rankedPool.TryAddSynchronized(fitness,genome))
 				throw new Exception("Could not return (add) a genome to ranking.");
@@ -256,6 +264,7 @@ namespace AlgebraBlackBox
 						? double.NegativeInfinity
 						: -2,
 					double.NegativeInfinity);
+				ReorderRanking(fitness,g);
 				return fitness;
 			}
 
@@ -266,6 +275,8 @@ namespace AlgebraBlackBox
 				(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
 				(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
 			);
+
+			ReorderRanking(fitness,g); // This could be deferred?  Queued?
 
 			var key = g
 				.AsReduced()
