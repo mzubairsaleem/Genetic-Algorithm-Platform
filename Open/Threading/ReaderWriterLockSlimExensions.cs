@@ -397,7 +397,7 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public static bool ReadWriteConditional(this ReaderWriterLockSlim target,
-			Func<bool, bool> condition, Action closure,
+			Func<LockType, bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if(target==null)
@@ -409,12 +409,12 @@ namespace Open.Threading
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			bool c = false;
-			var lockHeld = target.Read(() => c = condition(false), millisecondsTimeout, throwsOnTimeout);
+			var lockHeld = target.Read(() => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
 			if (lockHeld && c)
 			{
 				lockHeld = target.Write(() =>
 				{
-					if (condition(true))
+					if (condition(LockType.Write))
 						closure();
 				},
 				millisecondsTimeout,
@@ -432,7 +432,7 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public static bool ReadWriteConditional<T>(this ReaderWriterLockSlim target,
-			ref T result, Func<bool, bool> condition, Func<T> closure,
+			ref T result, Func<LockType, bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if(target==null)
@@ -445,12 +445,12 @@ namespace Open.Threading
 
 			var r = result;
 			bool c = false, written = false;
-			var lockHeld = target.Read(() => c = condition(false), millisecondsTimeout, throwsOnTimeout);
+			var lockHeld = target.Read(() => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
 			if (lockHeld && c)
 			{
 				lockHeld = target.Write(out written, () =>
 				{
-					var w = condition(true);
+					var w = condition(LockType.Write);
 					if (w) r = closure();
 					return w;
 				},
@@ -472,7 +472,7 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public static bool ReadUpgradeableWriteConditional(this ReaderWriterLockSlim target,
-			Func<bool, bool> condition, Action closure,
+			Func<bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if(target==null)
@@ -485,7 +485,7 @@ namespace Open.Threading
 
 			bool writeLocked = true; // Initialize true so that if only only reading it still returns true.
 			bool readLocked = target.ReadUpgradeable(() => {
-				if(condition(false))
+				if(condition())
 					writeLocked = target.Write(closure, millisecondsTimeout, throwsOnTimeout);
 			});
 
@@ -499,7 +499,7 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public static bool ReadUpgradeableWriteConditional<T>(this ReaderWriterLockSlim target,
-			ref T result, Func<bool, bool> condition, Func<T> closure,
+			ref T result, Func<bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if(target==null)
@@ -515,7 +515,7 @@ namespace Open.Threading
 			bool written = false;
 			bool readLocked = target.ReadUpgradeable(() =>
 			{
-				if (condition(false)) { 
+				if (condition()) { 
 					// out r ensures that it IS written to.
 					writeLocked = target.Write(out r, closure, millisecondsTimeout, throwsOnTimeout);
 					written = true;
@@ -537,7 +537,7 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public static bool ReadWriteConditionalOptimized(this ReaderWriterLockSlim target,
-			Func<bool, bool> condition, Action closure,
+			Func<LockType, bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if(target==null)
@@ -549,8 +549,8 @@ namespace Open.Threading
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			bool c = false;
-			var lockHeld = target.Read(() => c = condition(false), millisecondsTimeout, throwsOnTimeout);
-			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(condition, closure, millisecondsTimeout, throwsOnTimeout));
+			var lockHeld = target.Read(() => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
+			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(()=>condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
 		}
 
 		/// <summary>
@@ -561,7 +561,7 @@ namespace Open.Threading
 		/// <param name="condition">Takes a bool where false means a read lock and true means a write lock.  Returns true if it should execute the query Action.</param>
 		/// <returns>Returns false if a timeout is reached.</returns>
 		public static bool ReadWriteConditionalOptimized<T>(this ReaderWriterLockSlim target,
-			ref T result, Func<bool, bool> condition, Func<T> closure,
+			ref T result, Func<LockType, bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
 			if(target==null)
@@ -573,8 +573,8 @@ namespace Open.Threading
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			bool c = false;
-			var lockHeld = target.Read(() => c = condition(false), millisecondsTimeout, throwsOnTimeout);
-			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(ref result, condition, closure, millisecondsTimeout, throwsOnTimeout));
+			var lockHeld = target.Read(() => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
+			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(ref result, ()=>condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
 		}
 
 		/// <summary>
@@ -602,7 +602,7 @@ namespace Open.Threading
 
 			T result = null;
 			target.ReadWriteConditionalOptimized(
-				ref result, (write) => (result = getValue())==null, createValue,
+				ref result, lockType => (result = getValue())==null, createValue,
 				millisecondsTimeout,
 				throwsOnTimeout);
 

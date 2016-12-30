@@ -6,7 +6,7 @@ using Open.Threading;
 
 namespace Open.Collections
 {
-    public class ConcurrentHashSet<T> : DisposableBase, IEnumerable<T>
+	public class ConcurrentHashSet<T> : DisposableBase, IEnumerable<T>
 	{
 		private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 		private readonly HashSet<T> _hashSet = new HashSet<T>();
@@ -24,12 +24,15 @@ namespace Open.Collections
 
 		public bool Contains(T item)
 		{
-			return _lock.ReadValue( ()=> _hashSet.Contains(item));
+			return _lock.ReadValue(() => _hashSet.Contains(item));
 		}
 
 		public bool Remove(T item)
 		{
-			return _lock.WriteValue(() => _hashSet.Remove(item));
+			bool result = false;
+			return _lock.ReadWriteConditionalOptimized(
+				lockType => result = _hashSet.Contains(item),
+				() => result = _hashSet.Remove(item));
 		}
 
 		public int Count
