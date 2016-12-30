@@ -415,7 +415,28 @@ namespace Open.Threading
 
 			return SynchronizeReadWrite(syncObject, syncObject, ref result, condition, closure, millisecondsTimeout, throwsOnTimeout);
 		}
-
+		
+		//
+        //	Summary:
+        //		Manages a read-only operation of any target and specifc key of that object.
+        //
+        //	Parameters:
+        //		syncObject:
+        //			The main object that defines the synchronization context.
+        //		key:
+        //			The key that represents what value will change.
+        //		closure:
+        //			The function to execute while under a read lock.
+        //		millisecondsTimeout:
+        //			An optional value to allow for timeout.
+		//
+        //	Returns:
+        //		The result of the closure.
+		//	
+		//	Exceptions:
+		//		TimeoutException:
+		//			Because we are returning a value then there must be a way to signal that a value in a read lock was not possible.  Only occurs if a millisecondsTimeout value is provided.		//
+		//
 		public static T SynchronizeRead<TSync, T>(TSync syncObject, object key, Func<T> closure, int? millisecondsTimeout = null) where TSync : class
 		{
 			ValidateSyncObject(syncObject);
@@ -430,6 +451,25 @@ namespace Open.Threading
 					closure, millisecondsTimeout);
 		}
 
+		//
+        //	Summary:
+        //		Manages a read-only operation of any target.
+        //
+        //	Parameters:
+        //		syncObject:
+        //			The main object that defines the synchronization context.
+        //		closure:
+        //			The function to execute while under a read lock.
+        //		millisecondsTimeout:
+        //			An optional value to allow for timeout.
+		//
+        //	Returns:
+        //		The result of the closure.
+		//	
+		//	Exceptions:
+		//		TimeoutException:
+		//			Because we are returning a value then there must be a way to signal that a value in a read lock was not possible.  Only occurs if a millisecondsTimeout value is provided.
+		//
 		public static T SynchronizeRead<TSync, T>(TSync syncObject, Func<T> closure, int? millisecondsTimeout = null, bool throwsOnTimeout = true) where TSync : class
 		{
 			ValidateSyncObject(syncObject);
