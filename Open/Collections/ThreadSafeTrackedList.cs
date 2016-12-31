@@ -34,8 +34,7 @@ namespace Open.Collections
 		protected override void OnDispose(bool calledExplicitly)
 		{
 			base.OnDispose(calledExplicitly);
-			var s = _source;
-			_source = null;
+			var s = Interlocked.Exchange(ref _source, null);
 			if (s != null)
 			{
 				s.Clear();

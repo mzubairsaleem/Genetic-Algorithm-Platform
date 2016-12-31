@@ -4,6 +4,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Open.Arithmetic;
@@ -12,7 +13,7 @@ using Fitness = GeneticAlgorithmPlatform.Fitness;
 namespace AlgebraBlackBox
 {
 
-    public delegate double Formula(params double[] p);
+	public delegate double Formula(params double[] p);
 
 	///<summary>
 	/// The 'Problem' class is important for tracking fitness results and deciding how well a genome is peforming.
@@ -31,13 +32,13 @@ namespace AlgebraBlackBox
 
 		protected override Fitness GetFitnessFor(Genome genome, bool createIfMissing = true)
 		{
-			return base.GetFitnessFor(genome.AsReduced(),createIfMissing);
+			return base.GetFitnessFor(genome.AsReduced(), createIfMissing);
 		}
 
 		protected override async Task<Fitness> ProcessTest(Genome g, bool useAsync = true)
 		{
 			var fitness = GetFitnessFor(g);
-			var samples = _sampleCache.Get(fitness.SampleCount).ToArray();
+			var samples = _sampleCache.Get(fitness.SampleCount);
 			var len = samples.Length;
 			var correct = new double[len];
 			var divergence = new double[len];
@@ -98,8 +99,30 @@ namespace AlgebraBlackBox
 			return fitness;
 		}
 
+		protected override List<Genome> RejectBadAndThenReturnKeepers(Genome[] genomes)
+		{
+			var keep = new List<Genome>();
+			var reject = new List<Fitness>();
 
-    }
+			foreach (var genome in genomes)
+			{
+				var fitness = GetFitnessFor(genome);
+				var scores = fitness.Scores;
+				if (scores.Any(d => double.IsNegativeInfinity(d)) || scores[0] < 0 && fitness.SampleCount > 50)
+				{
+					Rejected.TryAdd(genome.Hash, true);
+					reject.Add(fitness);
+				}
+				else
+				{
+					keep.Add(genome);
+				}
+			}
+
+			StripRank(reject);
+			return keep;
+		}
+	}
 
 
 

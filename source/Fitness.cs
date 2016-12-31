@@ -60,10 +60,11 @@ namespace GeneticAlgorithmPlatform
 
 	}
 
+
 	public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable<Fitness>
 	{
 
-		
+
 
 		public int SampleCount
 		{
@@ -97,7 +98,6 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-
 		public void AddTheseScores(IEnumerable<double> scores)
 		{
 			Sync.Modifying(() =>
@@ -129,31 +129,47 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		static long FitnessCount = 0;
-		long _id = Interlocked.Increment(ref FitnessCount);
+		internal readonly long ID = Interlocked.Increment(ref FitnessCount);
+
+		internal int TestingCount = 0;
 
 		// Some cases enumerables are easier to sort in ascending than descnding.
 		const int DIRECTION = -1;
 		public int CompareTo(Fitness other)
 		{
-			if (this == other) return 0;
-			if (other == null)
+			return Comparison(this, other);
+		}
+
+		public class Comparer : IComparer<Fitness>
+		{
+			public int Compare(Fitness x, Fitness y)
+			{
+				return Comparison(x, y);
+			}
+		}
+
+		public static int Comparison(Fitness x, Fitness y)
+		{
+
+			if (x == y) return 0;
+			if (y == null)
 				throw new ArgumentNullException("other");
-			int len = Count, otherLen = other.Count;
-			if (len != 0 || otherLen != 0)
+			int xLen = x.Count, yLen = y.Count;
+			if (xLen != 0 || yLen != 0)
 			{
 				// If unseen? Should be of greater importance..
-				if (len == 0 && otherLen != 0) return +DIRECTION;
-				if (len != 0 && otherLen == 0) return -DIRECTION;
-				Debug.Assert(len == other.Count, "Fitnesses must be compatible.");
+				if (xLen == 0 && yLen != 0) return +DIRECTION;
+				if (xLen != 0 && yLen == 0) return -DIRECTION;
+				Debug.Assert(xLen == y.Count, "Fitnesses must be compatible.");
 
 				// In non-debug, all for the lesser scored to be of lesser importance.
-				if (len < otherLen) return -DIRECTION;
-				if (len > otherLen) return +DIRECTION;
+				if (xLen < yLen) return -DIRECTION;
+				if (xLen > yLen) return +DIRECTION;
 
-				for (var i = 0; i < len; i++)
+				for (var i = 0; i < xLen; i++)
 				{
-					var a = this[i].Result;
-					var b = other[i].Result;
+					var a = x[i].Result;
+					var b = y[i].Result;
 					var aA = a.Average;
 					var bA = b.Average;
 
@@ -168,12 +184,12 @@ namespace GeneticAlgorithmPlatform
 				}
 			}
 
-			if (_id < other._id) return +DIRECTION;
-			if (_id > other._id) return -DIRECTION;
+			if (x.ID < y.ID) return +DIRECTION;
+			if (x.ID > y.ID) return -DIRECTION;
 
 			throw new Exception("Impossible? Interlocked failed?");
-		}
 
+		}
 
 	}
 }

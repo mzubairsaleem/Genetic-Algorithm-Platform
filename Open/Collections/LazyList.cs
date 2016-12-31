@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Open.Collections
 {
@@ -21,12 +22,8 @@ namespace Open.Collections
 
         protected override void OnDispose(bool calledExplicitly)
         {
-            var e = _enumerator;
-			_enumerator = null;
-			e.SmartDispose();
-			var c = _cached;
-			_cached = null;
-			c.SmartDispose();
+			Interlocked.Exchange(ref _enumerator, null).SmartDispose();
+			Interlocked.Exchange(ref _cached, null).SmartDispose();
         }
 
 		public T this[int index]
@@ -130,9 +127,7 @@ namespace Open.Collections
 				}
 				else
 				{
-					var e = _enumerator;
-					_enumerator = null;
-					if (e != null) e.Dispose();
+					Interlocked.Exchange(ref _enumerator, null).SmartDispose();
 				}
 			}
 			value = default(T);

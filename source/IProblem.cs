@@ -3,7 +3,9 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
+using System;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -14,7 +16,8 @@ namespace GeneticAlgorithmPlatform
 	public interface IProblem<TGenome>
 		 where TGenome : class, IGenome
 	{
-
+		int ID { get; }
+		
 		TGenome TopGenome();
 
 		TGenome[] TopGenomes(int count);
@@ -23,7 +26,9 @@ namespace GeneticAlgorithmPlatform
 
 		Task WaitForConverged();
 
-		void Consume(IGenomeFactory<TGenome> source);
+		IDisposable[] Consume(IGenomeFactory<TGenome> source);
+
+		IDisposable ListenToTopChanges(ITargetBlock<Tuple<TGenome,Fitness>> target);
 
 	}
 }

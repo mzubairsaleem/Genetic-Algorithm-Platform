@@ -1,5 +1,7 @@
 ﻿using System;
+using Open.Collections;
 using System.Diagnostics;
+using Open;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -20,19 +22,28 @@ namespace GeneticAlgorithmPlatform
 		}
 		public static void Main(string[] args)
 		{
-			var e = new AlgebraBlackBox.Environment(SqrtA2B2);
+			var sw = Stopwatch.StartNew();
+			var e = new AlgebraBlackBox.Environment(SqrtA2B2AB);
+			e.ListenToTopChanges(change =>
+			{
+				Console.WriteLine(change.Item1.ID + ":\t" + change.Item2.ToAlphaParameters());
+				Console.WriteLine("  \t[{0}] ({1} samples)", change.Item3.Scores.JoinToString(","), change.Item3.SampleCount);
+				Console.WriteLine();
+			});
+
+
 			var converged = e.WaitForConverged();
 			e.SpawnNew();
 			converged.Wait();
 
-			Console.Write("Converged: ");
+			Console.WriteLine("Converged: (after {0})", sw.Elapsed.ToStringVerbose());
 			int i = 0;
 			foreach (var problem in converged.Result)
 			{
 				Console.WriteLine((++i) + ":");
 				foreach (var genome in problem.Convergent)
 				{
-					Console.WriteLine("\t");
+					Console.Write("  \t");
 					Console.WriteLine(genome.ToAlphaParameters());
 				}
 			}

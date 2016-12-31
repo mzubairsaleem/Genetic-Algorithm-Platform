@@ -219,6 +219,7 @@ namespace AlgebraBlackBox
 				return op != null && op.Count == 1;
 			}
 
+			// This should handle the case of demoting a function.
 			public static Genome PromoteChildren(Genome source, int geneIndex)
 			{
 				// Validate worthyness.

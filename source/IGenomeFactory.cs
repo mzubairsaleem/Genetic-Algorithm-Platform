@@ -4,6 +4,7 @@
  */
 
 
+using System;
 using System.Threading.Tasks.Dataflow;
 
 namespace GeneticAlgorithmPlatform
@@ -13,9 +14,9 @@ namespace GeneticAlgorithmPlatform
     {
         void Generate(uint count);
 
-        void LinkReception(ITargetBlock<TGenome> block);
+        IDisposable LinkReception(ITargetBlock<TGenome> block);
 
-        void LinkMutation(ISourceBlock<TGenome> block);
+        IDisposable LinkMutation(ISourceBlock<TGenome> block);
 
         // TGenome Generate(IEnumerable<TGenome> source = null);
         // Task<TGenome> GenerateAsync(IEnumerable<TGenome> source = null);

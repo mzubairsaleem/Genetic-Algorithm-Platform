@@ -127,9 +127,9 @@ namespace Open.Threading
 			if (IsDisposed)
 				return null;
 
-			// Need to be able to enter a lock before releasing acesss in order to prevent removal...
+			// Need to be able to enter a lock before releasing access in order to prevent removal...
 			var r = CleanupManager.ReadValue(() =>
-		   {
+		   	{
 			   // It is possible that a read could be acquired while disposing just before the dispose.
 			   if (IsDisposed)
 				   return null;

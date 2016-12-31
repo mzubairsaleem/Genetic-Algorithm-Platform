@@ -3,6 +3,7 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -104,14 +105,14 @@ namespace GeneticAlgorithmPlatform
 		}
 
 
-		public void LinkReception(ITargetBlock<TGenome> block)
+		public IDisposable LinkReception(ITargetBlock<TGenome> block)
 		{
-			Queue.LinkTo(block);
+			return Queue.LinkTo(block);
 		}
 
-		public void LinkMutation(ISourceBlock<TGenome> block)
+		public IDisposable LinkMutation(ISourceBlock<TGenome> block)
 		{
-			block.LinkTo(new ActionBlock<TGenome>(genome =>
+			return block.LinkTo(new ActionBlock<TGenome>(genome =>
 			{
 				Queue.Post(Mutate(genome));
 			}));

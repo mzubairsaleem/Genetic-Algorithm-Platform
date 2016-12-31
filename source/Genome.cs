@@ -6,13 +6,14 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Threading;
 using Open;
 using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public abstract class Genome<T> : ModificationSynchronizedBase, IGenome<T>
+	public abstract class Genome<T> : ModificationSynchronizedBase, IGenome<T>
 	where T : IGene
 	{
 		private T _root;
@@ -28,9 +29,7 @@ namespace GeneticAlgorithmPlatform
 			base.OnDispose(calledExplicitly);
 			_root = default(T);
 			_genes = null;
-			var p = _parentCache;
-			_parentCache = null;
-			p.SmartDispose();
+			Interlocked.Exchange(ref _parentCache, null).SmartDispose();
 		}
 
 		public T Root
@@ -60,12 +59,12 @@ namespace GeneticAlgorithmPlatform
 
 		protected abstract void OnRootChanged(T oldRoot, T newRoot);
 
-		ConcurrentDictionary<T,IGeneNode<T>> _parentCache;
+		ConcurrentDictionary<T, IGeneNode<T>> _parentCache;
 		public virtual IGeneNode<T> FindParent(T child)
 		{
 			return _parentCache == null
 				? FindParentInternal(child)
-				: _parentCache.GetOrAdd(child,key=>FindParentInternal(key));
+				: _parentCache.GetOrAdd(child, key => FindParentInternal(key));
 		}
 		protected IGeneNode<T> FindParentInternal(T child)
 		{
@@ -81,10 +80,10 @@ namespace GeneticAlgorithmPlatform
 			get
 			{
 				var g = _genes;
-				return g==null ? GetGenes() : g.Value;
+				return g == null ? GetGenes() : g.Value;
 			}
 		}
-		
+
 		T[] GetGenes()
 		{
 			var r = Enumerable.Repeat(_root, 1);
@@ -108,15 +107,15 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-        IGene[] IGenome.Genes
-        {
-            get
-            {
+		IGene[] IGenome.Genes
+		{
+			get
+			{
 				return (dynamic)this.Genes;
-            }
-        }
+			}
+		}
 
-        public virtual Genome<T> Clone()
+		public virtual Genome<T> Clone()
 		{
 			throw new NotImplementedException();
 		}
@@ -130,11 +129,11 @@ namespace GeneticAlgorithmPlatform
 		{
 			base.OnFrozen();
 			Root.Freeze();
-			_genes = Lazy.New(()=>GetGenes());
-			_parentCache = new ConcurrentDictionary<T,IGeneNode<T>>();
+			_genes = Lazy.New(() => GetGenes());
+			_parentCache = new ConcurrentDictionary<T, IGeneNode<T>>();
 		}
 
-        public abstract IGenome NextVariation();
-    }
+		public abstract IGenome NextVariation();
+	}
 
 }
