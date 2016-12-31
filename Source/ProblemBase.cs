@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +12,7 @@ using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
-	public abstract class ProblemBase<TGenome> : IProblem<TGenome>
+    public abstract class ProblemBase<TGenome> : IProblem<TGenome>
 	where TGenome : class, IGenome
 	{
 		protected readonly SortedDictionary<Fitness, TGenome>
