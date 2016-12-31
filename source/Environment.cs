@@ -4,30 +4,45 @@
  */
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public abstract class Environment<TGenome>
-		where TGenome : IGenome
+    // Defines the pipeline?
+    public abstract class Environment<TGenome> : IEnvironment<TGenome>
+		where TGenome : class, IGenome
 	{
-		protected List<IProblem<TGenome>> _problems;
-		private IGenomeFactory<TGenome> _genomeFactory;
+		IGenomeFactory<TGenome> Factory;
+
+		BufferBlock<IProblem<TGenome>> Converged;
 
 		protected Environment(IGenomeFactory<TGenome> genomeFactory)
 		{
-			_genomeFactory = genomeFactory;
-			_problems = new List<IProblem<TGenome>>();
+			Factory = genomeFactory;
 		}
 
-		/**
-         * Adds a new population to the environment.  Optionally pulling from the source provided.
-         */
-		public void Spawn()
+		public void AddProblem(IProblem<TGenome> problem)
 		{
-			var newGenome = _genomeFactory.Generate();
-			foreach (var p in _problems) p.Receive(newGenome);
+			problem.Consume(Factory);
+			problem.WaitForConverged()
+				.ContinueWith(task => Converged.Post(problem));				
 		}
+
+		public async Task<IList<IProblem<TGenome>>> WaitForConverged()
+		{
+			await Converged.OutputAvailableAsync();
+			IList<IProblem<TGenome>> list;
+			Converged.TryReceiveAll(out list);
+			return list;
+		}
+
+		public void SpawnNew(uint count = 1)
+		{
+			Factory.Generate(count);
+		}
+
 	}
 
 

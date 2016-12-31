@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using AlgebraBlackBox.Genes;
 using Open;
 using Open.Collections;
 
 namespace AlgebraBlackBox
 {
-
-	delegate bool GeneHandler(IGene gene, Genome newGenome);
 
 	public class GenomeFactory : GeneticAlgorithmPlatform.GenomeFactoryBase<Genome>
 	{
@@ -35,7 +33,7 @@ namespace AlgebraBlackBox
 		}
 
 
-		public override Genome Generate(IEnumerable<Genome> source = null)
+		public Genome Generate(IEnumerable<Genome> source = null)
 		{
 			var attempts = 0;
 			Genome genome = null;
@@ -134,13 +132,6 @@ namespace AlgebraBlackBox
 			return genome;
 
 		}
-
-		
-        public override Task<Genome> GenerateAsync(IEnumerable<Genome> source = null)
-        {
-			return Task.Run(()=>Generate(source));
-        }
-
 
 		public static Genome ApplyClone(Genome source, int geneIndex, Action<IGene, Genome> handler)
 		{
@@ -438,7 +429,7 @@ namespace AlgebraBlackBox
 				}
 			}
 		}
-		protected override IEnumerable<Genome> GenerateVariations(Genome source)
+		protected IEnumerable<Genome> GenerateVariations(Genome source)
 		{
 			return GenerateVariationsUnfiltered(source)
 				.Where(genome => genome != null)
@@ -458,7 +449,7 @@ namespace AlgebraBlackBox
 			return target;
 		}
 
-		protected Genome MutateInternal(Genome target)
+		private Genome MutateUnfrozen(Genome target)
 		{
 			/* Possible mutations:
 			 * 1) Adding a parameter node to an operation.
@@ -593,28 +584,17 @@ namespace AlgebraBlackBox
 
 		}
 
-		public override Genome Mutate(Genome source, uint mutations = 1)
+
+		protected override Genome MutateInternal(Genome target)
 		{
-			Genome genome = null;
-			for (uint i = 0; i < mutations; i++)
-			{
-				uint tries = 3;
-				do
-				{
-					genome = Freeze(MutateInternal(source));
-				}
-				while (genome == null && --tries != 0);
-				// Reuse the clone as the source 
-				if (genome == null) break; // No mutation possible? :/
-				source = genome;
-			}
-			return genome;
+			return Freeze(MutateUnfrozen(target));
 		}
 
-		public override Task<Genome> MutateAsync(Genome source, uint mutations = 1)
+		public override void Generate(uint count)
 		{
-			return Task.Run(()=>Mutate(source, mutations));
+			for (uint i = 0; i < count; i++)
+				Queue.Post(Generate());
 		}
 
-    }
+	}
 }

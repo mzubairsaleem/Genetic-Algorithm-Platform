@@ -4,21 +4,26 @@
  */
 
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public abstract class GenomeFactoryBase<TGenome>
+	public abstract class GenomeFactoryBase<TGenome>
 	: IGenomeFactory<TGenome>
-	where TGenome : IGenome
+	where TGenome : class, IGenome
 	{
+
+		readonly protected BufferBlock<TGenome>
+			Queue = new BufferBlock<TGenome>();
+
+
 		public uint MaxGenomeTracking { get; set; }
 
 		protected ConcurrentDictionary<string, TGenome> _previousGenomes; // Track by hash...
-		protected ConcurrentQueue<string> _previousGenomesOrder;
+		ConcurrentQueue<string> _previousGenomesOrder;
 
 		public GenomeFactoryBase()
 		{
@@ -38,7 +43,7 @@ namespace GeneticAlgorithmPlatform
 		public TGenome GetPrevious(string hash)
 		{
 			TGenome result;
-			return _previousGenomes.TryGetValue(hash, out result) ? result : default(TGenome);
+			return _previousGenomes.TryGetValue(hash, out result) ? result : null;
 		}
 
 		Task _trimmer;
@@ -66,13 +71,30 @@ namespace GeneticAlgorithmPlatform
 			}));
 		}
 
-		protected abstract IEnumerable<TGenome> GenerateVariations(TGenome source);
-		public abstract TGenome Generate(IEnumerable<TGenome> source);
-        public abstract Task<TGenome> GenerateAsync(IEnumerable<TGenome> source = null);
-        public abstract TGenome Mutate(TGenome source, uint mutations = 1);
-		public abstract Task<TGenome> MutateAsync(TGenome source, uint mutations);
+		public abstract void Generate(uint count);
+		protected abstract TGenome MutateInternal(TGenome target);
 
-		public void Add(TGenome genome)
+		protected TGenome Mutate(TGenome source, uint mutations = 1)
+		{
+			TGenome genome = null;
+			for (uint i = 0; i < mutations; i++)
+			{
+				uint tries = 3;
+				do
+				{
+					genome = MutateInternal(source);
+				}
+				while (genome == null && --tries != 0);
+				// Reuse the clone as the source 
+				if (genome == null) break; // No mutation possible? :/
+				source = genome;
+			}
+			if (genome != null)
+				Queue.Post(genome);
+			return genome;
+		}
+
+		protected void Register(TGenome genome)
 		{
 			var hash = genome.Hash;
 			if (_previousGenomes.TryAdd(hash, genome))
@@ -82,6 +104,18 @@ namespace GeneticAlgorithmPlatform
 		}
 
 
-    }
+		public void LinkReception(ITargetBlock<TGenome> block)
+		{
+			Queue.LinkTo(block);
+		}
+
+		public void LinkMutation(ISourceBlock<TGenome> block)
+		{
+			block.LinkTo(new ActionBlock<TGenome>(genome =>
+			{
+				Queue.Post(Mutate(genome));
+			}));
+		}
+	}
 }
 
