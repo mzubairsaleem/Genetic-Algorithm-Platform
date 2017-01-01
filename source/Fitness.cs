@@ -192,8 +192,8 @@ namespace GeneticAlgorithmPlatform
 
 		internal int TestingCount = 0;
 
-		// Some cases enumerables are easier to sort in ascending than descnding.
-		const int DIRECTION = -1;
+		// Some cases enumerables are easier to sort in ascending than descending so "Top" in this respect means 'First'.
+		public const int ORDER_DIRECTION = -1; 
 		public int CompareTo(IFitness other)
 		{
 			return Comparison(this, other);
@@ -209,7 +209,22 @@ namespace GeneticAlgorithmPlatform
 
 		public static int Comparison(IFitness x, IFitness y)
 		{
+			int c;
 
+			if(x==y) return 0;
+
+			c = ValueComparison(x,y);
+			if(c!=0) return c;
+
+			c = IdComparison(x,y);
+			if(c!=0) return c;
+
+			throw new Exception("Impossible? Interlocked failed?");
+
+		}
+
+		public static int ValueComparison(IFitness x, IFitness y)
+		{
 			if (x == y) return 0;
 			if (y == null)
 				throw new ArgumentNullException("other");
@@ -217,13 +232,13 @@ namespace GeneticAlgorithmPlatform
 			if (xLen != 0 || yLen != 0)
 			{
 				// If unseen? Should be of greater importance..
-				if (xLen == 0 && yLen != 0) return +DIRECTION;
-				if (xLen != 0 && yLen == 0) return -DIRECTION;
+				if (xLen == 0 && yLen != 0) return +ORDER_DIRECTION;
+				if (xLen != 0 && yLen == 0) return -ORDER_DIRECTION;
 				Debug.Assert(xLen == y.Count, "Fitnesses must be compatible.");
 
 				// In non-debug, all for the lesser scored to be of lesser importance.
-				if (xLen < yLen) return -DIRECTION;
-				if (xLen > yLen) return +DIRECTION;
+				if (xLen < yLen) return -ORDER_DIRECTION;
+				if (xLen > yLen) return +ORDER_DIRECTION;
 
 				for (var i = 0; i < xLen; i++)
 				{
@@ -233,21 +248,24 @@ namespace GeneticAlgorithmPlatform
 					var bA = b.Average;
 
 					// Standard A less than B.
-					if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -DIRECTION;
+					if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -ORDER_DIRECTION;
 					// Standard A greater than B.
-					if (aA > bA || !double.IsNaN(aA) && double.IsNaN(bA)) return +DIRECTION;
+					if (aA > bA || !double.IsNaN(aA) && double.IsNaN(bA)) return +ORDER_DIRECTION;
 
 					// Who has the most samples?
-					if (a.Count < b.Count) return -DIRECTION;
-					if (a.Count > b.Count) return +DIRECTION;
+					if (a.Count < b.Count) return -ORDER_DIRECTION;
+					if (a.Count > b.Count) return +ORDER_DIRECTION;
 				}
 			}
 
-			if (x.ID < y.ID) return +DIRECTION;
-			if (x.ID > y.ID) return -DIRECTION;
+			return 0;
+		}
 
-			throw new Exception("Impossible? Interlocked failed?");
-
+		public static int IdComparison(IFitness x, IFitness y)
+		{
+			if (x.ID < y.ID) return +ORDER_DIRECTION;
+			if (x.ID > y.ID) return -ORDER_DIRECTION;
+			return 0;
 		}
 
 	}
