@@ -28,7 +28,7 @@ namespace GeneticAlgorithmPlatform
 
 		IDisposable[] Consume(IGenomeFactory<TGenome> source);
 
-		IDisposable ListenToTopChanges(ITargetBlock<Tuple<TGenome,Fitness>> target);
+		IDisposable ListenToTopChanges(ITargetBlock<IGenomeFitness<TGenome>> target);
 
 	}
 }

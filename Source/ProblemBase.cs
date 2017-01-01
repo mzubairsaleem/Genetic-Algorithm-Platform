@@ -12,14 +12,14 @@ using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
-    public abstract class ProblemBase<TGenome> : IProblem<TGenome>
+	public abstract class ProblemBase<TGenome> : IProblem<TGenome>
 	where TGenome : class, IGenome
 	{
 		protected readonly SortedDictionary<Fitness, TGenome>
 		RankedPool = new SortedDictionary<Fitness, TGenome>();
 
-		protected readonly ConcurrentDictionary<string, Lazy<Fitness>>
-		Fitnesses = new ConcurrentDictionary<string, Lazy<Fitness>>();
+		protected readonly ConcurrentDictionary<string, Lazy<GenomeFitness<TGenome, Fitness>>>
+		Fitnesses = new ConcurrentDictionary<string, Lazy<GenomeFitness<TGenome, Fitness>>>();
 
 		protected readonly BufferBlock<TGenome>
 		TestCompleteBuffer = new BufferBlock<TGenome>();
@@ -42,8 +42,8 @@ namespace GeneticAlgorithmPlatform
 
 		protected string LatestTopGenome;
 
-		protected readonly BroadcastBlock<Tuple<TGenome, Fitness>>
-		NewTopGenome = new BroadcastBlock<Tuple<TGenome, Fitness>>(null);
+		protected readonly BroadcastBlock<IGenomeFitness<TGenome>>
+		NewTopGenome = new BroadcastBlock<IGenomeFitness<TGenome>>(null);
 
 		protected readonly ActionBlock<TGenome> TestBuffer;
 
@@ -70,136 +70,195 @@ namespace GeneticAlgorithmPlatform
 		{
 			Reception = new ActionBlock<TGenome>(genome =>
 			{
-				// Ignore existing rejected...
-				if (!Rejected.ContainsKey(genome.Hash))
-					TestBuffer.Post(genome);
+				if (genome != null)
+				{
+					// Ignore existing rejected...
+					var keyed = GetFitnessForKeyTransform(genome);
+					if (!Rejected.ContainsKey(genome.Hash) && (keyed == genome || !Rejected.ContainsKey(keyed.Hash)))
+						TestBuffer.Post(genome);
+				}
 			});
 
-			TestBuffer = new ActionBlock<TGenome>(async genome =>
+			TestBuffer = new ActionBlock<TGenome>(
+				ConsumeGenomeReadyForTesting,
+				new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 16 });
+
+			Task.Run(ConsumeCompletedTests);
+		}
+
+		async Task ConsumeGenomeReadyForTesting(TGenome genome)
+		{
+			var c = TestBuffer.InputCount;
+			if (c > 10000) Console.WriteLine("Test Buffer: " + c);
+			var gf = GetOrCreateFitnessFor(genome);
+			var fitness = gf.Fitness;
+			var storedGenome = gf.Genome;
+			try
 			{
-				var fitness = GetFitnessFor(genome);
-				try
-				{
-					ThreadSafety.SynchronizeWrite(fitness, () => fitness.TestingCount++);
-					RankedPool.TryRemoveSynchronized(fitness);
-					// ProcessTest should not have a different fitness object.
-					// await Task.WhenAll(
-					// 	Enumerable.Range(0,2).Select(i=>ProcessTest(genome, false)));
-					await ProcessTest(genome, false);
-				}
-				finally
-				{
-					// ** NOTE: We are only tracking 'if undergoing testing here.
-					// Returning to the pool could be signaled more than once but we are attempting to prevent adds while values are changing.
-					ThreadSafety.SynchronizeWrite(fitness, () => fitness.TestingCount--);
-				}
-
-				var key = genome.Hash;
-				if (fitness.HasConverged())
-				{
-					ConvergentRegistry.Add(genome);
-					Converged.Post(genome);
-				}
-				else
-				{
-					ConvergentRegistry.Remove(genome);
-				}
-
-				TestCompleteBuffer.Post(genome);
-			});
-
-			Action processTests = async () =>
+				Interlocked.Increment(ref fitness.TestingCount);
+				RankedPool.TryRemoveSynchronized(fitness);
+				// ProcessTest should not have a different fitness object.
+				// await Task.WhenAll(
+				// 	Enumerable.Range(0,2).Select(i=>ProcessTest(genome, false)));
+				await ProcessTest(gf); // Note the Genome contained here may not equal the genome parameter.
+			}
+			finally
 			{
-				while (await TestCompleteBuffer.OutputAvailableAsync())
-				{
-					IList<TGenome> list;
-					if (!TestCompleteBuffer.TryReceiveAll(out list))
-						continue;
+				// ** NOTE: We are only tracking 'if undergoing testing here.
+				// Returning to the pool could be signaled more than once but we are attempting to prevent adds while values are changing.
+				Interlocked.Decrement(ref fitness.TestingCount);
+			}
 
-					uint count = 0;
-					ThreadSafety.SynchronizeWrite(RankedPool, () =>
+			if (fitness.HasConverged())
+			{
+				ConvergentRegistry.Add(storedGenome);
+				Converged.Post(storedGenome);
+			}
+			else
+			{
+				ConvergentRegistry.Remove(storedGenome);
+			}
+
+			TestCompleteBuffer.Post(genome);
+		}
+
+		async Task ConsumeCompletedTests()
+		{
+			while (await TestCompleteBuffer.OutputAvailableAsync())
+			{
+				IList<TGenome> list;
+				if (!TestCompleteBuffer.TryReceiveAll(out list))
+					continue;
+
+				uint count = 0;
+				ThreadSafety.SynchronizeWrite(RankedPool, () =>
+				{
+					foreach (var g in list.Distinct())
 					{
-						foreach (var g in list.Distinct())
-						{
-							var fitness = GetFitnessFor(g);
-							ThreadSafety.SynchronizeReadWrite(fitness,
-								lockType => fitness.TestingCount == 0 && !RankedPool.ContainsKey(fitness),
-								() =>
-								{
-									RankedPool.Add(fitness, g);
-									count++;
-								}); // **
-						}
-					});
+						var gf = GetOrCreateFitnessFor(g);
+						var fitness = gf.Fitness;
+						ThreadSafety.SynchronizeReadWrite(fitness,
+							lockType => fitness.TestingCount == 0 && !RankedPool.ContainsKey(fitness),
+							() =>
+							{
+								RankedPool.Add(fitness, gf.Genome); // Return/Add the keyed version.
+								count++;
+							}); // **
+					}
+				});
 
-					var top = TopGenome();
+				var top = TopGenome();
+				if (top != null)
+				{
+					var gf = GetOrCreateFitnessFor(top);
+					var fitness = gf.Fitness;
+					// In some cases, what is used as the key ends up being another instance/version of it.
 					var topHash = top.Hash;
 					if (topHash != Interlocked.Exchange(ref LatestTopGenome, topHash))
-						NewTopGenome.Post(new Tuple<TGenome, Fitness>(top, GetFitnessFor(top)));
-					//Reception.Post(top); // Use original.
-					Reception.Post((TGenome)top.NextVariation()); // Use variation.
+						NewTopGenome.Post(new GenomeFitness<TGenome>(top, fitness.SnapShot()));
+					Reception.Post(top); // Use original.
+
+					var v = (TGenome)top.NextVariation();
+					if (v != null) Reception.Post(v); // Use variation.
+
 					Mutation.Post(top); // Use mutation.
-					Generation.Post((uint)1);
-
-					CleanupAndGeneration(count);
 				}
-			};
 
-			Task.Run(processTests);
-			//Task.Run(processTests);
+				// var bufferMax = 100;
+				// while (TestBuffer.InputCount > bufferMax)
+				// {
+				// 	await Task.Yield();
+				// 	bufferMax *= 10;
+				// }
 
-			// Task.Run(async ()=>{
-			// 	while(true)
-			// 	{
+				// if (TestBuffer.InputCount > 100)
+				// 	await Task.Yield();
 
-			// 		await Task.Yield();
-			// 	}
-			// });
-		}
 
-		protected abstract List<TGenome> RejectBadAndThenReturnKeepers(TGenome[] genomes);
+				Generation.Post((uint)1);
 
-		protected void StripRank(IEnumerable<Fitness> values)
-		{
-			ThreadSafety.SynchronizeWrite(RankedPool,()=>{
-				foreach(var f in values) RankedPool.Remove(f);
-			});
-		}
-		protected void CleanupAndGeneration(uint count)
-		{
-			var dispursed = Triangular.Disperse.Decreasing(
-					RejectBadAndThenReturnKeepers(
-						ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Values.ToArray())
-					)
-				).ToArray();
-
-			var len = dispursed.Length;
-			if(len!=0) for (uint i = 0; i < count; i++)
-			{
-				Reception.Post(dispursed.RandomSelectOne());
+				await CleanupAndGeneration(count); // Regenerate by the number of processed.
 			}
 		}
 
-		protected virtual Fitness GetFitnessFor(TGenome genome, bool createIfMissing = true)
+		protected abstract List<TGenome> RejectBadAndThenReturnKeepers(IEnumerable<GeneticAlgorithmPlatform.IGenomeFitness<TGenome, Fitness>> source, out List<Fitness> rejected);
+
+		protected void StripRank(IEnumerable<Fitness> values)
+		{
+			ThreadSafety.SynchronizeWrite(RankedPool, () =>
+			{
+				foreach (var f in values) RankedPool.Remove(f);
+			});
+		}
+		protected Task CleanupAndGeneration(uint count)
+		{
+			return Task.Run(() =>
+			{
+				List<Fitness> rejected;
+				var dispursed = Triangular.Disperse.Decreasing(
+						RejectBadAndThenReturnKeepers(
+							ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Select(kvp => kvp.GFFromFG()).ToArray()),
+							out rejected
+						)
+					).ToArray();
+
+				var len = dispursed.Length;
+				if (len != 0)
+				{
+					for (uint i = 0; i < count; i++)
+					{
+						Reception.Post(dispursed.RandomSelectOne());
+					}
+				}
+
+				StripRank(rejected);
+			});
+		}
+
+		// Override this if there is a common key for multiple genomes (aka they are equivalient).
+		protected virtual TGenome GetFitnessForKeyTransform(TGenome genome)
+		{
+			return genome;
+		}
+
+		protected bool TryGetFitnessFor(TGenome genome, out GenomeFitness<TGenome, Fitness> fitness)
+		{
+			genome = GetFitnessForKeyTransform(genome);
+			var key = genome.Hash;
+			Lazy<GenomeFitness<TGenome, Fitness>> value;
+			if (Fitnesses.TryGetValue(key, out value))
+			{
+				fitness = value.Value;
+				return true;
+			}
+			else
+			{
+				fitness = default(GenomeFitness<TGenome, Fitness>);
+				return false;
+			}
+		}
+
+		protected GenomeFitness<TGenome, Fitness>? GetFitnessFor(TGenome genome)
+		{
+			GenomeFitness<TGenome, Fitness> gf;
+			TryGetFitnessFor(genome, out gf);
+			return gf;
+		}
+
+		protected GenomeFitness<TGenome, Fitness> GetOrCreateFitnessFor(TGenome genome)
 		{
 			if (!genome.IsReadOnly)
 				throw new InvalidOperationException("Cannot recall fitness for an unfrozen genome.");
+			genome = GetFitnessForKeyTransform(genome);
 			var key = genome.Hash;
-			if (createIfMissing)
-				return Fitnesses
-					.GetOrAdd(key, k =>
-						Lazy.New(() => new Fitness())).Value;
-
-			Lazy<Fitness> value;
 			return Fitnesses
-				.TryGetValue(key, out value)
-				? value.Value
-				: null;
+				.GetOrAdd(key, k =>
+					Lazy.New(() => GenomeFitness.New(genome, new Fitness()))).Value;
 		}
 
 		public async Task WaitForConverged()
 		{
-			await Converged.OutputAvailableAsync();
+			await Converged.OutputAvailableAsync().ConfigureAwait(false);
 		}
 
 		public Fitness TopFitness()
@@ -208,7 +267,7 @@ namespace GeneticAlgorithmPlatform
 				() => RankedPool.Keys.FirstOrDefault());
 		}
 
-		public TGenome TopGenome()
+		public virtual TGenome TopGenome()
 		{
 			return ThreadSafety.SynchronizeRead(RankedPool,
 				() => RankedPool.Values.FirstOrDefault());
@@ -227,25 +286,32 @@ namespace GeneticAlgorithmPlatform
 			return ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Values.ToArray());
 		}
 
-		public List<TGenome> Pareto(IEnumerable<TGenome> population = null)
+		public List<GenomeFitness<TGenome>> Pareto(IEnumerable<TGenome> population = null)
 		{
 			var d = (population ?? Ranked())
 				.Distinct()
-				.ToDictionary(g => g.ToString(), g => g);
+				.Select(g =>
+				{
+					var gf = GetFitnessFor(g);
+					return gf.HasValue ? GenomeFitness.New(g, gf.Value.Fitness) : gf;
+				})
+				.Where(g => g.HasValue)
+				.Select(g => g.Value.SnapShot())
+				.ToDictionary(g => g.Genome.Hash, g => g);
 
 			bool found;
-			List<TGenome> p;
+			List<GenomeFitness<TGenome>> p;
 			do
 			{
 				found = false;
 				p = d.Values.ToList();
 				foreach (var g in p)
 				{
-					var gs = this.GetFitnessFor(g).Scores.ToArray();
+					var gs = g.Fitness.Scores.ToArray();
 					var len = gs.Length;
 					if (d.Values.Any(o =>
 						 {
-							 var os = this.GetFitnessFor(o).Scores.ToArray();
+							 var os = o.Fitness.Scores.ToArray();
 							 for (var i = 0; i < len; i++)
 							 {
 								 var osv = os[i];
@@ -256,7 +322,7 @@ namespace GeneticAlgorithmPlatform
 						 }))
 					{
 						found = true;
-						d.Remove(g.Hash);
+						d.Remove(g.Genome.Hash);
 					}
 				}
 			} while (found);
@@ -264,7 +330,12 @@ namespace GeneticAlgorithmPlatform
 			return p;
 		}
 
-		protected abstract Task<Fitness> ProcessTest(TGenome g, bool useAsync = true);
+		protected abstract Task ProcessTest(GenomeFitness<TGenome, Fitness> g, bool useAsync = true);
+
+		protected Task ProcessTest(TGenome g, bool useAsync = true)
+		{
+			return ProcessTest(GetOrCreateFitnessFor(g), useAsync);
+		}
 
 		public IDisposable[] Consume(IGenomeFactory<TGenome> source)
 		{
@@ -276,7 +347,7 @@ namespace GeneticAlgorithmPlatform
 			};
 		}
 
-		public IDisposable ListenToTopChanges(ITargetBlock<Tuple<TGenome, Fitness>> target)
+		public IDisposable ListenToTopChanges(ITargetBlock<IGenomeFitness<TGenome>> target)
 		{
 			return NewTopGenome.LinkTo(target);
 		}

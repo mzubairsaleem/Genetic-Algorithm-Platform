@@ -30,14 +30,15 @@ namespace AlgebraBlackBox
 			_sampleCache = new SampleCache(actualFormula);
 		}
 
-		protected override Fitness GetFitnessFor(Genome genome, bool createIfMissing = true)
+		protected override Genome GetFitnessForKeyTransform(Genome genome)
 		{
-			return base.GetFitnessFor(genome.AsReduced(), createIfMissing);
+			return genome.AsReduced();
 		}
 
-		protected override async Task<Fitness> ProcessTest(Genome g, bool useAsync = true)
+		protected override async Task ProcessTest(GeneticAlgorithmPlatform.GenomeFitness<Genome, Fitness> gf, bool useAsync = true)
 		{
-			var fitness = GetFitnessFor(g);
+			var fitness = gf.Fitness;
+			var g = gf.Genome;
 			var samples = _sampleCache.Get(fitness.SampleCount);
 			var len = samples.Length;
 			var correct = new double[len];
@@ -85,41 +86,40 @@ namespace AlgebraBlackBox
 						? double.NegativeInfinity
 						: -2,
 					double.NegativeInfinity);
-				return fitness;
 			}
+			else
+			{
+				var c = correct.Correlation(calc);
+				var d = divergence.Average() + 1;
 
-			var c = correct.Correlation(calc);
-			var d = divergence.Average() + 1;
-
-			fitness.AddScores(
-				(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
-				(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
-			);
-
-			return fitness;
+				fitness.AddScores(
+					(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
+					(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
+				);
+			}
 		}
 
-		protected override List<Genome> RejectBadAndThenReturnKeepers(Genome[] genomes)
+		protected override List<Genome> RejectBadAndThenReturnKeepers(
+			IEnumerable<GeneticAlgorithmPlatform.IGenomeFitness<Genome, Fitness>> source,
+			out List<Fitness> rejected)
 		{
 			var keep = new List<Genome>();
-			var reject = new List<Fitness>();
+			rejected = new List<Fitness>();
 
-			foreach (var genome in genomes)
+			foreach (var genome in source)
 			{
-				var fitness = GetFitnessFor(genome);
-				var scores = fitness.Scores;
-				if (scores.Any(d => double.IsNegativeInfinity(d)) || scores[0] < 0 && fitness.SampleCount > 50)
+				var scores = genome.Fitness.Scores;
+				if (scores.Any(d => double.IsNegativeInfinity(d)) || scores[0] < 0.9 && genome.Fitness.SampleCount > 20)
 				{
-					Rejected.TryAdd(genome.Hash, true);
-					reject.Add(fitness);
+					Rejected.TryAdd(genome.Genome.Hash, true);
+					rejected.Add(genome.Fitness);
 				}
 				else
 				{
-					keep.Add(genome);
+					keep.Add(genome.Genome);
 				}
 			}
 
-			StripRank(reject);
 			return keep;
 		}
 	}

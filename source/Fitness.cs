@@ -60,11 +60,76 @@ namespace GeneticAlgorithmPlatform
 
 	}
 
+	public interface IFitness : IComparable<IFitness>
+	{
+		int SampleCount { get; }
+		IReadOnlyList<double> Scores { get; }
 
-	public class Fitness : ThreadSafeTrackedList<SingleFitness>, IComparable<Fitness>
+		int Count { get; }
+
+		long ID { get; }
+
+		ProcedureResult GetResult(int index);
+	}
+
+    public struct FitnessScore : IFitness
+    {
+		readonly List<ProcedureResult> _results;
+		
+		public FitnessScore(IFitness source)
+		{
+			var len = source.Count;
+			Count = len;
+			ID = source.ID;
+			SampleCount = source.SampleCount;
+			Scores = source.Scores;
+			_results = new List<ProcedureResult>();
+			for(var i = 0;i<len;i++)
+				_results.Add(source.GetResult(i));
+		}
+
+        public int Count
+        {
+            get;
+			private set;
+        }
+
+        public long ID
+        {
+            get;
+			private set;
+        }
+
+        public int SampleCount
+        {
+            get;
+			private set;
+        }
+
+        public IReadOnlyList<double> Scores
+        {
+            get;
+			private set;
+        }
+
+        public int CompareTo(IFitness other)
+        {
+			return Fitness.Comparison(this, other);
+        }
+
+        public ProcedureResult GetResult(int index)
+        {
+			return _results[index];
+        }
+    }
+
+    public class Fitness : ThreadSafeTrackedList<SingleFitness>, IFitness
 	{
 
-
+		public Fitness()
+		{
+			ID = Interlocked.Increment(ref FitnessCount);
+		}
 
 		public int SampleCount
 		{
@@ -75,26 +140,16 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		public bool HasConverged(uint minSamples = 100, double convergence = 1, double tolerance = 0)
+		public ProcedureResult GetResult(int index)
 		{
-			if (minSamples > SampleCount) return false;
-			var scores = Sync.Reading(() => this.Select(v => v.Result.Average).ToArray());
-			foreach (var s in scores)
-			{
-				if (s > convergence + double.Epsilon)
-					throw new Exception("Score has exceeded convergence value: " + s);
-				if (s < convergence - tolerance)
-					return false;
-			}
-			return true;
+			return this[index].Result;
 		}
 
-
-		public double[] Scores
+		public IReadOnlyList<double> Scores
 		{
 			get
 			{
-				return Sync.Reading(() => this.Select(v => v.Result.Average).ToArray());
+				return Sync.Reading(() => this.Select(v => v.Result.Average).ToList()).AsReadOnly();
 			}
 		}
 
@@ -129,26 +184,30 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		static long FitnessCount = 0;
-		internal readonly long ID = Interlocked.Increment(ref FitnessCount);
+		public long ID
+		{
+			get;
+			private set;
+		}
 
 		internal int TestingCount = 0;
 
 		// Some cases enumerables are easier to sort in ascending than descnding.
 		const int DIRECTION = -1;
-		public int CompareTo(Fitness other)
+		public int CompareTo(IFitness other)
 		{
 			return Comparison(this, other);
 		}
 
-		public class Comparer : IComparer<Fitness>
+		public class Comparer : IComparer<IFitness>
 		{
-			public int Compare(Fitness x, Fitness y)
+			public int Compare(IFitness x, IFitness y)
 			{
 				return Comparison(x, y);
 			}
 		}
 
-		public static int Comparison(Fitness x, Fitness y)
+		public static int Comparison(IFitness x, IFitness y)
 		{
 
 			if (x == y) return 0;
@@ -168,8 +227,8 @@ namespace GeneticAlgorithmPlatform
 
 				for (var i = 0; i < xLen; i++)
 				{
-					var a = x[i].Result;
-					var b = y[i].Result;
+					var a = x.GetResult(i);
+					var b = y.GetResult(i);
 					var aA = a.Average;
 					var bA = b.Average;
 
@@ -191,5 +250,26 @@ namespace GeneticAlgorithmPlatform
 
 		}
 
+	}
+
+	public static class FitnessExtensions
+	{
+		public static bool HasConverged(this IFitness fitness, uint minSamples = 100, double convergence = 1, double tolerance = 0)
+		{
+			if (minSamples > fitness.SampleCount) return false;
+			foreach (var s in fitness.Scores)
+			{
+				if (s > convergence + double.Epsilon)
+					throw new Exception("Score has exceeded convergence value: " + s);
+				if (s < convergence - tolerance)
+					return false;
+			}
+			return true;
+		}
+
+		public static FitnessScore SnapShot(this IFitness fitness)
+		{
+			return new FitnessScore(fitness);
+		}
 	}
 }

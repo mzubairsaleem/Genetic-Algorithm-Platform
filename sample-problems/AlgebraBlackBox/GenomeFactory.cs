@@ -166,6 +166,15 @@ namespace AlgebraBlackBox
 		public static class VariationCatalog
 		{
 
+			public static Genome IncreaseMultipleMagnitude(Genome source, int geneIndex)
+			{
+				return ApplyClone(source, geneIndex, g =>
+				{
+					var absMultiple = Math.Abs(g.Multiple);
+					g.Multiple += g.Multiple / absMultiple;
+				});
+			}
+
 			public static Genome ReduceMultipleMagnitude(Genome source, int geneIndex)
 			{
 				return ApplyClone(source, geneIndex, g =>
@@ -267,13 +276,13 @@ namespace AlgebraBlackBox
 
 		public static class MutationCatalog
 		{
-			public static Genome MutateSign(Genome source, IGene gene)
+			public static Genome MutateSign(Genome source, IGene gene, int options = 3)
 			{
 				var isRoot = source.Root == gene;
 				var parentIsSquareRoot = source.FindParent(gene) is SquareRootGene;
 				return ApplyClone(source, gene, g =>
 				{
-					switch (RandomUtilities.Random.Next(3))
+					switch (RandomUtilities.Random.Next(options))
 					{
 						case 0:
 							// Alter Sign
@@ -288,19 +297,20 @@ namespace AlgebraBlackBox
 							}
 							break;
 						case 1:
-							// Don't zero the root. (makes no sense)
-							if (isRoot && g.Multiple == -1)
-								goto case 2;
-							// Increase multiple.
-							g.Multiple += 1;
-							break;
-						case 2:
 							// Don't zero the root or make the internal multiple negative.
 							if (isRoot && g.Multiple == +1 || parentIsSquareRoot && g.Multiple <= 0)
-								goto case 1;
+								goto case 2;
 							// Decrease multiple.
 							g.Multiple -= 1;
 							break;
+						case 2:
+							// Don't zero the root. (makes no sense)
+							if (isRoot && g.Multiple == -1)
+								goto case 1;
+							// Increase multiple.
+							g.Multiple += 1;
+							break;
+
 					}
 				});
 			}
@@ -415,20 +425,41 @@ namespace AlgebraBlackBox
 		{
 			var sourceGenes = source.Genes;
 			var count = sourceGenes.Length;
+
+			for (var i = 0; i < count; i++)
+			{
+				var gene = sourceGenes[i];
+				var isRoot = gene == source.Root;
+				yield return VariationCatalog.RemoveGene(source, i);
+			}
+
+			for (var i = 0; i < count; i++)
+			{
+				var gene = sourceGenes[i];
+				var isRoot = gene == source.Root;
+				yield return VariationCatalog.ReduceMultipleMagnitude(source, i);
+			}
+
 			for (var i = 0; i < count; i++)
 			{
 				var gene = sourceGenes[i];
 				var isRoot = gene == source.Root;
 
-				yield return VariationCatalog.ReduceMultipleMagnitude(source, i);
-				yield return VariationCatalog.RemoveGene(source, i);
 				yield return VariationCatalog.PromoteChildren(source, i);
 
-				foreach (var fn in Operators.Available.Functions)
-				{
-					yield return VariationCatalog.ApplyFunction(source, i, fn);
-				}
+				// foreach (var fn in Operators.Available.Functions)
+				// {
+				// 	yield return VariationCatalog.ApplyFunction(source, i, fn);
+				// }
 			}
+
+			for (var i = 0; i < count; i++)
+			{
+				var gene = sourceGenes[i];
+				var isRoot = gene == source.Root;
+				yield return VariationCatalog.IncreaseMultipleMagnitude(source, i);
+			}
+
 		}
 		protected IEnumerable<Genome> GenerateVariations(Genome source)
 		{
@@ -439,7 +470,9 @@ namespace AlgebraBlackBox
 					genome = genome.AsReduced();
 					Genome temp;
 					return _previousGenomes.TryGetValue(genome.ToString(), out temp) ? temp : Freeze(genome);
-				});
+				})
+				.GroupBy(g => g.Hash)
+				.Select(g => g.First());
 		}
 
 		Genome Freeze(Genome target)
@@ -450,6 +483,7 @@ namespace AlgebraBlackBox
 			return target;
 		}
 
+		// Keep in mind that Mutation is more about structure than 'variations' of multiples and constants.
 		private Genome MutateUnfrozen(Genome target)
 		{
 			/* Possible mutations:
@@ -467,40 +501,38 @@ namespace AlgebraBlackBox
 				var gene = genes.RandomSelectOne();
 				if (gene is ConstantGene)
 				{
-					switch (RandomUtilities.Random.Next(3))
+					switch (RandomUtilities.Random.Next(4))
 					{
 						case 0:
 							return VariationCatalog
 								.ApplyFunction(target, gene, Operators.GetRandomFunction());
-						default:
+						case 1:
 							return MutationCatalog
-								.MutateSign(target, gene);
+								.MutateSign(target, gene, 1);
+						default:
+							return VariationCatalog
+								.RemoveGene(target, gene);
 					}
 
 				}
 				else if (gene is ParameterGene)
 				{
-					var options = Enumerable.Range(0, 4).ToList();
+					var options = Enumerable.Range(0, 5).ToList();
 					while (options.Any())
 					{
 						switch (options.RandomPluck())
 						{
 							case 0:
 								return MutationCatalog
-									.MutateSign(target, gene);
+									.MutateSign(target, gene, 1);
 
 							// Simply change parameters
 							case 1:
 								return MutationCatalog
 									.MutateParameter(target, (ParameterGene)gene);
 
-							// Split it...
-							case 2:
-								return MutationCatalog
-									.Square(target, gene);
-
 							// Apply a function
-							case 3:
+							case 2:
 								// Reduce the pollution of functions...
 								if (RandomUtilities.Random.Next(0, 4) == 0)
 								{
@@ -509,13 +541,21 @@ namespace AlgebraBlackBox
 								}
 								break;
 
+							// Split it...
+							case 3:
+								if (RandomUtilities.Random.Next(0, 4) == 0)
+								{
+										return MutationCatalog
+												.Square(target, gene);
+								}
+								break;
+
 							// Remove it!
-							case 4:
+							default:
 								var attempt = VariationCatalog.RemoveGene(target, gene);
 								if (attempt != null)
 									return attempt;
 								break;
-
 
 						}
 					}
@@ -524,7 +564,7 @@ namespace AlgebraBlackBox
 				}
 				else if (gene is OperatorGeneBase)
 				{
-					var options = Enumerable.Range(0, 6).ToList();
+					var options = Enumerable.Range(0, 8).ToList();
 					while (options.Any())
 					{
 						Genome ng = null;
@@ -532,7 +572,7 @@ namespace AlgebraBlackBox
 						{
 							case 0:
 								ng = MutationCatalog
-									.MutateSign(target, gene);
+									.MutateSign(target, gene, 1);
 								break;
 
 							case 1:
@@ -548,10 +588,14 @@ namespace AlgebraBlackBox
 							// Apply a function
 							case 3:
 								// Reduce the pollution of functions...
-								if (RandomUtilities.Random.Next(0, 4) == 0)
+								if (RandomUtilities.Random.Next(0, gene is FunctionGene ? 6 : 4) == 0)
 								{
-									return VariationCatalog
-										.ApplyFunction(target, gene, Operators.GetRandomFunction());
+									var f = Operators.GetRandomFunction();
+									// Function of function? Reduce probability even further. Coin toss.
+									if (f.GetType() != gene.GetType() || RandomUtilities.Random.Next(2) == 0)
+										return VariationCatalog
+										.ApplyFunction(target, gene, f);
+
 								}
 								break;
 
@@ -567,6 +611,14 @@ namespace AlgebraBlackBox
 							case 6:
 								ng = MutationCatalog
 									.BranchOperation(target, (OperatorGeneBase)gene);
+								break;
+
+							case 7:
+								// This has a potential to really bloat the function so allow, but very sparingly.
+								if (RandomUtilities.Random.Next(0, 20) == 0) {
+									return MutationCatalog
+										.Square(target, gene);
+								}
 								break;
 
 						}

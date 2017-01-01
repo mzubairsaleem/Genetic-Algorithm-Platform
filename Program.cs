@@ -26,8 +26,9 @@ namespace GeneticAlgorithmPlatform
 			var e = new AlgebraBlackBox.Environment(SqrtA2B2AB);
 			e.ListenToTopChanges(change =>
 			{
-				Console.WriteLine(change.Item1.ID + ":\t" + change.Item2.ToAlphaParameters());
-				Console.WriteLine("  \t[{0}] ({1} samples)", change.Item3.Scores.JoinToString(","), change.Item3.SampleCount);
+				var gf = change.Item2;
+				Console.WriteLine(change.Item1.ID + ":\t" + gf.Genome.ToAlphaParameters());
+				Console.WriteLine("  \t[{0}] ({1} samples)", gf.Fitness.Scores.JoinToString(","), gf.Fitness.SampleCount);
 				Console.WriteLine();
 			});
 
