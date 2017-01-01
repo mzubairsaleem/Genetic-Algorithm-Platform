@@ -5,9 +5,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AlgebraBlackBox.Genes;
 using Open.Arithmetic;
+using Open.Collections;
+using Open.Formatting;
 using Fitness = GeneticAlgorithmPlatform.Fitness;
 
 namespace AlgebraBlackBox
@@ -46,9 +50,9 @@ namespace AlgebraBlackBox
 			var calc = new double[len];
 			var NaNcount = 0;
 
-			// #if DEBUG
-			// 			var gRed = g.AsReduced();
-			// #endif
+			#if DEBUG
+			var gRed = g.AsReduced();
+			#endif
 
 			for (var i = 0; i < len; i++)
 			{
@@ -56,23 +60,23 @@ namespace AlgebraBlackBox
 				var s = sample.Key;
 				correct[i] = sample.Value;
 				var result = useAsync ? await g.CalculateAsync(s) : g.Calculate(s);
-				// #if DEBUG
-				// if (gRed != g)
-				// {
-				// 	var rr = useAsync ? await gRed.CalculateAsync(s) : gRed.Calculate(s);
-				// 	if (!g.Genes.OfType<ParameterGene>().Any(gg => gg.ID > 1) // For debugging/testing IDs greater than 1 are invalid so ignore.
-				// 		&& !result.IsRelativeNearEqual(rr, 7))
-				// 	{
-				// 		var message = String.Format(
-				// 			"Reduction calculation doesn't match!!! {0} => {1}\n\tSample: {2}\n\tresult: {3} != {4}",
-				// 			g, gRed, s.JoinToString(", "), result, rr);
-				// 		if (!result.IsNaN())
-				// 			Debug.Fail(message);
-				// 		else
-				// 			Debug.WriteLine(message);
-				// 	}
-				// }
-				// #endif
+				#if DEBUG
+				if (gRed != g)
+				{
+					var rr = useAsync ? await gRed.CalculateAsync(s) : gRed.Calculate(s);
+					if (!g.Genes.OfType<ParameterGene>().Any(gg => gg.ID > 1) // For debugging/testing IDs greater than 1 are invalid so ignore.
+						&& !result.IsRelativeNearEqual(rr, 7))
+					{
+						var message = String.Format(
+							"Reduction calculation doesn't match!!! {0} => {1}\n\tSample: {2}\n\tresult: {3} != {4}",
+							g, gRed, s.JoinToString(", "), result, rr);
+						if (!result.IsNaN())
+							Debug.Fail(message);
+						else
+							Debug.WriteLine(message);
+					}
+				}
+				#endif
 				if (double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
 				divergence[i] = -Math.Abs(result - correct[i]);

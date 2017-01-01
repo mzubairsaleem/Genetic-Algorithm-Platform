@@ -8,15 +8,18 @@ namespace AlgebraBlackBox
 {
     public static class Operators
     {
+        // Operators...
         public const char ADD = SumGene.Symbol;
         public const char MULTIPLY = ProductGene.Symbol;
+
+        // Functions. Division is simply an 'inversion'.
         public const char DIVIDE = DivisionGene.Symbol;
         public const char SQUARE_ROOT = SquareRootGene.Symbol;
 
         public static class Available
         {
-            public static readonly IReadOnlyList<char> Operators = (new List<char> { ADD, MULTIPLY, DIVIDE }).AsReadOnly();
-            public static readonly IReadOnlyList<char> Functions = (new List<char> { SQUARE_ROOT }).AsReadOnly();
+            public static readonly IReadOnlyList<char> Operators = (new List<char> { ADD, MULTIPLY }).AsReadOnly();
+            public static readonly IReadOnlyList<char> Functions = (new List<char> { SQUARE_ROOT, DIVIDE }).AsReadOnly();
         }
 
         public static OperatorGeneBase New(char op, double multiple = 1)

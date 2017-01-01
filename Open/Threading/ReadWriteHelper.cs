@@ -130,85 +130,85 @@ namespace Open.Threading
 			// Need to be able to enter a lock before releasing access in order to prevent removal...
 			var r = CleanupManager.ReadValue(() =>
 		   	{
-			   // It is possible that a read could be acquired while disposing just before the dispose.
-			   if (IsDisposed)
-				   return null;
-
-			   // Get a tracker...
-			   ReaderWriterLockTracker result;
-			   {
-				   // Compare the tracker retrieved with the one created...
-				   ReaderWriterLockTracker created = null;
-				   do
-				   {
-					   result = Locks.GetOrAdd(key, k =>
-					   {
-						   if (!LockPool.TryTake(out created))
-						   {
-							   created = new ReaderWriterLockTracker(RecursionPolicy);
-							   if (Debugger.IsAttached)
-								   created.BeforeDispose += new EventHandler(Debug_TrackerDisposedWhileInUse);
-						   }
-						   return created;
-					   });
-				   }
-				   // Safeguard against rare case of when a disposed tracker is retained via an exception (possibly?). :(
-				   while (!IsDisposed && result.IsDisposed);
-
-
-				   // If the one created is not the one retrieved, go ahead and add it to the pool so it doesn't go to waste.
-				   if (created != null && created != result)
-				   {
-					   if (IsDisposed)
-						   created.Dispose();
-					   else
-						   LockPool.Add(created);
-				   }
-
-				   // This should never get out of sync, but just in case...
-				   var rlock = result.Lock;
-				   if (rlock == null || result.IsDisposed)
-				   {
-					   Debug.Fail("A lock tracker was retained after it was disposed.");
+				   // It is possible that a read could be acquired while disposing just before the dispose.
+				   if (IsDisposed)
 					   return null;
-				   }
-				   else if (Debugger.IsAttached && rlock.RecursionPolicy == LockRecursionPolicy.NoRecursion)
-				   {
-					   if (rlock.IsWriteLockHeld && type == LockType.Read)
-						   Debugger.Break(); // 
-				   }
-			   }
 
-			   // Quick check to avoid further processes...
-			   if (IsDisposed)
-				   return null;
+				   // Get a tracker...
+				   ReaderWriterLockTracker result;
+				   {
+					   // Compare the tracker retrieved with the one created...
+					   ReaderWriterLockTracker created = null;
+					   do
+					   {
+						   result = Locks.GetOrAdd(key, k =>
+						   {
+							   if (!LockPool.TryTake(out created))
+							   {
+								   created = new ReaderWriterLockTracker(RecursionPolicy);
+								   if (Debugger.IsAttached)
+									   created.BeforeDispose += new EventHandler(Debug_TrackerDisposedWhileInUse);
+							   }
+							   return created;
+						   });
+					   }
+					   // Safeguard against rare case of when a disposed tracker is retained via an exception (possibly?). :(
+					   while (!IsDisposed && result.IsDisposed);
 
-			   bool lockHeld = false;
-			   if (result.Reserve(context)) // Rare synchronization instance where this may be disposing at this point.
-			   {
-				   try
-				   {
-					   // result.Lock will only be null if the tracker has been disposed.
-					   lockHeld = AcquireLock(result.Lock, type, millisecondsTimeout, throwsOnTimeout);
-				   }
-				   catch (LockRecursionException lrex)
-				   {
-					   lrex.WriteToDebug();
-					   Debugger.Break(); // Need to be able to track down source.
-					   throw;
-				   }
-				   finally
-				   {
-					   if (!lockHeld)
-						   result.Clear(context);
-				   }
-			   }
 
-			   if (lockHeld)
-				   return result;
-			   else
-				   return null; // Null indicates a lock could not be acquired...
-		   });
+					   // If the one created is not the one retrieved, go ahead and add it to the pool so it doesn't go to waste.
+					   if (created != null && created != result)
+					   {
+						   if (IsDisposed)
+							   created.Dispose();
+						   else
+							   LockPool.Add(created);
+					   }
+
+					   // This should never get out of sync, but just in case...
+					   var rlock = result.Lock;
+					   if (rlock == null || result.IsDisposed)
+					   {
+						   Debug.Fail("A lock tracker was retained after it was disposed.");
+						   return null;
+					   }
+					   else if (Debugger.IsAttached && rlock.RecursionPolicy == LockRecursionPolicy.NoRecursion)
+					   {
+						   if (rlock.IsWriteLockHeld && type == LockType.Read)
+							   Debugger.Break(); // 
+					   }
+				   }
+
+				   // Quick check to avoid further processes...
+				   if (IsDisposed)
+					   return null;
+
+				   bool lockHeld = false;
+				   if (result.Reserve(context)) // Rare synchronization instance where this may be disposing at this point.
+				   {
+					   try
+					   {
+						   // result.Lock will only be null if the tracker has been disposed.
+						   lockHeld = AcquireLock(result.Lock, type, millisecondsTimeout, throwsOnTimeout);
+					   }
+					   catch (LockRecursionException lrex)
+					   {
+						   lrex.WriteToDebug();
+						   Debugger.Break(); // Need to be able to track down source.
+						   throw;
+					   }
+					   finally
+					   {
+						   if (!lockHeld)
+							   result.Clear(context);
+					   }
+				   }
+
+				   if (lockHeld)
+					   return result;
+				   else
+					   return null; // Null indicates a lock could not be acquired...
+			   });
 
 			// In the rare case that a dispose could be initiated during this ReadValue:
 			// We need to not propagate locking...
@@ -640,7 +640,7 @@ namespace Open.Threading
 		#region Cleanpup & Dispose
 		private void CleanupInternal()
 		{
-			// Search for dormant file locks.
+			// Search for dormant locks.
 			foreach (var key in Locks.Keys.ToArray())
 			{
 				if (key == null)
@@ -742,7 +742,7 @@ namespace Open.Threading
 		{
 
 			// Prevents new locks from being acquired while a cleanup is active.
-			bool lockHeld = CleanupManager.WriteConditional((write) => !this.IsDisposed, () =>
+			bool lockHeld = CleanupManager.WriteConditional(write => !this.IsDisposed, () =>
 			{
 				UpdateCleanupDelay();
 

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using AlgebraBlackBox.Genes;
 using Open.Collections;
 using Open.Threading;
 
@@ -30,8 +32,16 @@ namespace AlgebraBlackBox
 				{
 					var r = Root as IReducibleGene;
 					if (r == null) return this;
+					var p1 = r as ProductGene;
+					//					Debug.Assert(p1==null || p1.Count>1);
 					// Be careful not to call .IsReducible in here as it may recurse.
 					var root = r.AsReduced();
+					var p2 = root as ProductGene;
+					if (p2 != null && p2.Count < 2)
+					{
+						Debugger.Break();
+					}
+
 					if (root == Root) return this;
 					var g = new Genome(root);
 					g.Freeze();

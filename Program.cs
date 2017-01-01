@@ -27,7 +27,7 @@ namespace GeneticAlgorithmPlatform
 			e.ListenToTopChanges(change =>
 			{
 				var gf = change.Item2;
-				Console.WriteLine(change.Item1.ID + ":\t" + gf.Genome.ToAlphaParameters());
+				Console.WriteLine("{0}:\t{1}", change.Item1.ID, gf.Genome.ToAlphaParameters());
 				Console.WriteLine("  \t[{0}] ({1} samples)", gf.Fitness.Scores.JoinToString(","), gf.Fitness.SampleCount);
 				Console.WriteLine();
 			});

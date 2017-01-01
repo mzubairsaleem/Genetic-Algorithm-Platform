@@ -1,10 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Open.Arithmetic;
 
 namespace AlgebraBlackBox.Genes
 {
-    public class DivisionGene : OperatorGeneBase
+    public class DivisionGene : FunctionGene
 	{
 		public const char Symbol = '/';
 
@@ -17,9 +17,17 @@ namespace AlgebraBlackBox.Genes
             return 1d; // This means 'not divided by anything'.
         }
 
+		public override void Add(IGene target)
+		{
+			if (GetChildren().Count == 1)
+				throw new InvalidOperationException("A DivisionGene can only have 1 child.");
+
+			base.Add(target);
+		}
+
         protected override double ProcessChildValues(IEnumerable<double> values)
         {
-			return values.QuotientOf(1);
+			return 1 / values.Single();
         }
 
 		DivisionGene CloneThis()
@@ -66,7 +74,7 @@ namespace AlgebraBlackBox.Genes
 		protected override IGene ReplaceWithReduced()
 		{
 			var children = GetChildren();
-			var d = (children.Count == 1 ? children.SingleOrDefault() : null) as DivisionGene;
+			var d = (children.Count == 1 ? children.Single() : null) as DivisionGene;
 			if (d != null && d.Multiple == 1)
 			{
 				d.Multiple *= this.Multiple;
@@ -77,13 +85,13 @@ namespace AlgebraBlackBox.Genes
 
 		public override string ToStringContents()
 		{
-
-			return GroupedString(Operator, Multiple.ToString() + Symbol);
+			var children = GetChildren();
+			return children.Count==1 ? children.Single().ToString() : "";
 		}
 
 		protected override string ToStringInternal()
 		{
-			return ToStringContents();
+			return String.Format("({0}/{1})", Multiple, ToStringContents());
 		}
 
     }

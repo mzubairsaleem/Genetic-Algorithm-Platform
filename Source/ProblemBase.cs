@@ -130,12 +130,17 @@ namespace GeneticAlgorithmPlatform
 				if (!TestCompleteBuffer.TryReceiveAll(out list))
 					continue;
 
+				// Console.WriteLine("Ranked Pool Size: "+RankedPool.Count);
+
+				var top = Top();
+
 				uint count = 0;
 				ThreadSafety.SynchronizeWrite(RankedPool, () =>
 				{
 					foreach (var g in list.Distinct())
 					{
 						var gf = GetOrCreateFitnessFor(g);
+						//if (top == null || gf.IsGreaterThan(top)) top = gf;
 						var fitness = gf.Fitness;
 						ThreadSafety.SynchronizeReadWrite(fitness,
 							lockType => fitness.TestingCount == 0 && !RankedPool.ContainsKey(fitness),
@@ -143,37 +148,38 @@ namespace GeneticAlgorithmPlatform
 							{
 								RankedPool.Add(fitness, gf.Genome); // Return/Add the keyed version.
 								count++;
-							}); // **
+							},1000); // **
 					}
-				});
+				},1000);
 
-				var top = TopGenome();
+
 				if (top != null)
 				{
-					var gf = GetOrCreateFitnessFor(top);
-					var fitness = gf.Fitness;
+					var genome = top.Genome;
+					var fitness = top.Fitness;
 					// In some cases, what is used as the key ends up being another instance/version of it.
-					var topHash = top.Hash;
+					var topHash = top.Genome.Hash;
 					if (topHash != Interlocked.Exchange(ref LatestTopGenome, topHash))
-						NewTopGenome.Post(new GenomeFitness<TGenome>(top, fitness.SnapShot()));
-					Reception.Post(top); // Use original.
+					{
+						NewTopGenome.Post(top.SnapShot());
+						TestBuffer.Post(genome); // Use original. Has head of the line privledges.
+					}
 
-					var v = (TGenome)top.NextVariation();
-					if (v != null) Reception.Post(v); // Use variation.
+					var bufferMax = 1000;
+					while (TestBuffer.InputCount > bufferMax)
+					{
+						await Task.Yield();
+						bufferMax *= 10;
+					}
 
-					Mutation.Post(top); // Use mutation.
+					if (fitness.SampleCount > 100)
+					{
+						var v = (TGenome)genome.NextVariation();
+						if (v != null) Reception.Post(v); // Use variation.
+					}
+
+					Mutation.Post(genome); // Use mutation.
 				}
-
-				// var bufferMax = 100;
-				// while (TestBuffer.InputCount > bufferMax)
-				// {
-				// 	await Task.Yield();
-				// 	bufferMax *= 10;
-				// }
-
-				// if (TestBuffer.InputCount > 100)
-				// 	await Task.Yield();
-
 
 				Generation.Post((uint)1);
 
@@ -188,7 +194,7 @@ namespace GeneticAlgorithmPlatform
 			ThreadSafety.SynchronizeWrite(RankedPool, () =>
 			{
 				foreach (var f in values) RankedPool.Remove(f);
-			});
+			},1000);
 		}
 		protected Task CleanupAndGeneration(uint count)
 		{
@@ -197,7 +203,7 @@ namespace GeneticAlgorithmPlatform
 				List<Fitness> rejected;
 				var dispursed = Triangular.Disperse.Decreasing(
 						RejectBadAndThenReturnKeepers(
-							ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Select(kvp => kvp.GFFromFG()).ToArray()),
+							ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Select(kvp => kvp.GFFromFG()).ToArray(),1000),
 							out rejected
 						)
 					).ToArray();
@@ -261,16 +267,14 @@ namespace GeneticAlgorithmPlatform
 			await Converged.OutputAvailableAsync().ConfigureAwait(false);
 		}
 
-		public Fitness TopFitness()
+		public virtual IGenomeFitness<TGenome> Top()
 		{
-			return ThreadSafety.SynchronizeRead(RankedPool,
-				() => RankedPool.Keys.FirstOrDefault());
-		}
-
-		public virtual TGenome TopGenome()
-		{
-			return ThreadSafety.SynchronizeRead(RankedPool,
-				() => RankedPool.Values.FirstOrDefault());
+			return RankedPool.Count == 0
+				? null
+				: ThreadSafety.SynchronizeRead(RankedPool,
+				() => RankedPool.Count == 0
+					? (IGenomeFitness<TGenome, Fitness>)null
+					: RankedPool.First().GFFromFG(),1000);
 		}
 
 		public TGenome[] TopGenomes(int count)
@@ -278,12 +282,12 @@ namespace GeneticAlgorithmPlatform
 			if (count < 0)
 				throw new ArgumentOutOfRangeException("count");
 			return ThreadSafety.SynchronizeRead(RankedPool, () =>
-				RankedPool.Values.Take(count).ToArray());
+				RankedPool.Values.Take(count).ToArray(),1000);
 		}
 
 		public TGenome[] Ranked()
 		{
-			return ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Values.ToArray());
+			return ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Values.ToArray(),1000);
 		}
 
 		public List<GenomeFitness<TGenome>> Pareto(IEnumerable<TGenome> population = null)

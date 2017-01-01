@@ -27,11 +27,13 @@ namespace Open
 
 		private int _cleanupDelay = 50;
 		// So far 50 ms seems optimal...
-		public int CleanupDelay {
+		public int CleanupDelay
+		{
 			get { return _cleanupDelay; }
-			set {
-				if(value<0)
-					throw new ArgumentOutOfRangeException("value",value,"Cannot be a negative value.");
+			set
+			{
+				if (value < 0)
+					throw new ArgumentOutOfRangeException("value", value, "Cannot be a negative value.");
 				_cleanupDelay = value;
 			}
 		}
@@ -44,7 +46,7 @@ namespace Open
 
 		public bool IsCleanupPastDue
 		{
-			get { return DateTime.Now.Ticks - (_cleanupDelay+100) * TimeSpan.TicksPerMillisecond > LastCleanup.Ticks; }
+			get { return DateTime.Now.Ticks - (_cleanupDelay + 100) * TimeSpan.TicksPerMillisecond > LastCleanup.Ticks; }
 		}
 
 		public bool IsRunning
@@ -62,12 +64,7 @@ namespace Open
 			Timer ct2 = null;
 			lock (_timerSync)
 			{
-				Timer ct = _cleanupTimer;
-				if (ct != null) lock (ct)
-					{
-						ct2 = _cleanupTimer;
-						_cleanupTimer = null;
-					}
+				ct2 = Interlocked.Exchange(ref _cleanupTimer, null);
 			}
 			ct2.SmartDispose();
 		}
@@ -109,7 +106,7 @@ namespace Open
 							// No past due action in order to prevent another thread from firing...
 							LastCleanup = DateTime.MaxValue;
 							DeferCleanup();
-							Task.Factory.StartNew(()=>Cleanup());
+							Task.Factory.StartNew(() => Cleanup());
 						}
 					}
 					break;
@@ -147,7 +144,7 @@ namespace Open
 				IsRunning = false;
 				LastCleanup = DateTime.MaxValue;
 				//if(_cleanupTimer!=null)
-					//_cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
+				//_cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
 				ResetTimer();
 			}
 		}
@@ -155,7 +152,7 @@ namespace Open
 		private void Cleanup(object state = null)
 		{
 			if (IsDisposed)
-				return; // If another thread enters here after disposal don'T allow.
+				return; // If another thread enters here after disposal don't allow.
 
 			try
 			{
@@ -171,7 +168,7 @@ namespace Open
 			{
 				LastCleanup = DateTime.Now;
 			}
-	
+
 		}
 
 		protected abstract void OnCleanup();

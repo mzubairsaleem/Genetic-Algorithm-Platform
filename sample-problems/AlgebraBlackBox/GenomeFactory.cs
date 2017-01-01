@@ -360,7 +360,7 @@ namespace AlgebraBlackBox
 				if (isFn)
 				{
 					// Functions with no other options?
-					if (gene is SquareRootGene)
+					if (gene is SquareRootGene || gene is DivisionGene)
 						return null;
 				}
 
@@ -409,6 +409,9 @@ namespace AlgebraBlackBox
 
 			public static Genome Square(Genome source, IGene gene)
 			{
+				if(source.FindParent(gene) is SquareRootGene)
+					return null;
+					
 				return ApplyClone(source, gene, (g, newGenome) =>
 				{
 					var newFn = new ProductGene(g.Multiple);
@@ -615,7 +618,7 @@ namespace AlgebraBlackBox
 
 							case 7:
 								// This has a potential to really bloat the function so allow, but very sparingly.
-								if (RandomUtilities.Random.Next(0, 20) == 0) {
+								if (RandomUtilities.Random.Next(0, 4) == 0) {
 									return MutationCatalog
 										.Square(target, gene);
 								}

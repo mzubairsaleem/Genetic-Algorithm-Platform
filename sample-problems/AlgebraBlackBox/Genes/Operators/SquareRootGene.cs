@@ -130,6 +130,13 @@ namespace AlgebraBlackBox.Genes
 					}
 					else
 					{
+						if(wrapper.Count==1)
+						{
+							var c = wrapper.Single();
+							wrapper.Remove(c);
+							c.Multiple *= product.Multiple * this.Multiple;
+							return c;
+						}
 						wrapper.Multiple = product.Multiple * this.Multiple;
 					}
 

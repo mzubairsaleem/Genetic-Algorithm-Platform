@@ -12,8 +12,7 @@ using System.Threading.Tasks.Dataflow;
 namespace GeneticAlgorithmPlatform
 {
 
-	public abstract class GenomeFactoryBase<TGenome>
-	: IGenomeFactory<TGenome>
+	public abstract class GenomeFactoryBase<TGenome> : IGenomeFactory<TGenome>
 	where TGenome : class, IGenome
 	{
 
