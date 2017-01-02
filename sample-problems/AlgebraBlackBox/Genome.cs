@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
+using Open;
 using Open.Collections;
 using Open.Threading;
 
@@ -160,18 +162,30 @@ namespace AlgebraBlackBox
 			return r;
 		}
 
-
+		object _varLock = new Object();
+		static readonly IEnumerator<Genome> EmptyVariations = Enumerable.Empty<Genome>().GetEnumerator();
 		public override GeneticAlgorithmPlatform.IGenome NextVariation()
 		{
 			var source = _variations;
-			if (source == null) return null;
-			var e = LazyInitializer.EnsureInitialized(ref _varationEnumerator, () => source.GetEnumerator());
-			if (e.MoveNext()) return e.Current;
-			Interlocked.Exchange(ref _varationEnumerator, null);
-			return NextVariation();
+			if (source == null || _variationEnumerator==EmptyVariations) return null;
+			var e = LazyInitializer.EnsureInitialized(ref _variationEnumerator, () => source.GetEnumerator());
+			// Since multiple threads can request 'next' we need to synchronize this.
+			lock(_varLock)
+			{
+				// All good?
+				if (e.MoveNext()) return e.Current;
+				// Since we loop, we need to first see if by the rare chance that we have no variations.
+				// Go ahead and replace the enumerator with a new one.
+				Interlocked.Exchange(ref _variationEnumerator, e = source.GetEnumerator()).SmartDispose();
+				if (e.MoveNext()) return e.Current;
+				// This means there is none, so we replace the enumerator with a permanent empty one.
+				Interlocked.Exchange(ref _variationEnumerator, EmptyVariations);
+			}
+
+			return null;
 		}
 
-		IEnumerator<Genome> _varationEnumerator;
+		IEnumerator<Genome> _variationEnumerator;
 		LazyList<Genome> _variations;
 		public IReadOnlyList<Genome> Variations
 		{
