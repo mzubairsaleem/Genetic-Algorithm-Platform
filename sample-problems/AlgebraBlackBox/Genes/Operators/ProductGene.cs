@@ -119,8 +119,11 @@ namespace AlgebraBlackBox.Genes
 				{
 					var pReduced = ChildReduce(d) ?? d;
 					Debug.Assert(Multiple == m, "Shouldn't have changed!");
-					Multiple *= pReduced.Multiple;
-					pReduced.Multiple = 1;
+					if(pReduced!=d && pReduced.Multiple!=1)
+					{
+						Multiple *= pReduced.Multiple;
+						pReduced.Multiple = 1;
+					}
 				}
 
 			}
