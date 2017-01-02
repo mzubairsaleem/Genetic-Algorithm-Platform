@@ -32,7 +32,7 @@ namespace GeneticAlgorithmPlatform
 		public static void Main(string[] args)
 		{
 			var sw = Stopwatch.StartNew();
-			var e = new AlgebraBlackBox.Environment(SqrtA2B2);
+			var e = new AlgebraBlackBox.Environment(SqrtA2B2AB);
 			e.ListenToTopChanges(change =>
 			{
 				var prob = (Problem)change.Item1;
