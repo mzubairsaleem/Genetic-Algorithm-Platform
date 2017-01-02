@@ -51,13 +51,24 @@ namespace AlgebraBlackBox.Genes
 				return true;
 			}
 
+			if (children.Any(c => double.IsNaN(c.Multiple)))
+			{
+				// Any multiple of zero? Reset the entire collection;
+				Clear();
+				Multiple = double.NaN;
+				return true;
+			}
+
+			var updated = false;
 			// Extract any multiples so we don't have to worry about them later.
 			foreach (var c in children.OfType<ConstantGene>().ToArray())
 			{
 				var m = c.Multiple;
 				Remove(c);
 				this.Multiple *= m;
+				updated = true;
 			}
+
 			foreach (var c in children)
 			{
 				var m = c.Multiple;
@@ -65,10 +76,11 @@ namespace AlgebraBlackBox.Genes
 				{
 					this.Multiple *= m;
 					c.Multiple = 1d;
+					updated = true;
 				}
 			}
 
-			return false;
+			return updated;
 		}
 
 		protected override void ReduceLoop()
@@ -77,31 +89,38 @@ namespace AlgebraBlackBox.Genes
 			if (MigrateMultiples()) return;
 
 			var children = GetChildren();
-			foreach (var p in children.OfType<DivisionGene>().ToArray())
+			foreach (var d in children.OfType<DivisionGene>().ToArray())
 			{
-				Debug.Assert(p.Multiple == 1, "Should have already been pulled out.");
+				Debug.Assert(d.Multiple == 1, "Should have already been pulled out.");
 				// Use the internal reduction routine of the division gene to reduce the division node.
 				var m = Multiple;
-				p.Multiple = m;
 
 				// Dividing by itself?
-				var d = p.Children.Where(g => children.Any(a => g != p && g.ToString() == a.ToString()));
+				var c = d.Children.Where(
+					g => children.Any(
+						a => g != d && g.ToStringUsingMultiple(1) == a.ToStringUsingMultiple(1)));
 				IGene df;
-				while ((df = d.FirstOrDefault()) != null)
+				while ((df = c.FirstOrDefault()) != null)
 				{
-					p.Remove(df);
-					Remove(children.First(g => g.ToString() == df.ToString()));
+					var n = children.First(g => g != d && g.ToStringUsingMultiple(1) == df.ToStringUsingMultiple(1));
+					Debug.Assert(n.Multiple == 1, "Should have already been pulled out.");
+					Remove(n);
+
+					if(df.Multiple==1)
+						d.Remove(df);
+					else
+						d.ReplaceChild(df, new ConstantGene(df.Multiple));
 				}
 
-				if (p.Count == 0)
+				if (d.Count == 0)
 				{
-					ReplaceChild(p, new ConstantGene(m));
+					ReplaceChild(d, new ConstantGene(d.Multiple));
 				}
 				else
 				{
-					var pReduced = ChildReduce(p) ?? p;
+					var pReduced = ChildReduce(d) ?? d;
 					Debug.Assert(Multiple == m, "Shouldn't have changed!");
-					Multiple = pReduced.Multiple;
+					Multiple *= pReduced.Multiple;
 					pReduced.Multiple = 1;
 				}
 
@@ -121,7 +140,7 @@ namespace AlgebraBlackBox.Genes
 			// Look for groupings...
 			foreach (var p in children
 				.OfType<SquareRootGene>()
-				.GroupBy(g => g.ToStringContents())
+				.GroupBy(g => g.ToStringUsingMultiple(1))
 				.Where(g => g.Count() > 1))
 			{
 

@@ -120,7 +120,7 @@ namespace AlgebraBlackBox.Genes
 			// Look for groupings...
 			foreach (var p in children
 				.Where(g => !(g is ConstantGene)) // We just reduced constants above so skip them...
-				.GroupBy(g => g.ToStringContents())
+				.GroupBy(g => g.ToStringUsingMultiple(1))
 				.Where(g => g.Count() > 1))
 			{
 				using (var matches = p.Memoize())
@@ -156,6 +156,7 @@ namespace AlgebraBlackBox.Genes
 				case 1:
 					var c = children.Single();
 					c.Multiple *= Multiple;
+					Remove(c);
 					return c;
 
 			}

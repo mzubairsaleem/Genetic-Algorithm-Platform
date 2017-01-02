@@ -8,6 +8,13 @@ namespace GeneticAlgorithmPlatform
 {
 	public class Program
 	{
+		static double AB(params double[] p)
+		{
+			var a = p[0];
+			var b = p[1];
+			return a * b;
+		}
+
 		static double SqrtA2B2(params double[] p)
 		{
 			var a = p[0];
@@ -21,18 +28,20 @@ namespace GeneticAlgorithmPlatform
 			var b = p[1];
 			return Math.Sqrt(a * a + b * b + a) + b;
 		}
+		static readonly double[] OneOne = new double[] { 1, 1 };
 		public static void Main(string[] args)
 		{
 			var sw = Stopwatch.StartNew();
-			var e = new AlgebraBlackBox.Environment(SqrtA2B2AB);
+			var e = new AlgebraBlackBox.Environment(SqrtA2B2);
 			e.ListenToTopChanges(change =>
 			{
 				var prob = (Problem)change.Item1;
 				var tc = prob.TestCount;
 				var gf = change.Item2;
 				Console.WriteLine("{0}:\t{1}", prob.ID, gf.Genome.ToAlphaParameters());
+				Console.WriteLine("  \t= {0}", gf.Genome.Calculate(OneOne));
 				Console.WriteLine("  \t[{0}] ({1} samples)", gf.Fitness.Scores.JoinToString(","), gf.Fitness.SampleCount);
-				Console.WriteLine("  \t{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks/tc);
+				Console.WriteLine("  \t{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
 				Console.WriteLine();
 			});
 

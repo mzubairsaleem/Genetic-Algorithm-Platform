@@ -16,6 +16,8 @@ namespace AlgebraBlackBox
 
         string ToStringContents();
 
+        string ToStringUsingMultiple(double m);
+
         IModificationSynchronizer Sync { get; }
 
         new IGene Clone();

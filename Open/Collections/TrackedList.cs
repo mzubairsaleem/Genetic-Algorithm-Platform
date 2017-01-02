@@ -12,16 +12,16 @@ using Open.Threading;
 
 namespace Open.Collections
 {
-	public class ThreadSafeTrackedList<T> : ModificationSynchronizedBase, IList<T>
+	public class TrackedList<T> : ModificationSynchronizedBase, IList<T>
 	{
 		List<T> _source = new List<T>();
 
-		public ThreadSafeTrackedList(ModificationSynchronizer sync = null) : base(sync)
+		public TrackedList(ModificationSynchronizer sync = null) : base(sync)
 		{
 		}
 
 
-		public ThreadSafeTrackedList(out ModificationSynchronizer sync) : base(out sync)
+		public TrackedList(out ModificationSynchronizer sync) : base(out sync)
 		{
 		}
 

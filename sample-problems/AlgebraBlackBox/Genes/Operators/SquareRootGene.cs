@@ -69,7 +69,7 @@ namespace AlgebraBlackBox.Genes
 		protected override IGene ReplaceWithReduced()
 		{
 			var child = GetChildren().FirstOrDefault();
-			if (child == null) return null;
+			if (child == null) return new ConstantGene(this.Multiple);
 
 			if (child.Multiple == 0)
 				return new ConstantGene(0);

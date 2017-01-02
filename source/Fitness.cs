@@ -6,12 +6,11 @@ using System.Linq;
 using System.Threading;
 using Open.Arithmetic;
 using Open.Collections;
-using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
 
-	public class SingleFitness
+    public class SingleFitness
 	// : IComparable<SingleFitness>
 	{
 		ProcedureResult _result;
@@ -124,7 +123,7 @@ namespace GeneticAlgorithmPlatform
         }
     }
 
-    public class Fitness : ThreadSafeTrackedList<SingleFitness>, IFitness
+    public class Fitness : TrackedList<SingleFitness>, IFitness
 	{
 
 		public Fitness() //: base(new AsyncReadWriteModificationSynchronizer())

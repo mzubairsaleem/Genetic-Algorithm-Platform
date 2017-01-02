@@ -40,10 +40,11 @@ namespace AlgebraBlackBox
 		double[] Sample(int count = 5, double range = 100)
 		{
 			var result = new HashSet<double>();
+			var offset = RandomUtilities.Random.Next(1000) - 50;
 
 			while (result.Count < count)
 			{
-				result.Add(RandomUtilities.Random.NextDouble() * range);
+				result.Add(RandomUtilities.Random.NextDouble() * range + offset);
 			}
 			return result.OrderBy(v => v).ToArray();
 		}

@@ -54,16 +54,25 @@ namespace AlgebraBlackBox
 		protected abstract double CalculateWithoutMultiple(double[] values);
 		protected abstract Task<double> CalculateWithoutMultipleAsync(double[] values);
 
+		protected string MultiplePrefixFrom(double m)
+		{
+			if (m != 1d)
+				return m == -1d ? "-" : m.ToString();
+
+			return String.Empty;
+		}
+
 		protected string MultiplePrefix
 		{
 			get
 			{
-				var m = Multiple;
-				if (m != 1d)
-					return m == -1d ? "-" : m.ToString();
-
-				return String.Empty;
+				return MultiplePrefixFrom(Multiple);
 			}
+		}
+
+		public virtual string ToStringUsingMultiple(double m)
+		{
+			return MultiplePrefixFrom(m) + ToStringContents();
 		}
 
 		protected override string ToStringInternal()
@@ -130,19 +139,30 @@ namespace AlgebraBlackBox
 			return MultiplePrefix + ToStringContents();
 		}
 
+		public virtual string ToStringUsingMultiple(double m)
+		{
+			return MultiplePrefixFrom(m) + ToStringContents();
+		}
+
+
 		public abstract string ToStringContents();
+
+		protected string MultiplePrefixFrom(double m)
+		{
+			if (m != 1d)
+				return m == -1d ? "-" : m.ToString();
+
+			return String.Empty;
+		}
 
 		protected string MultiplePrefix
 		{
 			get
 			{
-				var m = Multiple;
-				if (m != 1d)
-					return m == -1d ? "-" : m.ToString();
-
-				return String.Empty;
+				return MultiplePrefixFrom(Multiple);
 			}
 		}
+
 
 
 		public double Calculate(double[] values)
@@ -164,15 +184,15 @@ namespace AlgebraBlackBox
 
 		protected double CalculateWithoutMultiple(double[] values)
 		{
-			if(GetChildren().Count==0) return DefaultIfNoChildren();			
+			if (GetChildren().Count == 0) return DefaultIfNoChildren();
 			return ProcessChildValues(CalculateChildren(values));
 		}
 
 		protected Task<double> CalculateWithoutMultipleAsync(double[] values)
 		{
-			if(GetChildren().Count==0) return Task.FromResult(DefaultIfNoChildren());
+			if (GetChildren().Count == 0) return Task.FromResult(DefaultIfNoChildren());
 			return Task.WhenAll(CalculateChildrenAsync(values))
-				.ContinueWith(task=>ProcessChildValues(task.Result));
+				.ContinueWith(task => ProcessChildValues(task.Result));
 		}
 
 		protected abstract double DefaultIfNoChildren();
@@ -186,7 +206,7 @@ namespace AlgebraBlackBox
 		{
 			return GetChildren().Select(s => s.CalculateAsync(values));
 		}
-		
+
 		public virtual int CompareTo(IGene other)
 		{
 			return this.Compare(other);

@@ -85,7 +85,7 @@ namespace GeneticAlgorithmPlatform
 
 			TestBuffer = new ActionBlock<TGenome>(
 				ConsumeGenomeReadyForTesting,
-				new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 16 });
+				new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 32 });
 
 			Task.Run(ConsumeCompletedTests);
 		}
@@ -189,10 +189,11 @@ namespace GeneticAlgorithmPlatform
 						if (v != null) Reception.Post(v); // Use variation.
 					}
 
-					Mutation.Post(genome); // Use mutation.
+					//Mutation.Post(genome); // Use mutation.
 				}
-
-				Generation.Post((uint)1);
+				else {
+					Generation.Post((uint)1);
+				}
 
 				CleanupAndGeneration(count); // Regenerate by the number of processed.
 			}
@@ -219,6 +220,7 @@ namespace GeneticAlgorithmPlatform
 			{
 				for (uint i = 0; i < count; i++)
 				{
+					Mutation.Post(dispursed.RandomSelectOne());
 					Reception.Post(dispursed.RandomSelectOne());
 				}
 			}

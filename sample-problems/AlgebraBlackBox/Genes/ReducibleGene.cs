@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Open.Formatting;
 
 namespace AlgebraBlackBox.Genes
 {
@@ -63,12 +64,24 @@ namespace AlgebraBlackBox.Genes
 			return ensureClone ? v.Clone() : v;
 		}
 
+		static readonly double[] QuickCheck = new double[] {1,1};
 		protected IGene ChildReduce(IReducibleGene child)
 		{
 			// Here's the magic... If the Reduce call returns non-null, then attempt to replace o with (new) g.
+			#if DEBUG
+			var cValue = child.Calculate(QuickCheck);
+			var cString = child.ToString();
+			var cCheck = child.ToStringContents();
+			#endif
 			var g = child.Reduce();
 			if (g != null)
 			{
+				#if DEBUG
+				var gValue = g.Calculate(QuickCheck);
+				var gStrign = g.ToString();
+				var gCheck = g.ToStringContents();
+				Debug.Assert(double.IsNaN(cValue) || cValue.IsRelativeNearEqual(gValue,7));
+				#endif
 				if (!ReplaceChild(child, g))
 					Sync.Poke(); // Child may have changed internally.
 			}
@@ -88,12 +101,15 @@ namespace AlgebraBlackBox.Genes
             or the same gene is returned signaling that it's contents were updated.
         */
 
+		static bool MultipleIsExtreme(double m)
+		{
+			return m == 0 || double.IsInfinity(m) || double.IsNaN(m);
+		}
+
 		public IGene Reduce()
 		{
 			var m = Multiple;
-			if (m == 0
-			|| double.IsInfinity(m)
-			|| double.IsNaN(m))
+			if (MultipleIsExtreme(m))
 				return new ConstantGene(m);
 
 			var reduced = this;
@@ -102,7 +118,7 @@ namespace AlgebraBlackBox.Genes
 			{
 				var modCount = 0;
 				// Inner loop will keep going while changes are still occuring.
-				while (sync.Modifying(() =>
+				while (!MultipleIsExtreme(Multiple) && sync.Modifying(() =>
 				{
 					foreach (var o in GetChildren().OfType<IReducibleGene>().ToArray())
 					{
@@ -129,6 +145,11 @@ namespace AlgebraBlackBox.Genes
 				}
 				return modCount != 0;
 			});
+
+			// Last round check...
+			m = Multiple;
+			if (MultipleIsExtreme(m))
+				return new ConstantGene(m);
 
 			return ReplaceWithReduced() ??
 				(modified ? reduced : null);

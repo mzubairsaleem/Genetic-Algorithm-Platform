@@ -86,12 +86,12 @@ namespace GeneticAlgorithmPlatform
 
 		override protected ModificationSynchronizer InitSync(object sync = null)
 		{
-			ModificationSynchronizer s;
-			_children = new ThreadSafeTrackedList<T>(out s);
+			ModificationSynchronizer s = new ModificationSynchronizer();
+			_children = new TrackedList<T>(s);
 			return s;
 		}
 
-		private ThreadSafeTrackedList<T> _children;
+		private TrackedList<T> _children;
 
 		public IEnumerable<T> Children
 		{
@@ -101,7 +101,7 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		protected ThreadSafeTrackedList<T> GetChildren()
+		protected TrackedList<T> GetChildren()
 		{
 			// Since we can't know if changes occur in our children, we have to return the uncached value until it is set to read-only.
 			var c = _children;

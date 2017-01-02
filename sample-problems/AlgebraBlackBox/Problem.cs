@@ -67,7 +67,8 @@ namespace AlgebraBlackBox
 			{
 				var sample = samples[i];
 				var s = sample.Key;
-				correct[i] = sample.Value;
+				var correctValue = sample.Value;
+				correct[i] = correctValue;
 				var result = useAsync ? await g.CalculateAsync(s) : g.Calculate(s);
 #if DEBUG
 				if (gRed != g)
@@ -86,9 +87,9 @@ namespace AlgebraBlackBox
 					}
 				}
 #endif
-				if (double.IsNaN(result)) NaNcount++;
+				if (!double.IsNaN(correctValue) && double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
-				divergence[i] = -Math.Abs(result - correct[i]);
+				divergence[i] = -Math.Abs(result - correctValue);
 			}
 
 			if (NaNcount != 0)
@@ -102,8 +103,8 @@ namespace AlgebraBlackBox
 			}
 			else
 			{
-				var c = correct.Correlation(calc);
-				var d = divergence.Average() + 1;
+				var c = correct.Correlation(calc.Where(v=>!double.IsNaN(v)));
+				var d = divergence.Where(v=>!double.IsNaN(v)).Average() + 1;
 
 				fitness.AddScores(
 					(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,

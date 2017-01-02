@@ -20,10 +20,10 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-        protected override double DefaultIfNoChildren()
-        {
-            return 1d; // This means 'not divided by anything'.
-        }
+		protected override double DefaultIfNoChildren()
+		{
+			return 1d; // This means 'not divided by anything'.
+		}
 
 		public override void Add(IGene target)
 		{
@@ -33,10 +33,12 @@ namespace AlgebraBlackBox.Genes
 			base.Add(target);
 		}
 
-        protected override double ProcessChildValues(IEnumerable<double> values)
-        {
-			return 1 / values.Single();
-        }
+		protected override double ProcessChildValues(IEnumerable<double> values)
+		{
+			var v = values.Single();
+			// Debug.Assert(v != 0);
+			return v==0 ? double.NaN : (1 / v);
+		}
 
 		DivisionGene CloneThis()
 		{
@@ -69,7 +71,7 @@ namespace AlgebraBlackBox.Genes
 					Multiple *= -1;
 				}
 
-				if (Multiple % m == 0)
+				if (m != 1 && Multiple % m == 0)
 				{
 					g.Multiple = 1;
 					if (g is ConstantGene)
@@ -82,11 +84,26 @@ namespace AlgebraBlackBox.Genes
 		protected override IGene ReplaceWithReduced()
 		{
 			var children = GetChildren();
-			var d = (children.Count == 1 ? children.Single() : null) as DivisionGene;
-			if (d != null && d.Multiple == 1)
+			if (children.Count == 1)
 			{
-				d.Multiple *= this.Multiple;
-				return d;
+				var c = children.Single();
+				if (c.Multiple == 0)
+				{
+					// WHOA.  Divide by zero.
+					return new ConstantGene(double.NaN);
+				}
+				else if (c.Multiple == 1)
+				{
+					if (c is ConstantGene)
+						return new ConstantGene(this.Multiple);
+				}
+
+				// var d = c as DivisionGene;
+				// if (d != null && d.Multiple == 1)
+				// {
+				// 	d.Multiple *= this.Multiple;					
+				// }
+
 			}
 			return base.ReplaceWithReduced();
 		}
@@ -94,13 +111,18 @@ namespace AlgebraBlackBox.Genes
 		public override string ToStringContents()
 		{
 			var children = GetChildren();
-			return children.Count==1 ? children.Single().ToString() : "";
+			return children.Count == 1 ? children.Single().ToString() : "";
+		}
+
+		public override string ToStringUsingMultiple(double m)
+		{
+			return String.Format("({0}/{1})", m, ToStringContents());
 		}
 
 		protected override string ToStringInternal()
 		{
-			return String.Format("({0}/{1})", Multiple, ToStringContents());
+			return ToStringUsingMultiple(Multiple);
 		}
 
-    }
+	}
 }
