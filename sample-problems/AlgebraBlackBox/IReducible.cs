@@ -1,15 +1,19 @@
 namespace AlgebraBlackBox
 {
-    public interface IReducible<T>
-    {
-        T AsReduced(bool ensureClone = false);
+	public interface IReducible<T>
+	{
+		T AsReduced(bool ensureClone = false);
 
-        bool IsReducible { get; }
-    }
+		bool IsReducible { get; }
 
-    public interface IReducibleGene : IReducible<IGene>, IGene
-    {
-        IGene Reduce();
-    }
+	}
+
+	public interface IReducibleGene : IReducible<IGene>, IGene
+	{
+		IGene Reduce();
+
+		new IReducibleGene Clone();
+
+	}
 
 }
