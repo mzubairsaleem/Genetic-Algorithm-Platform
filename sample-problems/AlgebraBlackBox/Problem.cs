@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
 using Open.Arithmetic;
@@ -27,7 +28,15 @@ namespace AlgebraBlackBox
 	{
 		SampleCache _sampleCache;
 
+		long _testCount = 0;
+		public long TestCount
+		{
+			get
+			{
+				return _testCount;
 
+			}
+		}
 
 		public Problem(Formula actualFormula)
 		{
@@ -50,9 +59,9 @@ namespace AlgebraBlackBox
 			var calc = new double[len];
 			var NaNcount = 0;
 
-			#if DEBUG
+#if DEBUG
 			var gRed = g.AsReduced();
-			#endif
+#endif
 
 			for (var i = 0; i < len; i++)
 			{
@@ -60,7 +69,7 @@ namespace AlgebraBlackBox
 				var s = sample.Key;
 				correct[i] = sample.Value;
 				var result = useAsync ? await g.CalculateAsync(s) : g.Calculate(s);
-				#if DEBUG
+#if DEBUG
 				if (gRed != g)
 				{
 					var rr = useAsync ? await gRed.CalculateAsync(s) : gRed.Calculate(s);
@@ -76,7 +85,7 @@ namespace AlgebraBlackBox
 							Debug.WriteLine(message);
 					}
 				}
-				#endif
+#endif
 				if (double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
 				divergence[i] = -Math.Abs(result - correct[i]);
@@ -101,6 +110,7 @@ namespace AlgebraBlackBox
 					(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
 				);
 			}
+			Interlocked.Increment(ref _testCount);
 		}
 
 		protected override List<Genome> RejectBadAndThenReturnKeepers(

@@ -10,12 +10,23 @@ namespace AlgebraBlackBox.Genes
 
 		protected OperatorGeneBase(
 			char op,
-			double multiple = 1,
-			IEnumerable<AlgebraBlackBox.IGene> children = null) : base(multiple)
+			double multiple = 1) : base(multiple)
 		{
 			_operator = op;
+		}
+
+		protected OperatorGeneBase(
+			char op,
+			double multiple,
+			IEnumerable<AlgebraBlackBox.IGene> children) : this(op, multiple)
+		{
 			if (children != null)
 				AddThese(children);
+		}
+
+		protected OperatorGeneBase(char op, double multiple, AlgebraBlackBox.IGene child) : this(op, multiple)
+		{
+            if(child!=null) Add(child);
 		}
 
 

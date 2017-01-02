@@ -22,7 +22,7 @@ namespace GeneticAlgorithmPlatform
 		public virtual void ResetToString()
 		{
 			if (_toString == null || _toString.IsValueCreated)
-				_toString = Lazy.New(ToStringInternal);
+				Interlocked.Exchange(ref _toString, Lazy.New(ToStringInternal));
 		}
 
 		protected override void OnDispose(bool calledExplicitly)
@@ -41,7 +41,8 @@ namespace GeneticAlgorithmPlatform
 
 		public sealed override string ToString()
 		{
-			return _toString == null ? base.ToString() : _toString.Value;
+			var ts = _toString;
+			return ts == null ? base.ToString() : ts.Value;
 		}
 
 		public virtual string Serialize()

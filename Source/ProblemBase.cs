@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Nito.AsyncEx;
 using Open;
 using Open.Arithmetic;
 using Open.Collections;
-using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -17,6 +18,9 @@ namespace GeneticAlgorithmPlatform
 	{
 		protected readonly SortedDictionary<Fitness, TGenome>
 		RankedPool = new SortedDictionary<Fitness, TGenome>();
+
+		protected readonly AsyncReaderWriterLock
+		RankedPoolSync = new AsyncReaderWriterLock();
 
 		protected readonly ConcurrentDictionary<string, Lazy<GenomeFitness<TGenome, Fitness>>>
 		Fitnesses = new ConcurrentDictionary<string, Lazy<GenomeFitness<TGenome, Fitness>>>();
@@ -96,7 +100,8 @@ namespace GeneticAlgorithmPlatform
 			try
 			{
 				Interlocked.Increment(ref fitness.TestingCount);
-				RankedPool.TryRemoveSynchronized(fitness);
+				using (await RankedPoolSync.WriterLockAsync())
+					RankedPool.Remove(fitness);
 				// ProcessTest should not have a different fitness object.
 				// await Task.WhenAll(
 				// 	Enumerable.Range(0,2).Select(i=>ProcessTest(genome, false)));
@@ -132,26 +137,32 @@ namespace GeneticAlgorithmPlatform
 
 				// Console.WriteLine("Ranked Pool Size: "+RankedPool.Count);
 
-				var top = Top();
-
+				IGenomeFitness<TGenome> top = null;
 				uint count = 0;
-				ThreadSafety.SynchronizeWrite(RankedPool, () =>
+				using (await RankedPoolSync.WriterLockAsync())
 				{
 					foreach (var g in list.Distinct())
 					{
 						var gf = GetOrCreateFitnessFor(g);
+						Debug.Assert(gf.Genome != null);
 						//if (top == null || gf.IsGreaterThan(top)) top = gf;
 						var fitness = gf.Fitness;
-						ThreadSafety.SynchronizeReadWrite(fitness,
-							lockType => fitness.TestingCount == 0 && !RankedPool.ContainsKey(fitness),
-							() =>
-							{
-								RankedPool.Add(fitness, gf.Genome); // Return/Add the keyed version.
-								count++;
-							},1000); // **
+						if (fitness.TestingCount == 0 && !RankedPool.ContainsKey(fitness))
+						{
+							Debug.Assert(gf.Genome != null);
+							RankedPool.Add(fitness, gf.Genome); // Return/Add the keyed version.
+							count++;
+						}
 					}
-				},1000);
+					if (count != 0)
+					{
+						top = RankedPool.First().GFFromFG();
+						Debug.Assert(top.Genome != null);
+					}
+				}
 
+				if (top == null)
+					top = await Top();
 
 				if (top != null)
 				{
@@ -183,42 +194,37 @@ namespace GeneticAlgorithmPlatform
 
 				Generation.Post((uint)1);
 
-				await CleanupAndGeneration(count); // Regenerate by the number of processed.
+				CleanupAndGeneration(count); // Regenerate by the number of processed.
 			}
 		}
 
 		protected abstract List<TGenome> RejectBadAndThenReturnKeepers(IEnumerable<GeneticAlgorithmPlatform.IGenomeFitness<TGenome, Fitness>> source, out List<Fitness> rejected);
 
-		protected void StripRank(IEnumerable<Fitness> values)
+		protected async Task StripRank(IEnumerable<Fitness> values)
 		{
-			ThreadSafety.SynchronizeWrite(RankedPool, () =>
-			{
+			using (await RankedPoolSync.WriterLockAsync())
 				foreach (var f in values) RankedPool.Remove(f);
-			},1000);
 		}
-		protected Task CleanupAndGeneration(uint count)
+		protected async Task CleanupAndGeneration(uint count)
 		{
-			return Task.Run(() =>
+			List<Fitness> rejected;
+			IGenomeFitness<TGenome, Fitness>[] keepers;
+			using (await RankedPoolSync.ReaderLockAsync())
+				keepers = RankedPool.Select(kvp => kvp.GFFromFG()).ToArray();
+			var dispursed = Triangular.Disperse.Decreasing(
+					RejectBadAndThenReturnKeepers(keepers, out rejected)).ToArray();
+
+			var len = dispursed.Length;
+			if (len != 0)
 			{
-				List<Fitness> rejected;
-				var dispursed = Triangular.Disperse.Decreasing(
-						RejectBadAndThenReturnKeepers(
-							ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Select(kvp => kvp.GFFromFG()).ToArray(),1000),
-							out rejected
-						)
-					).ToArray();
-
-				var len = dispursed.Length;
-				if (len != 0)
+				for (uint i = 0; i < count; i++)
 				{
-					for (uint i = 0; i < count; i++)
-					{
-						Reception.Post(dispursed.RandomSelectOne());
-					}
+					Reception.Post(dispursed.RandomSelectOne());
 				}
+			}
 
-				StripRank(rejected);
-			});
+			await StripRank(rejected).ConfigureAwait(false);
+
 		}
 
 		// Override this if there is a common key for multiple genomes (aka they are equivalient).
@@ -267,32 +273,40 @@ namespace GeneticAlgorithmPlatform
 			await Converged.OutputAvailableAsync().ConfigureAwait(false);
 		}
 
-		public virtual IGenomeFitness<TGenome> Top()
+		public virtual async Task<IGenomeFitness<TGenome>> Top()
 		{
-			return RankedPool.Count == 0
-				? null
-				: ThreadSafety.SynchronizeRead(RankedPool,
-				() => RankedPool.Count == 0
+			if (RankedPool.Count == 0) return null;
+
+			using (await RankedPoolSync.ReaderLockAsync())
+			{
+				return RankedPool.Count == 0
 					? (IGenomeFitness<TGenome, Fitness>)null
-					: RankedPool.First().GFFromFG(),1000);
+					: RankedPool.First().GFFromFG();
+			}
 		}
 
-		public TGenome[] TopGenomes(int count)
+		public async Task<TGenome[]> TopGenomes(int count)
 		{
 			if (count < 0)
 				throw new ArgumentOutOfRangeException("count");
-			return ThreadSafety.SynchronizeRead(RankedPool, () =>
-				RankedPool.Values.Take(count).ToArray(),1000);
+
+			using (await RankedPoolSync.ReaderLockAsync())
+			{
+				return RankedPool.Values.Take(count).ToArray();
+			}
 		}
 
-		public TGenome[] Ranked()
+		public async Task<TGenome[]> Ranked()
 		{
-			return ThreadSafety.SynchronizeRead(RankedPool, () => RankedPool.Values.ToArray(),1000);
+			using (await RankedPoolSync.ReaderLockAsync())
+			{
+				return RankedPool.Values.ToArray();
+			}
 		}
 
-		public List<GenomeFitness<TGenome>> Pareto(IEnumerable<TGenome> population = null)
+		public async Task<List<GenomeFitness<TGenome>>> Pareto(IEnumerable<TGenome> population = null)
 		{
-			var d = (population ?? Ranked())
+			var d = (population ?? await Ranked())
 				.Distinct()
 				.Select(g =>
 				{

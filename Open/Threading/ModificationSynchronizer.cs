@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Nito.AsyncEx;
 
 namespace Open.Threading
 {
@@ -191,13 +192,13 @@ namespace Open.Threading
 		public override void Reading(Action action)
 		{
 			AssertIsLiving();
-			lock(_sync) action();
+			lock (_sync) action();
 		}
 
 		public override T Reading<T>(Func<T> action)
 		{
 			AssertIsLiving();
-			lock(_sync) return action();
+			lock (_sync) return action();
 		}
 
 		public override bool Modifying(Func<bool> condition, Func<bool> action)
@@ -247,21 +248,22 @@ namespace Open.Threading
 			_sync = sync ?? new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 		}
 
-		void Cleanup()
+		IDisposable Cleanup()
 		{
-			_sync = null;
+			return Interlocked.Exchange(ref _sync, null);
 		}
 
 		protected override void OnDispose(bool calledExplicitly)
 		{
 			base.OnDispose(calledExplicitly);
-			var s = _sync;
-			if (!calledExplicitly
-			|| !_sync.Write(Cleanup, 10 /* Give any cleanup a chance. */ ))
-				Cleanup();
+			IDisposable s = null;
+			if (!calledExplicitly || !_sync.Write(() => s = Cleanup(), 10 /* Give any cleanup a chance. */ ))
+			{
+				s = Cleanup();
+			}
 			if (_lockOwned)
 			{
-				s.Dispose();
+				s.SmartDispose();
 			}
 		}
 
@@ -314,22 +316,20 @@ namespace Open.Threading
 				var ver = _version; // Capture the version so that if changes occur indirectly...
 				changed = !target.Equals(newValue);
 
-				try
+				if (changed)
 				{
-					_sync.EnterWriteLock();
-					if (changed)
+					try
 					{
+						_sync.EnterWriteLock();
 						IncrementVersion();
 						target = newValue;
 					}
-				}
-				finally
-				{
-					_sync.ExitWriteLock();
-				}
+					finally
+					{
+						_sync.ExitWriteLock();
+					}
 
-				if (changed)
-				{
+
 					// Events will be triggered but this thread will still have the upgradable read.
 					SignalModified();
 				}
@@ -338,6 +338,86 @@ namespace Open.Threading
 			{
 				_sync.ExitUpgradeableReadLock();
 			}
+			return changed;
+		}
+
+	}
+
+	// NOTE: Cannot handle recursive actions...
+	public sealed class AsyncReadWriteModificationSynchronizer : ModificationSynchronizer
+	{
+
+		readonly AsyncReaderWriterLock _sync;
+		public AsyncReadWriteModificationSynchronizer()
+		{
+			_sync = new AsyncReaderWriterLock();
+		}
+
+
+		public override void Reading(Action action)
+		{
+			AssertIsLiving();
+			using (_sync.ReaderLock()) action();
+		}
+
+		public override T Reading<T>(Func<T> action)
+		{
+			AssertIsLiving();
+			using (_sync.ReaderLock()) return action();
+		}
+
+		public override bool Modifying(Func<bool> condition, Func<bool> action)
+		{
+			AssertIsLiving();
+
+			// Try and early invalidate.
+			if (condition != null)
+			{
+				using (_sync.ReaderLock()) if (!condition()) return false;
+			}
+
+			bool modified = false;
+			using (var upgradableLock = _sync.UpgradeableReaderLock())
+			{
+				AssertIsLiving();
+				if (condition == null || condition())
+				{
+					using (upgradableLock.Upgrade())
+					{
+						modified = base.Modifying(null, action);
+					}
+				}
+			}
+			return modified;
+		}
+
+
+		public override bool Modifying<T>(ref T target, T newValue)
+		{
+			AssertIsLiving();
+			if (target.Equals(newValue)) return false;
+
+			bool changed;
+
+			// Note, there's no need for _modifyingDepth recursion tracking here.
+			using (var upgradableLock = _sync.UpgradeableReaderLock())
+			{
+				var ver = _version; // Capture the version so that if changes occur indirectly...
+				changed = !target.Equals(newValue);
+
+				if (changed)
+				{
+					using (upgradableLock.Upgrade())
+					{
+						IncrementVersion();
+						target = newValue;
+					}
+
+					// Events will be triggered but this thread will still have the upgradable read.
+					SignalModified();
+				}
+			}
+
 			return changed;
 		}
 

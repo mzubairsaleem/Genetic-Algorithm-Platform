@@ -6,7 +6,7 @@ using Open.Collections;
 
 namespace AlgebraBlackBox.Genes
 {
-    public class SumGene : OperatorGeneBase
+	public class SumGene : OperatorGeneBase
 	{
 		public const char Symbol = '+';
 
@@ -14,10 +14,10 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-        protected override double DefaultIfNoChildren()
-        {
-            return 0;
-        }
+		protected override double DefaultIfNoChildren()
+		{
+			return 0;
+		}
 
 		protected override double ProcessChildValues(IEnumerable<double> values)
 		{
@@ -56,6 +56,8 @@ namespace AlgebraBlackBox.Genes
 		{
 			// Collapse sums within sums.
 			var children = GetChildren();
+			if (children.Count == 0) return;
+
 			foreach (var p in children.OfType<SumGene>().ToArray())
 			{
 				var m = p.Multiple;
@@ -68,25 +70,38 @@ namespace AlgebraBlackBox.Genes
 				children.Remove(p);
 			}
 
-			// Pull out multiples.
-			if (children.Any() && children.All(g => Math.Abs(g.Multiple) > 1 || g.Multiple == -1))
+
+
+			// Flatten negatives...
+			if (Multiple < 0 && children.Any(c => c.Multiple < 0) || Multiple > 0 && children.All(c => c.Multiple < 0))
 			{
-				var smallest = children.OrderBy(g => g.Multiple).First();
-				var max = smallest.Multiple;
-				for (var i = 2; i <= max; i = i.NextPrime())
+				Multiple *= -1;
+				foreach (var g in children)
+					g.Multiple *= -1;
+			}
+
+			// Pull out multiples.
+			using (var absMultiples = children.Select(c => Math.Abs(c.Multiple)).Where(m => m != 0 && m != 1).Distinct().Memoize())
+			{
+				if (absMultiples.Any())
 				{
-					while (max % i == 0 && children.All(g => g.Multiple % i == 0))
+					var max = absMultiples.Min();
+					for (var i = 2; i <= max; i = i.NextPrime())
 					{
-						max /= i;
-						Multiple *= i;
-						foreach (var g in children)
+						while (max % i == 0 && children.All(g => g.Multiple % i == 0))
 						{
-							g.Multiple /= i;
+							max /= i;
+							Multiple *= i;
+							foreach (var g in children)
+							{
+								g.Multiple /= i;
+							}
 						}
 					}
-				}
 
+				}
 			}
+
 
 			// Combine any constants.  This is more optimal because we don't neet to query ToStringContents.
 			var constants = children.OfType<ConstantGene>().ToArray();
@@ -148,5 +163,5 @@ namespace AlgebraBlackBox.Genes
 		}
 
 
-    }
+	}
 }

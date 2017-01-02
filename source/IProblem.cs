@@ -18,9 +18,9 @@ namespace GeneticAlgorithmPlatform
 	{
 		int ID { get; }
 		
-		IGenomeFitness<TGenome> Top();
+		Task<IGenomeFitness<TGenome>> Top();
 
-		TGenome[] TopGenomes(int count);
+		Task<TGenome[]> TopGenomes(int count);
 
 		TGenome[] Convergent { get; }
 

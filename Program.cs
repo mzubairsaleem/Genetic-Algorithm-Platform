@@ -2,6 +2,7 @@
 using Open.Collections;
 using System.Diagnostics;
 using Open;
+using AlgebraBlackBox;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -26,9 +27,12 @@ namespace GeneticAlgorithmPlatform
 			var e = new AlgebraBlackBox.Environment(SqrtA2B2AB);
 			e.ListenToTopChanges(change =>
 			{
+				var prob = (Problem)change.Item1;
+				var tc = prob.TestCount;
 				var gf = change.Item2;
-				Console.WriteLine("{0}:\t{1}", change.Item1.ID, gf.Genome.ToAlphaParameters());
+				Console.WriteLine("{0}:\t{1}", prob.ID, gf.Genome.ToAlphaParameters());
 				Console.WriteLine("  \t[{0}] ({1} samples)", gf.Fitness.Scores.JoinToString(","), gf.Fitness.SampleCount);
+				Console.WriteLine("  \t{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks/tc);
 				Console.WriteLine();
 			});
 

@@ -8,7 +8,15 @@ namespace AlgebraBlackBox.Genes
 	{
 		public const char Symbol = '/';
 
-		public DivisionGene(double multiple = 1, IEnumerable<IGene> children = null) : base(Symbol, multiple, children)
+		protected DivisionGene(double multiple, IEnumerable<IGene> children) : base(Symbol, multiple, children)
+		{
+		}
+
+		public DivisionGene(double multiple = 1, IGene child = null) : base(Symbol, multiple, child)
+		{
+		}
+
+		public DivisionGene(IGene child) : base(Symbol, 1, child)
 		{
 		}
 

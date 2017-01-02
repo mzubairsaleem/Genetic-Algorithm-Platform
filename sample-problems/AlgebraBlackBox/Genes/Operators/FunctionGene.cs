@@ -6,7 +6,15 @@ namespace AlgebraBlackBox.Genes
 {
     public abstract class FunctionGene : OperatorGeneBase
     {
-        public FunctionGene(char op, double multiple = 1, IEnumerable<IGene> children = null) : base(op, multiple, children)
+        public FunctionGene(char op, double multiple = 1) : base(op, multiple)
+        {
+        }
+
+        public FunctionGene(char op, double multiple, IEnumerable<IGene> children) : base(op, multiple, children)
+        {
+        }
+
+        public FunctionGene(char op, double multiple, IGene child) : base(op, multiple)
         {
         }
 

@@ -13,6 +13,10 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
+		public ProductGene(IEnumerable<IGene> children) : base(Symbol, 1, children)
+		{
+		}
+
         protected override double DefaultIfNoChildren()
         {
             return 1d; // This means 'not divided by anything'.
@@ -91,7 +95,7 @@ namespace AlgebraBlackBox.Genes
 
 				if (p.Count == 0)
 				{
-					Remove(p);
+					ReplaceChild(p, new ConstantGene(m));
 				}
 				else
 				{
@@ -141,6 +145,20 @@ namespace AlgebraBlackBox.Genes
 
 			}
 
+			var divisions = children.OfType<DivisionGene>().Where(c=>c.Any()).ToArray();
+			if(divisions.Length>1)
+			{
+				var newProd = new ProductGene();
+				var newDiv = new DivisionGene(newProd);
+				foreach(var d in divisions)
+				{
+					Remove(d);
+					newProd.Multiple *= d.Multiple;
+					newProd.Add(d.Single());
+					d.Clear();
+				}
+				Add(newDiv);
+			}
 		}
 
 		protected override IGene ReplaceWithReduced()

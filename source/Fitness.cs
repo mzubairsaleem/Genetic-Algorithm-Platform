@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using Open.Arithmetic;
 using Open.Collections;
+using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -126,7 +127,7 @@ namespace GeneticAlgorithmPlatform
     public class Fitness : ThreadSafeTrackedList<SingleFitness>, IFitness
 	{
 
-		public Fitness()
+		public Fitness() //: base(new AsyncReadWriteModificationSynchronizer())
 		{
 			ID = Interlocked.Increment(ref FitnessCount);
 		}

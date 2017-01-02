@@ -12,19 +12,12 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-		public SquareRootGene(double multiple = 1) : base(Symbol, multiple)
+		public SquareRootGene(double multiple = 1, IGene child = null) : base(Symbol, multiple, child)
 		{
 		}
 
-		public SquareRootGene(double multiple, IGene child) : this(multiple)
+		public SquareRootGene(IGene child) : base(Symbol, 1, child)
 		{
-			if (child != null)
-				Add(child);
-		}
-
-		public SquareRootGene(IGene child) : this(1, child)
-		{
-
 		}
 
 		public override void Add(IGene target)
