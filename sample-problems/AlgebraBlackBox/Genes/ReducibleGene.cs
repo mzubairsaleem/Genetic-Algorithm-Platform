@@ -44,6 +44,11 @@ namespace AlgebraBlackBox.Genes
 			return (ReducibleGeneNode)CloneInternal();
 		}
 
+		IReducibleGene IReducibleGene.Clone()
+		{
+			return (ReducibleGeneNode)CloneInternal();
+		}
+
 		Lazy<IGene> _reduced;
 
 		public bool IsReducible
@@ -56,6 +61,16 @@ namespace AlgebraBlackBox.Genes
 			}
 		}
 
+
+
+		bool IReducible<IGene>.IsReducible
+		{
+			get
+			{
+				return this.IsReducible;
+			}
+		}
+
 		public IGene AsReduced(bool ensureClone = false)
 		{
 			var r = _reduced;
@@ -64,27 +79,51 @@ namespace AlgebraBlackBox.Genes
 			return ensureClone ? v.Clone() : v;
 		}
 
-		static readonly double[] QuickCheck = new double[] {1,1};
+		static readonly double[] QuickCheck = new double[] { 1, 1 };
 		protected IGene ChildReduce(IReducibleGene child)
 		{
-			// Here's the magic... If the Reduce call returns non-null, then attempt to replace o with (new) g.
+			IGene g = null;
+			var original = child;
 			#if DEBUG
-			var cValue = child.Calculate(QuickCheck);
-			var cString = child.ToString();
-			var cCheck = child.ToStringContents();
+			var hash = child.ToString();
 			#endif
-			var g = child.Reduce();
+			// #if DEBUG
+			// var cValue = child.Calculate(QuickCheck);
+			// var cString = child.ToString();
+			// var cCheck = child.ToStringContents();
+			// var good = false;
+			// while (!good)
+			// {
+			// 	child = original.Clone();
+			// #endif
+			// Here's the magic... If the Reduce call returns non-null, then attempt to replace o with (new) g.
+			g = child.Reduce();
 			if (g != null)
 			{
-				#if DEBUG
-				var gValue = g.Calculate(QuickCheck);
-				var gStrign = g.ToString();
-				var gCheck = g.ToStringContents();
-				Debug.Assert(double.IsNaN(cValue) || cValue.IsRelativeNearEqual(gValue,7));
-				#endif
-				if (!ReplaceChild(child, g))
+				// #if DEBUG
+				// var gValue = g.Calculate(QuickCheck);
+				// var gStrign = g.ToString();
+				// var gCheck = g.ToStringContents();
+				// good = double.IsNaN(cValue) || cValue.IsRelativeNearEqual(gValue, 7);
+				// if (!good)
+				// {
+				// 	Debugger.Break();
+				// 	continue;
+				// }
+				// #endif
+				if (!ReplaceChild(original, g))
 					Sync.Poke(); // Child may have changed internally.
 			}
+			#if DEBUG
+			else {
+				Debug.Assert(hash == child.ToString(), "Altering the child requires returning it in the reduce call!");
+			}
+			#endif
+			// #if DEBUG
+			// 	else
+			// 		good = true;
+			// }
+			// #endif
 			return g;
 		}
 
@@ -130,12 +169,13 @@ namespace AlgebraBlackBox.Genes
 				}))
 				{
 					modCount++;
-					if(modCount>1000)
+					if (modCount > 1000)
 					{
-						if(Debugger.IsAttached)
+						if (Debugger.IsAttached)
 							Debugger.Break();
-						else {
-							var message = "Potential infinite reduction loop in "+this.GetType();
+						else
+						{
+							var message = "Potential infinite reduction loop in " + this.GetType();
 							Console.WriteLine("");
 							Console.WriteLine("==========================================================");
 							Console.WriteLine(message);
@@ -159,6 +199,7 @@ namespace AlgebraBlackBox.Genes
 
 		// Call this at the end of the sub-classes reduce loop.
 		protected abstract void ReduceLoop();
+
 
 	}
 
@@ -201,6 +242,11 @@ namespace AlgebraBlackBox.Genes
 		}
 
 
+		IReducibleGene IReducibleGene.Clone()
+		{
+			return (ReducibleGene)CloneInternal();
+		}
+
 		public IGene AsReduced(bool ensureClone = false)
 		{
 			var r = _reduced;
@@ -218,6 +264,7 @@ namespace AlgebraBlackBox.Genes
 
 			return null;
 		}
+
 	}
 
 }
