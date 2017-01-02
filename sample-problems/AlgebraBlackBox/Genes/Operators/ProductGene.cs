@@ -5,7 +5,7 @@ using Open.Arithmetic;
 
 namespace AlgebraBlackBox.Genes
 {
-    public class ProductGene : OperatorGeneBase
+	public class ProductGene : OperatorGeneBase
 	{
 		public const char Symbol = '*';
 
@@ -17,15 +17,15 @@ namespace AlgebraBlackBox.Genes
 		{
 		}
 
-        protected override double DefaultIfNoChildren()
-        {
-            return 1d; // This means 'not divided by anything'.
-        }
+		protected override double DefaultIfNoChildren()
+		{
+			return 1d; // This means 'not divided by anything'.
+		}
 
-        protected override double ProcessChildValues(IEnumerable<double> values)
-        {
+		protected override double ProcessChildValues(IEnumerable<double> values)
+		{
 			return values.Product();
-        }
+		}
 
 		ProductGene CloneThis()
 		{
@@ -43,19 +43,18 @@ namespace AlgebraBlackBox.Genes
 		bool MigrateMultiples()
 		{
 			var children = GetChildren();
+			if (children.Any(c => double.IsNaN(c.Multiple)))
+			{
+				// Any multiple of NaN? Reset the entire collection;
+				Clear();
+				Multiple = double.NaN;
+				return true;
+			}
 			if (children.Any(c => c.Multiple == 0))
 			{
 				// Any multiple of zero? Reset the entire collection;
 				Clear();
 				Multiple = 0;
-				return true;
-			}
-
-			if (children.Any(c => double.IsNaN(c.Multiple)))
-			{
-				// Any multiple of zero? Reset the entire collection;
-				Clear();
-				Multiple = double.NaN;
 				return true;
 			}
 
@@ -106,7 +105,7 @@ namespace AlgebraBlackBox.Genes
 					Debug.Assert(n.Multiple == 1, "Should have already been pulled out.");
 					Remove(n);
 
-					if(df.Multiple==1)
+					if (df.Multiple == 1)
 						d.Remove(df);
 					else
 						d.ReplaceChild(df, new ConstantGene(df.Multiple));
@@ -164,19 +163,18 @@ namespace AlgebraBlackBox.Genes
 
 			}
 
-			var divisions = children.OfType<DivisionGene>().Where(c=>c.Any()).ToArray();
-			if(divisions.Length>1)
+			var divisions = children.OfType<DivisionGene>().Where(c => c.Any()).ToArray();
+			if (divisions.Length > 1)
 			{
 				var newProd = new ProductGene();
-				var newDiv = new DivisionGene(newProd);
-				foreach(var d in divisions)
+				foreach (var d in divisions)
 				{
 					Remove(d);
 					newProd.Multiple *= d.Multiple;
 					newProd.Add(d.Single());
 					d.Clear();
 				}
-				Add(newDiv);
+				Add(new DivisionGene(newProd));
 			}
 		}
 
