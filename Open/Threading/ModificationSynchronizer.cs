@@ -172,6 +172,7 @@ namespace Open.Threading
 
 			IncrementVersion();
 			target = newValue;
+			SignalModified();
 
 			return true;
 		}
@@ -218,20 +219,7 @@ namespace Open.Threading
 			AssertIsLiving();
 			if (target.Equals(newValue)) return false;
 
-			bool changed;
-			lock (_sync)
-			{
-				AssertIsLiving();
-				var ver = _version; // Capture the version so that if changes occur indirectly...
-				changed = !target.Equals(newValue);
-				if (changed)
-				{
-					IncrementVersion();
-					target = newValue;
-					SignalModified();
-				}
-			}
-			return changed;
+			lock (_sync) return base.Modifying(ref target, newValue);
 		}
 
 	}
