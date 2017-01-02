@@ -93,7 +93,7 @@ namespace GeneticAlgorithmPlatform
 		async Task ConsumeGenomeReadyForTesting(TGenome genome)
 		{
 			var c = TestBuffer.InputCount;
-			if (c > 10000) Console.WriteLine("Test Buffer: " + c);
+			//if (c > 10000) Console.WriteLine("Test Buffer: " + c);
 			var gf = GetOrCreateFitnessFor(genome);
 			var fitness = gf.Fitness;
 			var storedGenome = gf.Genome;
@@ -183,19 +183,19 @@ namespace GeneticAlgorithmPlatform
 						bufferMax *= 10;
 					}
 
-					if (fitness.SampleCount > 100)
-					{
-						var v = (TGenome)genome.NextVariation();
-						if (v != null) Reception.Post(v); // Use variation.
-					}
+					// if (fitness.SampleCount > 100)
+					// {
+					// 	var v = (TGenome)genome.NextVariation();
+					// 	if (v != null) Reception.Post(v); // Use variation.
+					// }
 
 					//Mutation.Post(genome); // Use mutation.
 				}
 				else {
-					Generation.Post((uint)1);
+					// Generation.Post((uint)1);
 				}
 
-				CleanupAndGeneration(count); // Regenerate by the number of processed.
+				CleanupAndGeneration(1); // Regenerate by the number of processed.
 			}
 		}
 
@@ -218,10 +218,16 @@ namespace GeneticAlgorithmPlatform
 			var len = dispursed.Length;
 			if (len != 0)
 			{
+				var top = keepers.First().Genome;
+				Reception.Post(top);
+				Mutation.Post(top);
+				Reception.Post((TGenome)top.NextVariation());
+
+
 				for (uint i = 0; i < count; i++)
 				{
-					Mutation.Post(dispursed.RandomSelectOne());
 					Reception.Post(dispursed.RandomSelectOne());
+					Mutation.Post(dispursed.RandomSelectOne());
 				}
 			}
 
