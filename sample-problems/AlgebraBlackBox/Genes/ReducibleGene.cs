@@ -7,12 +7,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Open.Formatting;
 
 namespace AlgebraBlackBox.Genes
 {
 
-	public abstract class ReducibleGeneNode : GeneNode, IReducibleGene
+    public abstract class ReducibleGeneNode : GeneNode, IReducibleGene
 	{
 
 		public ReducibleGeneNode(double multiple = 1) : base(multiple)

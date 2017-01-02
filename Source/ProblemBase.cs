@@ -223,7 +223,6 @@ namespace GeneticAlgorithmPlatform
 				Mutation.Post(top);
 				Reception.Post((TGenome)top.NextVariation());
 
-
 				for (uint i = 0; i < count; i++)
 				{
 					Reception.Post(dispursed.RandomSelectOne());
