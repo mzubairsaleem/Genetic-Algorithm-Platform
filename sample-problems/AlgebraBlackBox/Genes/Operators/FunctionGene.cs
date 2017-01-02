@@ -14,7 +14,7 @@ namespace AlgebraBlackBox.Genes
         {
         }
 
-        public FunctionGene(char op, double multiple, IGene child) : base(op, multiple)
+        public FunctionGene(char op, double multiple, IGene child) : base(op, multiple, child)
         {
         }
 
