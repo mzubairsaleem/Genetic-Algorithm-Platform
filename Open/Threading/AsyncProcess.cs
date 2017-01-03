@@ -127,7 +127,7 @@ namespace Open.Threading
 				task.Wait();
 		}
 
-		public bool EnsureActive(bool once)
+		public bool EnsureActive(bool once = false)
 		{
 			return EnsureProcess(once).IsActive();
 		}

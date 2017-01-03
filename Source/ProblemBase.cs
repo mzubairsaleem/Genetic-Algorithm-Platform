@@ -10,6 +10,7 @@ using Nito.AsyncEx;
 using Open;
 using Open.Arithmetic;
 using Open.Collections;
+using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -79,9 +80,13 @@ namespace GeneticAlgorithmPlatform
 					// Ignore existing rejected...
 					var keyed = GetFitnessForKeyTransform(genome);
 					if (!Rejected.ContainsKey(genome.Hash) && (keyed == genome || !Rejected.ContainsKey(keyed.Hash)))
+					{
+						// Pre grab any reduction...  Reduction can take a sec, so it's good to parallelize this.
+						GetOrCreateFitnessFor(genome);
 						TestBuffer.Post(genome);
+					}
 				}
-			});
+			}, new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 3 });
 
 			TestBuffer = new ActionBlock<TGenome>(
 				ConsumeGenomeReadyForTesting,
@@ -191,11 +196,12 @@ namespace GeneticAlgorithmPlatform
 
 					//Mutation.Post(genome); // Use mutation.
 				}
-				else {
+				else
+				{
 					// Generation.Post((uint)1);
 				}
 
-				CleanupAndGeneration(1); // Regenerate by the number of processed.
+				CleanupAndGeneration();
 			}
 		}
 
@@ -206,32 +212,40 @@ namespace GeneticAlgorithmPlatform
 			using (await RankedPoolSync.WriterLockAsync())
 				foreach (var f in values) RankedPool.Remove(f);
 		}
-		protected async Task CleanupAndGeneration(uint count)
+
+		AsyncProcess CleanupAndGenerationProcess;
+
+		protected void CleanupAndGeneration()
 		{
-			List<Fitness> rejected;
-			IGenomeFitness<TGenome, Fitness>[] keepers;
-			using (await RankedPoolSync.ReaderLockAsync())
-				keepers = RankedPool.Select(kvp => kvp.GFFromFG()).ToArray();
-			var dispursed = Triangular.Disperse.Decreasing(
-					RejectBadAndThenReturnKeepers(keepers, out rejected)).ToArray();
-
-			var len = dispursed.Length;
-			if (len != 0)
+			LazyInitializer.EnsureInitialized(
+				ref CleanupAndGenerationProcess,
+				() => new AsyncProcess(
+					progress =>
 			{
-				var top = keepers.First().Genome;
-				Reception.Post(top);
-				Mutation.Post(top);
-				Reception.Post((TGenome)top.NextVariation());
+				List<Fitness> rejected;
+				IGenomeFitness<TGenome, Fitness>[] keepers;
+				using (RankedPoolSync.ReaderLock())
+					keepers = RankedPool.Select(kvp => kvp.GFFromFG()).ToArray();
+				var dispursed = Triangular.Disperse.Decreasing(
+						RejectBadAndThenReturnKeepers(keepers, out rejected)).ToArray();
 
-				for (uint i = 0; i < count; i++)
+				var len = dispursed.Length;
+				if (len != 0)
 				{
-					Reception.Post(dispursed.RandomSelectOne());
-					Mutation.Post(dispursed.RandomSelectOne());
+					var top = keepers.First().Genome;
+					Reception.Post(top);
+					Mutation.Post(top);
+					Reception.Post((TGenome)top.NextVariation());
+
+					for (uint i = 0; i < 2; i++)
+					{
+						Reception.Post(dispursed.RandomSelectOne());
+						Mutation.Post(dispursed.RandomSelectOne());
+					}
 				}
-			}
 
-			await StripRank(rejected).ConfigureAwait(false);
-
+				StripRank(rejected).Wait();
+			})).EnsureActive();
 		}
 
 		// Override this if there is a common key for multiple genomes (aka they are equivalient).
