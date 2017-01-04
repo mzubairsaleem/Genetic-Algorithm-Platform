@@ -15,7 +15,9 @@ namespace GeneticAlgorithmPlatform
         string Hash { get; }
         IGene[] Genes { get; }
 
+
         IGenome NextVariation();
+        IGenome NextMutation();
 
         /*
          * Should prevent further modifications to the genome.

@@ -5,9 +5,12 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Open;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -71,6 +74,54 @@ namespace GeneticAlgorithmPlatform
 			}));
 		}
 
+
+
+		public IEnumerable<TGenome> Generator()
+		{
+			yield return Generate();
+		}
+
+		public IEnumerable<TGenome> Mutator(TGenome source)
+		{
+			TGenome next;
+			while(AttemptNewMutation(source, out next))
+			{
+				yield return next;
+			}
+		}
+
+		public bool AttemptNewMutation(TGenome source, out TGenome mutation, int triesPerMutation = 10)
+		{
+			return AttemptNewMutation(Enumerable.Repeat(source,1),out mutation, triesPerMutation);
+		}
+
+		public bool AttemptNewMutation(IEnumerable<TGenome> source, out TGenome genome, int triesPerMutation = 10)
+		{
+			genome = null;
+			string hash = null;
+			// Find one that will mutate well and use it.
+			for (uint m = 1; m < 4; m++) // Mutation count
+			{
+				var tries = triesPerMutation;//200;
+				do
+				{
+					genome = Mutate(source.RandomSelectOne(), m);
+					hash = genome==null ? null : genome.Hash;
+				}
+				while ((hash==null || _previousGenomes.ContainsKey(hash)) && --tries != 0);
+
+				if (tries != 0)
+					return true;
+			}
+			return false;
+		}
+
+		public TGenome Generate(TGenome source)
+		{
+			return Generate(Enumerable.Repeat(source,1));
+		}
+        public abstract TGenome Generate(IEnumerable<TGenome> source = null);
+
 		public abstract void Generate(uint count);
 		protected abstract TGenome MutateInternal(TGenome target);
 
@@ -116,6 +167,7 @@ namespace GeneticAlgorithmPlatform
 				Queue.Post(Mutate(genome));
 			}));
 		}
-	}
+
+    }
 }
 

@@ -369,12 +369,16 @@ namespace GeneticAlgorithmPlatform
 			return p;
 		}
 
-		protected abstract Task ProcessTest(GenomeFitness<TGenome, Fitness> g, bool useAsync = true);
+		protected abstract Task ProcessTest(GeneticAlgorithmPlatform.GenomeFitness<TGenome, Fitness> gf, bool useAsync = true);
 
 		protected Task ProcessTest(TGenome g, bool useAsync = true)
 		{
 			return ProcessTest(GetOrCreateFitnessFor(g), useAsync);
 		}
+
+		public abstract Task<IFitness> ProcessTest(TGenome g);
+
+		
 
 		public IDisposable[] Consume(IGenomeFactory<TGenome> source)
 		{

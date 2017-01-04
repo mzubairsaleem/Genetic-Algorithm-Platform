@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
+using GeneticAlgorithmPlatform;
 using Open.Arithmetic;
 using Open.Collections;
 using Open.Formatting;
@@ -48,20 +49,31 @@ namespace AlgebraBlackBox
 			return genome.AsReduced();
 		}
 
-		protected override async Task ProcessTest(GeneticAlgorithmPlatform.GenomeFitness<Genome, Fitness> gf, bool useAsync = true)
+		protected async override Task ProcessTest(GenomeFitness<Genome, Fitness> gf, bool useAsync = true)
 		{
-			var fitness = gf.Fitness;
-			var g = gf.Genome;
-			var samples = _sampleCache.Get(fitness.SampleCount);
+			await ProcessTest(gf.Genome, gf.Fitness, _sampleCache.Get(gf.Fitness.SampleCount), useAsync);
+			Interlocked.Increment(ref _testCount);
+		}
+
+		public override async Task<IFitness> ProcessTest(Genome g)
+		{
+			var f = new Fitness();
+			await ProcessTest(g, f, _sampleCache.Generate(), true);
+			Interlocked.Increment(ref _testCount);
+			return f;
+		}
+
+		protected async Task ProcessTest(Genome g, Fitness fitness, KeyValuePair<double[], double>[] samples, bool useAsync = true)
+		{
 			var len = samples.Length;
 			var correct = new double[len];
 			var divergence = new double[len];
 			var calc = new double[len];
 			var NaNcount = 0;
 
-#if DEBUG
-			var gRed = g.AsReduced();
-#endif
+// #if DEBUG
+// 			var gRed = g.AsReduced();
+// #endif
 
 			for (var i = 0; i < len; i++)
 			{
@@ -70,23 +82,23 @@ namespace AlgebraBlackBox
 				var correctValue = sample.Value;
 				correct[i] = correctValue;
 				var result = useAsync ? await g.CalculateAsync(s) : g.Calculate(s);
-#if DEBUG
-				if (gRed != g)
-				{
-					var rr = useAsync ? await gRed.CalculateAsync(s) : gRed.Calculate(s);
-					if (!g.Genes.OfType<ParameterGene>().Any(gg => gg.ID > 1) // For debugging/testing IDs greater than 1 are invalid so ignore.
-						&& !result.IsRelativeNearEqual(rr, 7))
-					{
-						var message = String.Format(
-							"Reduction calculation doesn't match!!! {0} => {1}\n\tSample: {2}\n\tresult: {3} != {4}",
-							g, gRed, s.JoinToString(", "), result, rr);
-						if (!result.IsNaN())
-							Debug.Fail(message);
-						else
-							Debug.WriteLine(message);
-					}
-				}
-#endif
+// #if DEBUG
+// 				if (gRed != g)
+// 				{
+// 					var rr = useAsync ? await gRed.CalculateAsync(s) : gRed.Calculate(s);
+// 					if (!g.Genes.OfType<ParameterGene>().Any(gg => gg.ID > 1) // For debugging/testing IDs greater than 1 are invalid so ignore.
+// 						&& !result.IsRelativeNearEqual(rr, 7))
+// 					{
+// 						var message = String.Format(
+// 							"Reduction calculation doesn't match!!! {0} => {1}\n\tSample: {2}\n\tresult: {3} != {4}",
+// 							g, gRed, s.JoinToString(", "), result, rr);
+// 						if (!result.IsNaN())
+// 							Debug.WriteLine(message);
+// 						else
+// 							Debug.WriteLine(message);
+// 					}
+// 				}
+// #endif
 				if (!double.IsNaN(correctValue) && double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
 				divergence[i] = -Math.Abs(result - correctValue);
@@ -103,15 +115,14 @@ namespace AlgebraBlackBox
 			}
 			else
 			{
-				var c = correct.Correlation(calc.Where(v=>!double.IsNaN(v)));
-				var d = divergence.Where(v=>!double.IsNaN(v)).Average() + 1;
+				var c = correct.Correlation(calc.Where(v => !double.IsNaN(v)));
+				var d = divergence.Where(v => !double.IsNaN(v)).Average() + 1;
 
 				fitness.AddScores(
 					(double.IsNaN(c) || double.IsInfinity(c)) ? -2 : c,
 					(double.IsNaN(d) || double.IsInfinity(d)) ? double.NegativeInfinity : d
 				);
 			}
-			Interlocked.Increment(ref _testCount);
 		}
 
 		protected override List<Genome> RejectBadAndThenReturnKeepers(
@@ -137,6 +148,8 @@ namespace AlgebraBlackBox
 
 			return keep;
 		}
+
+
 	}
 
 

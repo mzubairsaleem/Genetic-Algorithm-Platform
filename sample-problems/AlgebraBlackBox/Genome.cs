@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
+using GeneticAlgorithmPlatform;
 using Open;
 using Open.Collections;
 using Open.Threading;
@@ -163,26 +164,34 @@ namespace AlgebraBlackBox
 		}
 
 		object _varLock = new Object();
-		static readonly IEnumerator<Genome> EmptyVariations = Enumerable.Empty<Genome>().GetEnumerator();
-		public override GeneticAlgorithmPlatform.IGenome NextVariation()
+		static readonly IEnumerator<Genome> EmptyEnumerator = Enumerable.Empty<Genome>().GetEnumerator();
+		public override IGenome NextVariation()
 		{
 			var source = _variations;
-			if (source == null || _variationEnumerator==EmptyVariations) return null;
+			if (source == null || _variationEnumerator==EmptyEnumerator) return null;
 			var e = LazyInitializer.EnsureInitialized(ref _variationEnumerator, () => source.GetEnumerator());
 			// Since multiple threads can request 'next' we need to synchronize this.
 			lock(_varLock)
 			{
 				// All good?
 				if (e.MoveNext()) return e.Current;
-				// Since we loop, we need to first see if by the rare chance that we have no variations.
-				// Go ahead and replace the enumerator with a new one.
-				Interlocked.Exchange(ref _variationEnumerator, e = source.GetEnumerator()).SmartDispose();
-				if (e.MoveNext()) return e.Current;
-				// This means there is none, so we replace the enumerator with a permanent empty one.
-				Interlocked.Exchange(ref _variationEnumerator, EmptyVariations);
+				// // Since we loop, we need to first see if by the rare chance that we have no variations.
+				// // Go ahead and replace the enumerator with a new one.
+				// Interlocked.Exchange(ref _variationEnumerator, e = source.GetEnumerator()).SmartDispose();
+				// if (e.MoveNext()) return e.Current;
+				// // This means there is none, so we replace the enumerator with a permanent empty one.
+				// Interlocked.Exchange(ref _variationEnumerator, EmptyEnumerator);
 			}
 
 			return null;
+		}
+
+		IEnumerator<Genome> _mutationEnumerator;
+		public override IGenome NextMutation()
+		{
+			var source = _mutationEnumerator;
+			if (source == null || source==EmptyEnumerator) return null;
+			return source.MoveNext() ? source.Current : null;
 		}
 
 		IEnumerator<Genome> _variationEnumerator;
@@ -202,42 +211,50 @@ namespace AlgebraBlackBox
 			_variations = variations.Memoize();
 		}
 
-
-		// public Task<double> Correlation(
-		// 	double[] aSample, double[] bSample,
-		// 	Genome gA, Genome gB)
-		// {
-		// 	return Task.Run(() =>
-		// 	{
-		// 		var len = aSample.Length * bSample.Length;
-
-		// 		var gA_result = new double[len];
-		// 		var gB_result = new double[len];
-		// 		var i = 0;
-
-		// 		foreach (var a in aSample)
-		// 		{
-		// 			foreach (var b in bSample)
-		// 			{
-		// 				var p = new double[] { a, b }; // Could be using Tuples?
-		// 				var r1 = gA.Calculate(p);
-		// 				var r2 = gB.Calculate(p);
-		// 				Task.WaitAll(r1, r2);
-		// 				gA_result[i] = r1.Result;
-		// 				gB_result[i] = r2.Result;
-		// 				i++;
-		// 			}
-		// 		}
-
-		// 		return gA_result.Correlation(gB_result);
-		// 	});
-		// }
+		public void RegisterMutations(IEnumerable<Genome> mutations)
+		{
+			if (this.IsReadOnly && _mutationEnumerator != null)
+				throw new ArgumentException("Cannot register mutations after frozen.", "mutations");
+			_mutationEnumerator = mutations.GetEnumerator();
+		}
 
 
-		// // compare(a:AlgebraGenome, b:AlgebraGenome):boolean
-		// // {
-		// // 	return this.correlation(this.sample(), this.sample(), a, b)>0.9999999;
-		// // }
 
-	}
+        // public Task<double> Correlation(
+        // 	double[] aSample, double[] bSample,
+        // 	Genome gA, Genome gB)
+        // {
+        // 	return Task.Run(() =>
+        // 	{
+        // 		var len = aSample.Length * bSample.Length;
+
+        // 		var gA_result = new double[len];
+        // 		var gB_result = new double[len];
+        // 		var i = 0;
+
+        // 		foreach (var a in aSample)
+        // 		{
+        // 			foreach (var b in bSample)
+        // 			{
+        // 				var p = new double[] { a, b }; // Could be using Tuples?
+        // 				var r1 = gA.Calculate(p);
+        // 				var r2 = gB.Calculate(p);
+        // 				Task.WaitAll(r1, r2);
+        // 				gA_result[i] = r1.Result;
+        // 				gB_result[i] = r2.Result;
+        // 				i++;
+        // 			}
+        // 		}
+
+        // 		return gA_result.Correlation(gB_result);
+        // 	});
+        // }
+
+
+        // // compare(a:AlgebraGenome, b:AlgebraGenome):boolean
+        // // {
+        // // 	return this.correlation(this.sample(), this.sample(), a, b)>0.9999999;
+        // // }
+
+    }
 }

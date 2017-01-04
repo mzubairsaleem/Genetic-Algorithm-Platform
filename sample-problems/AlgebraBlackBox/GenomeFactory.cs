@@ -32,8 +32,7 @@ namespace AlgebraBlackBox
 			return Freeze(result);
 		}
 
-
-		public Genome Generate(IEnumerable<Genome> source = null)
+		public override Genome Generate(IEnumerable<Genome> source = null)
 		{
 			var attempts = 0;
 			Genome genome = null;
@@ -44,24 +43,7 @@ namespace AlgebraBlackBox
 			// See if it's possible to mutate from the provided genomes.
 			if (source != null && source.Any())
 			{
-				// Find one that will mutate well and use it.
-				for (uint m = 1; m < 4; m++)
-				{
-					var tries = 10;//200;
-					do
-					{
-						genome = Mutate(source.RandomSelectOne(), m);
-						hash = genome.Hash;
-						attempts++;
-					}
-					while (_previousGenomes.ContainsKey(hash) && --tries != 0);
-
-					if (tries != 0)
-						break;
-					// else
-					// 	genome = null; // Failed... Converged? No solutions? Saturated?
-				}
-
+				AttemptNewMutation(source, out genome);
 			}
 
 			if (genome == null)
@@ -409,9 +391,9 @@ namespace AlgebraBlackBox
 
 			public static Genome Square(Genome source, IGene gene)
 			{
-				if(source.FindParent(gene) is SquareRootGene)
+				if (source.FindParent(gene) is SquareRootGene)
 					return null;
-					
+
 				return ApplyClone(source, gene, (g, newGenome) =>
 				{
 					var newFn = new ProductGene(g.Multiple);
@@ -482,6 +464,7 @@ namespace AlgebraBlackBox
 		{
 			if (target == null) return null;
 			target.RegisterVariations(GenerateVariations(target));
+			target.RegisterMutations(Mutator(target));
 			target.Freeze();
 			return target;
 		}
@@ -548,8 +531,8 @@ namespace AlgebraBlackBox
 							case 3:
 								if (RandomUtilities.Random.Next(0, 4) == 0)
 								{
-										return MutationCatalog
-												.Square(target, gene);
+									return MutationCatalog
+											.Square(target, gene);
 								}
 								break;
 
@@ -618,7 +601,8 @@ namespace AlgebraBlackBox
 
 							case 7:
 								// This has a potential to really bloat the function so allow, but very sparingly.
-								if (RandomUtilities.Random.Next(0, 4) == 0) {
+								if (RandomUtilities.Random.Next(0, 4) == 0)
+								{
 									return MutationCatalog
 										.Square(target, gene);
 								}

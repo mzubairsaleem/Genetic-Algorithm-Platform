@@ -15,10 +15,15 @@ namespace GeneticAlgorithmPlatform
 	{
 		ProcedureResult _result;
 		object _sync = new Object();
-		public SingleFitness(IEnumerable<double> scores = null) : base()
+		public SingleFitness(IEnumerable<double> scores = null) : this(new ProcedureResult(0,0))
 		{
 			if (scores != null)
 				Add(scores);
+		}
+
+		public SingleFitness(ProcedureResult initial) : base()
+		{
+			_result = initial;
 		}
 
 		public ProcedureResult Result
@@ -35,6 +40,13 @@ namespace GeneticAlgorithmPlatform
 				// Ensures 1 update at a time.
 				lock (_sync) _result = _result.Add(value, count);
 			}
+		}
+
+		public void Add(ProcedureResult other)
+		{
+			Debug.Assert(!double.IsNaN(other.Average), "Adding a NaN value will completely invalidate the fitness value.");
+			// Ensures 1 update at a time.
+			lock (_sync) _result += other;
 		}
 
 		public void Add(IEnumerable<double> values)
@@ -153,6 +165,14 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
+		public void Add(ProcedureResult score)
+		{
+			Sync.Modifying(() =>
+			{
+				this.Add(new SingleFitness(score));
+			});
+		}
+
 		public void AddTheseScores(IEnumerable<double> scores)
 		{
 			Sync.Modifying(() =>
@@ -178,6 +198,26 @@ namespace GeneticAlgorithmPlatform
 
 		}
 
+		public void Merge(IFitness other)
+		{
+			if(other.Count==0)
+				return; // Nothing to add.
+
+			if(Count!=0 && other.Count!=this.Count)
+				throw new InvalidOperationException("Cannot add fitness values where the count doesn't match.");
+
+			Sync.Modifying(() =>
+			{
+				var count = other.Count;
+				for(var i = 0;i<count;i++)
+				{
+					var r = other.GetResult(i);
+					if(i<Count) this.Add(r);
+					else this[i].Add(r);
+				}
+			});
+
+		}
 		public void AddScores(params double[] scores)
 		{
 			this.AddTheseScores(scores);
@@ -231,9 +271,10 @@ namespace GeneticAlgorithmPlatform
 			int xLen = x.Count, yLen = y.Count;
 			if (xLen != 0 || yLen != 0)
 			{
-				// If unseen? Should be of greater importance..
-				if (xLen == 0 && yLen != 0) return +ORDER_DIRECTION;
-				if (xLen != 0 && yLen == 0) return -ORDER_DIRECTION;
+				// Untested needs at least one test before being ordered.
+				// It's also possible to fail adding because NaN so avoid.
+				if (xLen == 0 && yLen != 0) return -ORDER_DIRECTION;
+				if (xLen != 0 && yLen == 0) return +ORDER_DIRECTION;
 				Debug.Assert(xLen == y.Count, "Fitnesses must be compatible.");
 
 				// In non-debug, all for the lesser scored to be of lesser importance.

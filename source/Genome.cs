@@ -133,6 +133,8 @@ namespace GeneticAlgorithmPlatform
 			_parentCache = new ConcurrentDictionary<T, IGeneNode<T>>();
 		}
 
+		public abstract IGenome NextMutation();
+
 		public abstract IGenome NextVariation();
 	}
 

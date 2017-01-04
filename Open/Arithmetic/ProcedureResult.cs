@@ -12,7 +12,7 @@ namespace Open.Arithmetic
 		{
 			Count = count;
 			Sum = sum;
-			Average = sum / count;
+			Average = count==0 ? double.NaN : sum / count;
 		}
 
 		public ProcedureResult Add(double value, int count = 1)
@@ -29,6 +29,14 @@ namespace Open.Arithmetic
 			if (Count < other.Count) return -1;
 			if (Count > other.Count) return +1;
 			return 0;
+		}
+
+		public static ProcedureResult operator +(ProcedureResult a, ProcedureResult b)
+		{
+			return new ProcedureResult(
+				a.Sum + b.Count,
+				a.Count + b.Count
+			);
 		}
 
 	}

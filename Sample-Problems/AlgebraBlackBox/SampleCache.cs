@@ -16,24 +16,25 @@ namespace AlgebraBlackBox
 			_sampleCache = new ConcurrentDictionary<int, KeyValuePair<double[], double>[]>();
 		}
 
+		public KeyValuePair<double[], double>[] Generate()
+		{
+			var aSample = Sample();
+			var bSample = Sample();
+			var result = new KeyValuePair<double[], double>[aSample.Length * bSample.Length];
+			var i = 0;
+			foreach (var a in aSample)
+			{
+				foreach (var b in bSample)
+				{
+					result[i++] = KeyValuePair.New(new double[] { a, b }, _actualFormula(a, b));
+				}
+			}
+			return result;
+		}
+
 		public KeyValuePair<double[], double>[] Get(int id)
 		{
-			return _sampleCache.GetOrAdd(id, key =>
-			{
-
-				var aSample = Sample();
-				var bSample = Sample();
-				var result = new KeyValuePair<double[], double>[aSample.Length * bSample.Length];
-				var i = 0;
-				foreach (var a in aSample)
-				{
-					foreach (var b in bSample)
-					{
-						result[i++] = KeyValuePair.New(new double[] { a, b }, _actualFormula(a, b));
-					}
-				}
-				return result;
-			}).ToArray();
+			return _sampleCache.GetOrAdd(id, key => Generate()).ToArray();
 		}
 
 
