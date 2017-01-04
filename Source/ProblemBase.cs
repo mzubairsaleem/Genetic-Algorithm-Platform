@@ -376,7 +376,7 @@ namespace GeneticAlgorithmPlatform
 			return ProcessTest(GetOrCreateFitnessFor(g), useAsync);
 		}
 
-		public abstract Task<IFitness> ProcessTest(TGenome g);
+		public abstract Task<IFitness> ProcessTest(TGenome g, long sampleId);
 
 		
 

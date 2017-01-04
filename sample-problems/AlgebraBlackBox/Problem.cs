@@ -5,21 +5,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AlgebraBlackBox.Genes;
 using GeneticAlgorithmPlatform;
 using Open.Arithmetic;
-using Open.Collections;
-using Open.Formatting;
 using Fitness = GeneticAlgorithmPlatform.Fitness;
 
 namespace AlgebraBlackBox
 {
 
-	public delegate double Formula(params double[] p);
+    public delegate double Formula(params double[] p);
 
 	///<summary>
 	/// The 'Problem' class is important for tracking fitness results and deciding how well a genome is peforming.
@@ -27,7 +23,7 @@ namespace AlgebraBlackBox
 	///</summary>
 	public class Problem : GeneticAlgorithmPlatform.ProblemBase<Genome>
 	{
-		SampleCache _sampleCache;
+		public readonly SampleCache Samples;
 
 		long _testCount = 0;
 		public long TestCount
@@ -41,7 +37,7 @@ namespace AlgebraBlackBox
 
 		public Problem(Formula actualFormula)
 		{
-			_sampleCache = new SampleCache(actualFormula);
+			Samples = new SampleCache(actualFormula);
 		}
 
 		protected override Genome GetFitnessForKeyTransform(Genome genome)
@@ -51,20 +47,21 @@ namespace AlgebraBlackBox
 
 		protected async override Task ProcessTest(GenomeFitness<Genome, Fitness> gf, bool useAsync = true)
 		{
-			await ProcessTest(gf.Genome, gf.Fitness, _sampleCache.Get(gf.Fitness.SampleCount), useAsync);
+			await ProcessTest(gf.Genome, gf.Fitness, gf.Fitness.SampleCount, useAsync);
 			Interlocked.Increment(ref _testCount);
 		}
 
-		public override async Task<IFitness> ProcessTest(Genome g)
+		public override async Task<IFitness> ProcessTest(Genome g, long sampleId)
 		{
 			var f = new Fitness();
-			await ProcessTest(g, f, _sampleCache.Generate(), true);
+			await ProcessTest(g, f, sampleId, true);
 			Interlocked.Increment(ref _testCount);
 			return f;
 		}
 
-		protected async Task ProcessTest(Genome g, Fitness fitness, KeyValuePair<double[], double>[] samples, bool useAsync = true)
+		protected async Task ProcessTest(Genome g, Fitness fitness, long sampleId, bool useAsync = true)
 		{
+			var samples = Samples.Get(sampleId);
 			var len = samples.Length;
 			var correct = new double[len];
 			var divergence = new double[len];

@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using AlgebraBlackBox;
+using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -19,7 +22,9 @@ namespace GeneticAlgorithmPlatform
 
 		internal ITargetBlock<TGenome> Origin;
 
-		internal GenomeSelector(int poolSize, Func<TGenome, Task<IFitness>> test)
+		internal GenomeSelector(
+			int poolSize,
+			Func<TGenome, long, Task<IFitness>> test)
 		{
 			if (poolSize < 3)
 				throw new ArgumentOutOfRangeException("poolSize", poolSize, "Pool Size must be greater than 2.");
@@ -39,59 +44,125 @@ namespace GeneticAlgorithmPlatform
 					if (i == 0)
 					{
 						Promoted.Post(entry);
-						// Add mutation and variation back into this pool.
-						var m = (TGenome)entry.NextMutation();
-						if(m!=null) Origin.Post(m);
-						var v = (TGenome)entry.NextVariation();
-						if(v!=null) Origin.Post(v);
+						{
+							// Console.WriteLine("Promoted: "+entry);
+							// Add mutation and variation back into this pool.
+							var m = (TGenome)entry.NextMutation();
+							if (m != null) Origin.Post(m);
+							var v = (TGenome)entry.NextVariation();
+							if (v != null) Origin.Post(v);
+						}
+
+						var reduced = (entry as Genome).AsReduced() as TGenome;
+						if (reduced != entry)
+						{
+							Promoted.Post(reduced);
+							{
+								// Console.WriteLine("Promoted: "+entry);
+								// Add mutation and variation back into this pool.
+								var m = (TGenome)reduced.NextMutation();
+								if (m != null) Origin.Post(m);
+								var v = (TGenome)reduced.NextVariation();
+								if (v != null) Origin.Post(v);
+							}
+						}
 					}
 					else if (i > mid) { if (Demoted != null) Demoted.Post(entry); }
 					else if (Sustained != null) Sustained.Post(entry);
+					i++;
 				}
 			}));
 		}
 
+		static long BatchId = 0;
+		static ConcurrentBag<Tuple<HashSet<string>, SortedDictionary<IFitness, TGenome>>>
+			BatchPool = new ConcurrentBag<Tuple<HashSet<string>, SortedDictionary<IFitness, TGenome>>>();
 
-
-		public static IPropagatorBlock<TGenome, TGenome[]> GeneratePool(int poolSize, Func<TGenome, Task<IFitness>> test)
+		static Tuple<HashSet<string>, SortedDictionary<IFitness, TGenome>> GetBatchTracker()
 		{
-			// Step 2: Process.
-			var testing = new TransformBlock<TGenome, GenomeFitness<TGenome>>(
-				async genome => new GenomeFitness<TGenome>(genome, await test(genome)),
-				new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 4 });
+			Tuple<HashSet<string>, SortedDictionary<IFitness, TGenome>> batch;
+			return BatchPool.TryTake(out batch) ? batch : new Tuple<HashSet<string>, SortedDictionary<IFitness, TGenome>>(new HashSet<string>(), new SortedDictionary<IFitness, TGenome>());
+		}
 
-			// Step 1: Receieve.
+		static void ReturnBatchTracker(Tuple<HashSet<string>, SortedDictionary<IFitness, TGenome>> tracker)
+		{
+			tracker.Item1.Clear();
+			tracker.Item2.Clear();
+			BatchPool.Add(tracker);
+		}
+
+		public static IPropagatorBlock<TGenome, TGenome[]> GeneratePool(
+			int poolSize,
+			Func<TGenome, long, Task<IFitness>> test)
+		{
+			// We have to create our own internal buffer and batching to allow for a progressive stream.
+			long batchId = Interlocked.Increment(ref BatchId);
+			var registry = new Dictionary<long, Tuple<HashSet<string>, SortedDictionary<IFitness, TGenome>>>();
+
+			// Step 2: Process. (attach to a batch ID)
+			var testing = new TransformBlock<Tuple<long, TGenome>, Tuple<long, GenomeFitness<TGenome>>>(
+				async entry => new Tuple<long, GenomeFitness<TGenome>>(
+					entry.Item1, new GenomeFitness<TGenome>(
+						entry.Item2, await test(entry.Item2, entry.Item1))),
+				new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 32 });
+
+			// Step 1: Receieve and filter.
 			var reception = new ActionBlock<TGenome>(genome =>
 			{
-				if (genome != null) testing.Post(genome);
+				if (genome != null)
+				{
+					lock (registry) // Need to synchronize here because the size of the batch matters as well as the batch ID.
+					{
+						var e = registry.GetOrAdd(batchId, key => GetBatchTracker());
+						if (e.Item1.Add(genome.Hash))
+						{
+							testing.Post(new Tuple<long, TGenome>(batchId, genome));
+							if (e.Item1.Count == poolSize)
+								batchId = Interlocked.Increment(ref BatchId);
+						}
+					}
+				}
 				Debug.WriteLineIf(genome == null, "Cannot process a null Genome.");
-			});
+			}, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 2 });
 
 			var output = new BufferBlock<TGenome[]>();
 
-			// One result/sorted batch at a time.
-			var results = new SortedDictionary<IFitness, TGenome>();
-
 			// Step 3: Buffer (sort) and emit.
-			testing.LinkTo(new ActionBlock<GenomeFitness<TGenome>>(r =>
+			testing.LinkTo(new ActionBlock<Tuple<long, GenomeFitness<TGenome>>>(e =>
 			{
-				LazyInitializer.EnsureInitialized(ref results);
-				results.Add(r.Fitness, r.Genome); // Sorting occurs on adding.
-				if (results.Count == poolSize)
+				var bId = e.Item1;
+				var gf = e.Item2;
+				var entry = registry[bId];
+				var results = entry.Item2;
+				var complete = false;
+				lock (results)
 				{
-					var values = results.Values.ToArray();
-					results.Clear(); // Reuse the heap.
-					output.Post(values);
+					results.Add(gf.Fitness, gf.Genome); // Sorting occurs on adding.
+					if (results.Count == poolSize)
+					{
+						complete = true;
+						foreach (var x in results.Where(f => f.Key.Scores.All(s=>s==1)))
+							Console.WriteLine("Converged: {0}", x.Value);
+						output.Post(results.Values.ToArray());
+					}
+				}
+				if (complete)
+				{
+					lock (registry)
+					{
+						registry.Remove(bId);
+					}
+					ReturnBatchTracker(entry);
 				}
 			}));
 
-			return DataflowBlock.Encapsulate(testing, output);
+			return DataflowBlock.Encapsulate(reception, output);
 		}
 
 		public static Tuple<ITargetBlock<TGenome>, BroadcastBlock<TGenome>> BuildNetwork(
 			int poolSize,
 			int depth,
-			Func<TGenome, Task<IFitness>> test)
+			Func<TGenome, long, Task<IFitness>> test)
 		{
 			if (depth < 2)
 				throw new ArgumentOutOfRangeException("depth", depth, "Needs to be greater than 1.");
@@ -131,18 +202,18 @@ namespace GeneticAlgorithmPlatform
 					gs.Origin = origin;
 
 					var nextDepth = d + 1 < depth ? depths[d + 1, h] : null;
-					var hasNextHeight = h + 1 < height - d;
+					var nextDemotion = h + 1 < height - d ? depths[0, h + 1] : null;
 
-					if (nextDepth!=null) gs.Sustained = nextDepth.Source;
-					else if (hasNextHeight) gs.Sustained = depths[0, h + 1].Source;
+					if (nextDepth != null) gs.Sustained = nextDepth.Source;
+					else if (nextDemotion != null) gs.Sustained = nextDemotion.Source;
 
-					if (hasNextHeight) gs.Demoted = depths[0, h + 1].Source;
+					if (nextDemotion != null) gs.Demoted = nextDemotion.Source;
 
-					if (h > 0) gs.Promoted = nextDepth!=null ? nextDepth.Source : depths[0, h - 1].Source;
+					if (h > 0) gs.Promoted = depths[0, h - 1].Source;
 					else gs.Promoted = new ActionBlock<TGenome>(genome =>
 					{
 						final.Post(genome);
-						gs.Source.Post(genome); // Top genome stays in the pool...
+						gs.Source.Post(genome); // Top genome stays in the final pool...
 					});
 
 				}

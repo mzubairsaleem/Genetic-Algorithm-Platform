@@ -34,20 +34,21 @@ namespace GeneticAlgorithmPlatform
 			var sw = Stopwatch.StartNew();
 			var problem = new AlgebraBlackBox.Problem(SqrtA2B2AB);
 			var factory = new AlgebraBlackBox.GenomeFactory();
-			var network = GenomeSelector<Genome>.BuildNetwork(50, 8, problem.ProcessTest);
+			var network = GenomeSelector<Genome>.BuildNetwork(10, 3, problem.ProcessTest);
 			factory.LinkReception(network.Item1);
 
 			network.Item2.LinkTo(new ActionBlock<Genome>(genome =>
 			{
 				var tc = problem.TestCount;
 				Console.WriteLine("{0}:\t{1}", problem.ID, genome.ToAlphaParameters());
-				//Console.WriteLine("  \t= {0}", gf.Genome.Calculate(OneOne));
+				Console.WriteLine("  \t= {0}", genome.Calculate(OneOne));
 				// Console.WriteLine("  \t[{0}] ({1} samples)", gf.Fitness.Scores.JoinToString(","), gf.Fitness.SampleCount);
 				Console.WriteLine("  \t{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
 				Console.WriteLine();
+				factory.Generate(1000);
 			}));
 
-			factory.Generate(100);
+			factory.Generate(1000);
 
 			network.Item2.Completion.Wait();
 

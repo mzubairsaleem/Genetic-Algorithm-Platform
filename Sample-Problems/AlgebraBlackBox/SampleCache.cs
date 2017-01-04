@@ -8,12 +8,12 @@ namespace AlgebraBlackBox
 	public sealed class SampleCache
 	{
 		Formula _actualFormula;
-		ConcurrentDictionary<int, KeyValuePair<double[], double>[]> _sampleCache;
+		ConcurrentDictionary<long, KeyValuePair<double[], double>[]> _sampleCache;
 
 		public SampleCache(Formula actualFormula)
 		{
 			_actualFormula = actualFormula;
-			_sampleCache = new ConcurrentDictionary<int, KeyValuePair<double[], double>[]>();
+			_sampleCache = new ConcurrentDictionary<long, KeyValuePair<double[], double>[]>();
 		}
 
 		public KeyValuePair<double[], double>[] Generate()
@@ -32,13 +32,13 @@ namespace AlgebraBlackBox
 			return result;
 		}
 
-		public KeyValuePair<double[], double>[] Get(int id)
+		public KeyValuePair<double[], double>[] Get(long id)
 		{
 			return _sampleCache.GetOrAdd(id, key => Generate()).ToArray();
 		}
 
 
-		double[] Sample(int count = 5, double range = 100)
+		double[] Sample(int count = 10, double range = 100)
 		{
 			var result = new HashSet<double>();
 			var offset = RandomUtilities.Random.Next(1000) - 50;

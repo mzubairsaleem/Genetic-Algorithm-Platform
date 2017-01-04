@@ -6,13 +6,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
 using GeneticAlgorithmPlatform;
-using Open;
 using Open.Collections;
 using Open.Threading;
 
 namespace AlgebraBlackBox
 {
-	public class Genome : GeneticAlgorithmPlatform.Genome<IGene>, IEquatable<Genome>, IReducible<Genome>
+    public class Genome : GeneticAlgorithmPlatform.Genome<IGene>, IEquatable<Genome>, IReducible<Genome>
 	{
 		public Genome(IGene root) : base(root)
 		{
