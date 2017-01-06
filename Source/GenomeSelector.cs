@@ -25,7 +25,7 @@ namespace GeneticAlgorithmPlatform
 			if (test == null)
 				throw new ArgumentNullException();
 
-			Source = PoolProcessor<TGenome>.GenerateTransform(poolSize, test);
+			Source = PoolProcessor.GenerateTransform<TGenome>(poolSize, test);
 			Origin = Source;
 
 			Source.LinkTo(new ActionBlock<GenomeFitness<TGenome>[]>(results =>
