@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Nito.AsyncEx;
 using Open.Collections;
+using Open.DataFlow;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -48,30 +49,44 @@ namespace GeneticAlgorithmPlatform
 			BatchPool.Add(tracker);
 		}
 
-		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]> SingleBatch(GenomeTestDelegate<TGenome> test)
+		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]> SingleBatch(GenomeTestDelegate<TGenome> test, int limit = 0)
 		{
 			long batchId = Interlocked.Increment(ref BatchId);
 			var asyncLock = new AsyncLock();
 			var ordered = new SortedDictionary<IFitness, TGenome>();
 			var output = new WriteOnceBlock<GenomeFitness<TGenome>[]>(null);
 
-			ActionBlock<TGenome> reception = new ActionBlock<TGenome>(
-				async genome=>{
+			ITargetBlock<TGenome> reception = new ActionBlock<TGenome>(
+				async genome =>
+				{
 					var fitness = await test(genome, batchId);
-					using(await asyncLock.LockAsync())
-						ordered.Add(fitness,genome);
+					using (await asyncLock.LockAsync())
+						ordered.Add(fitness, genome);
 				},
-				new ExecutionDataflowBlockOptions {
-					MaxDegreeOfParallelism = 32	
+				new ExecutionDataflowBlockOptions
+				{
+					MaxDegreeOfParallelism = 32,
+					MaxMessagesPerTask = 3
 				});
 
-			reception.Completion.ContinueWith(complete=>{
-				output.Post(ordered.Select(kvp=>new GenomeFitness<TGenome>(kvp.Value,kvp.Key)).ToArray());
+			if(limit>0)
+			{
+				reception = reception.AutoCompleteAfter(limit);
+			}
+
+			// Eat any repeats.
+			reception = reception.Distinct(DataflowMessageStatus.Accepted);
+
+			reception.Completion.ContinueWith(complete =>
+			{
+				output.Post(ordered.Select(kvp => new GenomeFitness<TGenome>(kvp.Value, kvp.Key)).ToArray());
 				output.Complete();
+				ordered.Clear();
 			});
 
 			return DataflowBlock.Encapsulate(reception, output);
 		}
+
 
 		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]> GenerateTransform(
 			int poolSize,
