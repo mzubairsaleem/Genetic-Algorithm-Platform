@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Nito.AsyncEx;
 using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
@@ -45,6 +46,31 @@ namespace GeneticAlgorithmPlatform
 			tracker.Item1.Clear();
 			tracker.Item2.Clear();
 			BatchPool.Add(tracker);
+		}
+
+		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]> SingleBatch(GenomeTestDelegate<TGenome> test)
+		{
+			long batchId = Interlocked.Increment(ref BatchId);
+			var asyncLock = new AsyncLock();
+			var ordered = new SortedDictionary<IFitness, TGenome>();
+			var output = new WriteOnceBlock<GenomeFitness<TGenome>[]>(null);
+
+			ActionBlock<TGenome> reception = new ActionBlock<TGenome>(
+				async genome=>{
+					var fitness = await test(genome, batchId);
+					using(await asyncLock.LockAsync())
+						ordered.Add(fitness,genome);
+				},
+				new ExecutionDataflowBlockOptions {
+					MaxDegreeOfParallelism = 32	
+				});
+
+			reception.Completion.ContinueWith(complete=>{
+				output.Post(ordered.Select(kvp=>new GenomeFitness<TGenome>(kvp.Value,kvp.Key)).ToArray());
+				output.Complete();
+			});
+
+			return DataflowBlock.Encapsulate(reception, output);
 		}
 
 		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]> GenerateTransform(
@@ -112,6 +138,12 @@ namespace GeneticAlgorithmPlatform
 
 			return DataflowBlock.Encapsulate(reception, output);
 		}
+
+		// public static Task<GenomeFitness<TGenome>[]> Test(IEnumerable<TGenome> genomes, GenomeTestDelegate<TGenome> test)
+		// {
+		// 	long batchId = Interlocked.Increment(ref BatchId);
+		// 	foreach(var)
+		// }
 
 		public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, TGenome messageValue, ISourceBlock<TGenome> source, bool consumeToAccept)
 		{
