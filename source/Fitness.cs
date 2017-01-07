@@ -10,12 +10,12 @@ using Open.Collections;
 namespace GeneticAlgorithmPlatform
 {
 
-    public class SingleFitness
+	public class SingleFitness
 	// : IComparable<SingleFitness>
 	{
 		ProcedureResult _result;
 		object _sync = new Object();
-		public SingleFitness(IEnumerable<double> scores = null) : this(new ProcedureResult(0,0))
+		public SingleFitness(IEnumerable<double> scores = null) : this(new ProcedureResult(0, 0))
 		{
 			if (scores != null)
 				Add(scores);
@@ -84,10 +84,10 @@ namespace GeneticAlgorithmPlatform
 		ProcedureResult GetResult(int index);
 	}
 
-    public struct FitnessScore : IFitness
-    {
+	public struct FitnessScore : IFitness
+	{
 		readonly List<ProcedureResult> _results;
-		
+
 		public FitnessScore(IFitness source)
 		{
 			var len = source.Count;
@@ -96,46 +96,46 @@ namespace GeneticAlgorithmPlatform
 			SampleCount = source.SampleCount;
 			Scores = source.Scores;
 			_results = new List<ProcedureResult>();
-			for(var i = 0;i<len;i++)
+			for (var i = 0; i < len; i++)
 				_results.Add(source.GetResult(i));
 		}
 
-        public int Count
-        {
-            get;
+		public int Count
+		{
+			get;
 			private set;
-        }
+		}
 
-        public long ID
-        {
-            get;
+		public long ID
+		{
+			get;
 			private set;
-        }
+		}
 
-        public int SampleCount
-        {
-            get;
+		public int SampleCount
+		{
+			get;
 			private set;
-        }
+		}
 
-        public IReadOnlyList<double> Scores
-        {
-            get;
+		public IReadOnlyList<double> Scores
+		{
+			get;
 			private set;
-        }
+		}
 
-        public int CompareTo(IFitness other)
-        {
+		public int CompareTo(IFitness other)
+		{
 			return Fitness.Comparison(this, other);
-        }
+		}
 
-        public ProcedureResult GetResult(int index)
-        {
+		public ProcedureResult GetResult(int index)
+		{
 			return _results[index];
-        }
-    }
+		}
+	}
 
-    public class Fitness : TrackedList<SingleFitness>, IFitness
+	public class Fitness : TrackedList<SingleFitness>, IFitness
 	{
 
 		public Fitness() //: base(new AsyncReadWriteModificationSynchronizer())
@@ -200,20 +200,20 @@ namespace GeneticAlgorithmPlatform
 
 		public void Merge(IFitness other)
 		{
-			if(other.Count==0)
+			if (other.Count == 0)
 				return; // Nothing to add.
 
-			if(Count!=0 && other.Count!=this.Count)
+			if (Count != 0 && other.Count != this.Count)
 				throw new InvalidOperationException("Cannot add fitness values where the count doesn't match.");
 
 			Sync.Modifying(() =>
 			{
 				var count = other.Count;
-				for(var i = 0;i<count;i++)
+				for (var i = 0; i < count; i++)
 				{
 					var r = other.GetResult(i);
-					if(i<Count) this.Add(r);
-					else this[i].Add(r);
+					if (i < _source.Count) _source[i].Add(r);
+					else this.Add(r);
 				}
 			});
 
@@ -233,7 +233,7 @@ namespace GeneticAlgorithmPlatform
 		internal int TestingCount = 0;
 
 		// Some cases enumerables are easier to sort in ascending than descending so "Top" in this respect means 'First'.
-		public const int ORDER_DIRECTION = -1; 
+		public const int ORDER_DIRECTION = -1;
 		public int CompareTo(IFitness other)
 		{
 			return Comparison(this, other);
@@ -251,13 +251,13 @@ namespace GeneticAlgorithmPlatform
 		{
 			int c;
 
-			if(x==y) return 0;
+			if (x == y) return 0;
 
-			c = ValueComparison(x,y);
-			if(c!=0) return c;
+			c = ValueComparison(x, y);
+			if (c != 0) return c;
 
-			c = IdComparison(x,y);
-			if(c!=0) return c;
+			c = IdComparison(x, y);
+			if (c != 0) return c;
 
 			throw new Exception("Impossible? Interlocked failed?");
 

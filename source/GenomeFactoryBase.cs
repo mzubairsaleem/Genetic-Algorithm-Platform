@@ -3,25 +3,19 @@
  * Licensing: MIT https://github.com/electricessence/Genetic-Algorithm-Platform/blob/master/LICENSE.md
  */
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Open;
 
 namespace GeneticAlgorithmPlatform
 {
 
-	public abstract class GenomeFactoryBase<TGenome> : IGenomeFactory<TGenome>
+    public abstract class GenomeFactoryBase<TGenome> : IGenomeFactory<TGenome>
 	where TGenome : class, IGenome
 	{
-
-		readonly protected BufferBlock<TGenome>
-			Queue = new BufferBlock<TGenome>();
-
 
 		public uint MaxGenomeTracking { get; set; }
 
@@ -121,8 +115,6 @@ namespace GeneticAlgorithmPlatform
 			return Generate(Enumerable.Repeat(source,1));
 		}
         public abstract TGenome Generate(IEnumerable<TGenome> source = null);
-
-		public abstract void Generate(uint count);
 		protected abstract TGenome MutateInternal(TGenome target);
 
 		protected TGenome Mutate(TGenome source, uint mutations = 1)
@@ -140,8 +132,6 @@ namespace GeneticAlgorithmPlatform
 				if (genome == null) break; // No mutation possible? :/
 				source = genome;
 			}
-			if (genome != null)
-				Queue.Post(genome);
 			return genome;
 		}
 
@@ -154,19 +144,6 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-
-		public IDisposable LinkReception(ITargetBlock<TGenome> block)
-		{
-			return Queue.LinkTo(block);
-		}
-
-		public IDisposable LinkMutation(ISourceBlock<TGenome> block)
-		{
-			return block.LinkTo(new ActionBlock<TGenome>(genome =>
-			{
-				Queue.Post(Mutate(genome));
-			}));
-		}
 
     }
 }

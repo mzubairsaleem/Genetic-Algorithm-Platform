@@ -14,7 +14,7 @@ namespace Open.Collections
 {
 	public class TrackedList<T> : ModificationSynchronizedBase, IList<T>
 	{
-		List<T> _source = new List<T>();
+		protected List<T> _source = new List<T>();
 
 		public TrackedList(ModificationSynchronizer sync = null) : base(sync)
 		{

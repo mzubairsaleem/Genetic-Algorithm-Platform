@@ -4,13 +4,11 @@
  */
 
 
-using System;
 using System.Collections.Generic;
-using System.Threading.Tasks.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {
-	public interface IGenomeFactory<TGenome>
+    public interface IGenomeFactory<TGenome>
 	 where TGenome : class, IGenome
 	{
 
@@ -24,12 +22,6 @@ namespace GeneticAlgorithmPlatform
 
 		IEnumerable<TGenome> Generator();
 		IEnumerable<TGenome> Mutator(TGenome source);
-
-		void Generate(uint count);
-
-		IDisposable LinkReception(ITargetBlock<TGenome> block);
-
-		IDisposable LinkMutation(ISourceBlock<TGenome> block);
 
 		// TGenome Generate(IEnumerable<TGenome> source = null);
 		// Task<TGenome> GenerateAsync(IEnumerable<TGenome> source = null);

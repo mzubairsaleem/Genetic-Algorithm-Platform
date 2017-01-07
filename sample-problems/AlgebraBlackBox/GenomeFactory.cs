@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks.Dataflow;
 using AlgebraBlackBox.Genes;
 using Open;
 using Open.Collections;
@@ -624,17 +623,9 @@ namespace AlgebraBlackBox
 
 		}
 
-
 		protected override Genome MutateInternal(Genome target)
 		{
 			return Freeze(MutateUnfrozen(target));
 		}
-
-		public override void Generate(uint count)
-		{
-			for (uint i = 0; i < count; i++)
-				Queue.Post(Generate());
-		}
-
 	}
 }

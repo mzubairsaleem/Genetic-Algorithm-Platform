@@ -164,6 +164,7 @@ namespace Open.Threading
 			}
 		}
 
+
 		public TResult LatestEnsured
 		{
 			get

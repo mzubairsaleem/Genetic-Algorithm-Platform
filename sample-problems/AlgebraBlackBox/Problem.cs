@@ -4,7 +4,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,18 +39,12 @@ namespace AlgebraBlackBox
 			Samples = new SampleCache(actualFormula);
 		}
 
-		protected override Genome GetFitnessForKeyTransform(Genome genome)
-		{
-			return genome.AsReduced();
-		}
+		// protected override Genome GetFitnessForKeyTransform(Genome genome)
+		// {
+		// 	return genome.AsReduced();
+		// }
 
-		protected async override Task ProcessTest(GenomeFitness<Genome, Fitness> gf, bool useAsync = true)
-		{
-			await ProcessTest(gf.Genome, gf.Fitness, gf.Fitness.SampleCount, useAsync);
-			Interlocked.Increment(ref _testCount);
-		}
-
-		public override async Task<IFitness> ProcessTest(Genome g, long sampleId)
+		protected override async Task<IFitness> ProcessTest(Genome g, long sampleId)
 		{
 			var f = new Fitness();
 			await ProcessTest(g, f, sampleId, true);
@@ -122,29 +115,6 @@ namespace AlgebraBlackBox
 			}
 		}
 
-		protected override List<Genome> RejectBadAndThenReturnKeepers(
-			IEnumerable<GeneticAlgorithmPlatform.IGenomeFitness<Genome, Fitness>> source,
-			out List<Fitness> rejected)
-		{
-			var keep = new List<Genome>();
-			rejected = new List<Fitness>();
-
-			foreach (var genome in source)
-			{
-				var scores = genome.Fitness.Scores;
-				if (scores.Any(d => double.IsNegativeInfinity(d)) || scores[0] < 0.9 && genome.Fitness.SampleCount > 20)
-				{
-					Rejected.TryAdd(genome.Genome.Hash, true);
-					rejected.Add(genome.Fitness);
-				}
-				else
-				{
-					keep.Add(genome.Genome);
-				}
-			}
-
-			return keep;
-		}
 
 
 	}

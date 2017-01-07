@@ -9,9 +9,16 @@
     public class Environment : GeneticAlgorithmPlatform.Environment<Genome>
 	{
 
-		public Environment(Formula actualFormula) : base(new GenomeFactory())
+		public Environment(Formula actualFormula, int poolSize) : base(new GenomeFactory(), new Problem(actualFormula), poolSize)
 		{
-			AddProblem(new Problem(actualFormula));
+		}
+
+		protected override void OnNextTop(Genome genome)
+		{
+			base.OnNextTop(genome);
+			var r = genome.AsReduced();
+			if(r!=genome)
+				Receive(r);
 		}
 
 	}

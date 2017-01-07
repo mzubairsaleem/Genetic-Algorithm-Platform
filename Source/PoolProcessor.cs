@@ -1,54 +1,45 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using Nito.AsyncEx;
 using Open.DataFlow;
 
 namespace GeneticAlgorithmPlatform
 {
     public static class PoolProcessor
-		
+
 	{
 		static long BatchId = 0;
 
 		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]> SingleBatch<TGenome>(
 			GenomeTestDelegate<TGenome> test,
-			int limit = 0) where TGenome : IGenome
+			int size) where TGenome : IGenome
 		{
+			if (size < 1)
+				throw new ArgumentOutOfRangeException("size", size, "Must be at least 1.");
+
 			long batchId = Interlocked.Increment(ref BatchId);
-			var asyncLock = new AsyncLock();
-			var ordered = new SortedDictionary<IFitness, TGenome>();
 			var output = new WriteOnceBlock<GenomeFitness<TGenome>[]>(null);
+			var results = new GenomeFitness<TGenome>[size];
+			int index = -1;
 
 			ITargetBlock<TGenome> reception = new ActionBlock<TGenome>(
-				async genome =>
-				{
-					var fitness = await test(genome, batchId);
-					using (await asyncLock.LockAsync())
-						ordered.Add(fitness, genome);
-				},
+				async genome => results[Interlocked.Increment(ref index)] = new GenomeFitness<TGenome>(genome, await test(genome, batchId)),
 				new ExecutionDataflowBlockOptions
 				{
 					MaxDegreeOfParallelism = 32,
 					MaxMessagesPerTask = 3
-				});
-
-			if(limit>0)
-			{
-				reception = reception.AutoCompleteAfter(limit);
-			}
-
-			// Eat any repeats.
-			reception = reception.Distinct(DataflowMessageStatus.Accepted);
+				})
+				.AutoCompleteAfter(size)
+				// Eat any repeats.
+				.Distinct(DataflowMessageStatus.Accepted);
 
 			reception.Completion.ContinueWith(complete =>
 			{
-				output.Post(ordered.Select(kvp => new GenomeFitness<TGenome>(kvp.Value, kvp.Key)).ToArray());
+				Array.Sort(results, GenomeFitness.Comparison);
+				output.Post(results);
 				output.Complete();
-				ordered.Clear();
 			});
 
 			return DataflowBlock.Encapsulate(reception, output);
@@ -63,7 +54,8 @@ namespace GeneticAlgorithmPlatform
 			var output = new BufferBlock<GenomeFitness<TGenome>[]>();
 
 			Action<Task> addLink = null;
-			addLink = task=> {
+			addLink = task =>
+			{
 				var batch = SingleBatch(test, poolSize);
 				batch.Completion.ContinueWith(addLink);
 				batch.LinkTo(output);
@@ -74,7 +66,7 @@ namespace GeneticAlgorithmPlatform
 			addLink(null);
 			addLink(null);
 			addLink(null);
-			
+
 			return DataflowBlock.Encapsulate(input, output);
 		}
 

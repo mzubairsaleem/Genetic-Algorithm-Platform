@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
-using Open;
-using AlgebraBlackBox;
 using System.Threading.Tasks.Dataflow;
+using Open;
+using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -32,42 +32,23 @@ namespace GeneticAlgorithmPlatform
 		public static void Main(string[] args)
 		{
 			var sw = Stopwatch.StartNew();
-			var problem = new AlgebraBlackBox.Problem(SqrtA2B2AB);
-			var factory = new AlgebraBlackBox.GenomeFactory();
-			var network = GenomeSelector<Genome>.BuildNetwork(10, 3, problem.ProcessTest);
-			factory.LinkReception(network.Item1);
+			var env = new AlgebraBlackBox.Environment(AB, 10);
+			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
-			network.Item2.LinkTo(new ActionBlock<Genome>(genome =>
+			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(genome =>
 			{
-				var tc = problem.TestCount;
-				Console.WriteLine("{0}:\t{1}", problem.ID, genome.ToAlphaParameters());
+				var tc = prob.TestCount;
+				Console.WriteLine("{0}:\t{1} => {2}", 1, genome.ToAlphaParameters(), genome.AsReduced().ToAlphaParameters());
 				Console.WriteLine("  \t= {0}", genome.Calculate(OneOne));
-				// Console.WriteLine("  \t[{0}] ({1} samples)", gf.Fitness.Scores.JoinToString(","), gf.Fitness.SampleCount);
+				var fitness = prob.GetOrCreateFitnessFor(genome).Fitness;
+				Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
 				Console.WriteLine("  \t{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
 				Console.WriteLine();
-				factory.Generate(1000);
 			}));
 
-			factory.Generate(1000);
-
-			network.Item2.Completion.Wait();
+			env.TopGenome.Completion.Wait();
 
 
-			// var converged = e.WaitForConverged();
-			// e.SpawnNew();
-			// converged.Wait();
-
-			// Console.WriteLine("Converged: (after {0})", sw.Elapsed.ToStringVerbose());
-			// int i = 0;
-			// foreach (var problem in converged.Result)
-			// {
-			// 	Console.WriteLine((++i) + ":");
-			// 	foreach (var genome in problem.Convergent)
-			// 	{
-			// 		Console.Write("  \t");
-			// 		Console.WriteLine(genome.ToAlphaParameters());
-			// 	}
-			// }
 		}
 
 		static void PerfTest()
