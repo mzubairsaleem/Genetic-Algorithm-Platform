@@ -49,6 +49,30 @@ namespace Open.Threading
 				throw new ArgumentException("syncObject");
 		}
 
+		public static bool InterlockedExchangeIfLessThanComparison(ref int location, int comparison, int newValue)
+		{
+			int initialValue;
+			do
+			{
+				initialValue = location;
+				if (initialValue >= comparison) return false;
+			}
+			while (Interlocked.CompareExchange(ref location, newValue, initialValue) != initialValue);
+			return true;
+		}
+
+		public static bool InterlockedIncrementIfLessThanComparison(ref int location, int comparison, out int value)
+		{
+			int initialValue;
+			do
+			{
+				initialValue = location;
+				value = initialValue + 1;
+				if (initialValue >= comparison) return false;
+			}
+			while (Interlocked.CompareExchange(ref location, value, initialValue) != initialValue);
+			return true;
+		}
 
 		/*public static T EnsureInitialized<T>(ref T reference, Func<T> valueFactory) where T : class {
 			Contract.Ensures(Contract.Result<T>() != null);
@@ -349,7 +373,7 @@ namespace Open.Threading
 			ReaderWriterLockSlimExensions.ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			return SynchronizeReadWrite(syncObject, key,
-                lockType => SynchronizeRead(syncObject, ()=> condition(LockType.Read), millisecondsTimeout, throwsOnTimeout),
+				lockType => SynchronizeRead(syncObject, () => condition(LockType.Read), millisecondsTimeout, throwsOnTimeout),
 				() => SynchronizeReadWrite(syncObject, condition, closure, millisecondsTimeout, throwsOnTimeout),
 				millisecondsTimeout,
 				throwsOnTimeout);
@@ -415,23 +439,23 @@ namespace Open.Threading
 
 			return SynchronizeReadWrite(syncObject, syncObject, ref result, condition, closure, millisecondsTimeout, throwsOnTimeout);
 		}
-		
+
 		//
-        //	Summary:
-        //		Manages a read-only operation of any target and specifc key of that object.
-        //
-        //	Parameters:
-        //		syncObject:
-        //			The main object that defines the synchronization context.
-        //		key:
-        //			The key that represents what value will change.
-        //		closure:
-        //			The function to execute while under a read lock.
-        //		millisecondsTimeout:
-        //			An optional value to allow for timeout.
+		//	Summary:
+		//		Manages a read-only operation of any target and specifc key of that object.
 		//
-        //	Returns:
-        //		The result of the closure.
+		//	Parameters:
+		//		syncObject:
+		//			The main object that defines the synchronization context.
+		//		key:
+		//			The key that represents what value will change.
+		//		closure:
+		//			The function to execute while under a read lock.
+		//		millisecondsTimeout:
+		//			An optional value to allow for timeout.
+		//
+		//	Returns:
+		//		The result of the closure.
 		//	
 		//	Exceptions:
 		//		TimeoutException:
@@ -452,19 +476,19 @@ namespace Open.Threading
 		}
 
 		//
-        //	Summary:
-        //		Manages a read-only operation of any target.
-        //
-        //	Parameters:
-        //		syncObject:
-        //			The main object that defines the synchronization context.
-        //		closure:
-        //			The function to execute while under a read lock.
-        //		millisecondsTimeout:
-        //			An optional value to allow for timeout.
+		//	Summary:
+		//		Manages a read-only operation of any target.
 		//
-        //	Returns:
-        //		The result of the closure.
+		//	Parameters:
+		//		syncObject:
+		//			The main object that defines the synchronization context.
+		//		closure:
+		//			The function to execute while under a read lock.
+		//		millisecondsTimeout:
+		//			An optional value to allow for timeout.
+		//
+		//	Returns:
+		//		The result of the closure.
 		//	
 		//	Exceptions:
 		//		TimeoutException:

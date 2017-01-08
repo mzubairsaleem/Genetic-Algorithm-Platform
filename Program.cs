@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open;
 using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
-    public class Program
+	public class Program
 	{
 		static double AB(params double[] p)
 		{
@@ -32,22 +33,38 @@ namespace GeneticAlgorithmPlatform
 		public static void Main(string[] args)
 		{
 			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(AB, 10);
+			var env = new AlgebraBlackBox.Environment(SqrtA2B2AB, 20);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
+			bool converged = false;
 			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(genome =>
 			{
-				var tc = prob.TestCount;
-				Console.WriteLine("{0}:\t{1} => {2}", 1, genome.ToAlphaParameters(), genome.AsReduced().ToAlphaParameters());
-				Console.WriteLine("  \t= {0}", genome.Calculate(OneOne));
 				var fitness = prob.GetOrCreateFitnessFor(genome).Fitness;
+				converged = fitness.HasConverged(10);
+				if(converged)
+				{
+					Console.WriteLine("\nConverged: ");
+					env.TopGenome.Complete();
+				}
+				var asReduced = genome.AsReduced();
+				Console.WriteLine( asReduced==genome ? "{0}:\t{1}" : "{0}:\t{1} => {2}",
+					1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
+				Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
 				Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
-				Console.WriteLine("  \t{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
 				Console.WriteLine();
 			}));
 
-			env.TopGenome.Completion.Wait();
+			Task.Run(async () =>
+			{
+				while (!converged)
+				{
+					var tc = prob.TestCount;
+					Console.WriteLine("{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
+					await Task.Delay(1000);
+				}
+			});
 
+			env.TopGenome.Completion.Wait();
 
 		}
 

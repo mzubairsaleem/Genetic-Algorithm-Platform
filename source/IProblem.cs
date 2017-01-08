@@ -11,13 +11,15 @@ namespace GeneticAlgorithmPlatform
     /// Problems define what parameters need to be tested to resolve fitness.
     /// </summary>
     public interface IProblem<TGenome>
-		 where TGenome : class, IGenome
+		 where TGenome :IGenome
 	{
 		int ID { get; }
 
 		GenomeTestDelegate<TGenome> TestProcessor { get; }
 
 		IFitness AddToGlobalFitness(IGenomeFitness<TGenome> result);
+
+		int GetSampleCountFor(TGenome genome);
 	}
 
 }

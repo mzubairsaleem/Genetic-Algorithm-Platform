@@ -85,5 +85,10 @@ namespace GeneticAlgorithmPlatform
 			return global.SnapShot();
 		}
 
-	}
+        public int GetSampleCountFor(TGenome genome)
+        {
+            GenomeFitness<TGenome,Fitness> fitness;
+			return TryGetFitnessFor(genome, out fitness) ? fitness.Fitness.SampleCount : 0;
+        }
+    }
 }

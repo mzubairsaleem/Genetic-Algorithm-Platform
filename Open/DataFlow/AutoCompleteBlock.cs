@@ -1,7 +1,7 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Open.Threading;
 
 namespace Open.DataFlow
 {
@@ -22,7 +22,6 @@ namespace Open.DataFlow
 			get { return _limit; }
 		}
 
-		private int _index = 0;
 		private int _allowed = 0;
 		public int AllowedCount
 		{
@@ -50,16 +49,22 @@ namespace Open.DataFlow
 		// The key here is to reject the message ahead of time.
 		public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
 		{
-			var count = Interlocked.Increment(ref _index);
-			if (count <= _limit)
-			{
-				Interlocked.Increment(ref _allowed);
-				var result = _target.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
-				if(count==_limit) _target.Complete();
-				return result;
-			}
+			var result = DataflowMessageStatus.DecliningPermanently;
+			var completed = false;
+			// There are multiple operations happening here that require synchronization to get right.
+			ThreadSafety.LockConditional(_target,
+				() => _allowed < _limit,
+				() =>
+				{
+					_allowed++;
+					result = _target.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
+					completed = _allowed == _limit;
+				}
+			);
 
-			return DataflowMessageStatus.DecliningPermanently;
+			if (completed) _target.Complete();
+
+			return result;
 		}
 	}
 
