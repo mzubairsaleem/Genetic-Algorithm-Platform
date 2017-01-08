@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Collections;
@@ -15,20 +16,27 @@ using Open.Threading;
 namespace GeneticAlgorithmPlatform
 {
 
-    // Defines the pipeline?
-    public abstract class Environment<TGenome> : IEnvironment<TGenome>
+	// Defines the pipeline?
+	public abstract class Environment<TGenome> : IEnvironment<TGenome>
 		where TGenome : class, IGenome
 	{
 		const int MIN_POOL_SIZE = 2;
 
 		public readonly BroadcastBlock<TGenome> TopGenome = new BroadcastBlock<TGenome>(null);
 		public readonly int PoolSize;
+		public readonly int SelectionPoint;
 		public readonly IGenomeFactory<TGenome> Factory;
 		public readonly IProblem<TGenome> Problem;
-		readonly ConcurrentDictionary<int, PoolProcessor<TGenome>> Generations = new ConcurrentDictionary<int, PoolProcessor<TGenome>>();
-		readonly SortedDictionary<int, PoolProcessor<TGenome>>
-			ProcessorsReadyForNext = new SortedDictionary<int, PoolProcessor<TGenome>>(new ReverseIntComparer());
-		readonly ConcurrentHashSet<string> Registry = new ConcurrentHashSet<string>();
+
+		protected readonly ConcurrentQueue<TGenome> NewGenomes = new ConcurrentQueue<TGenome>();
+
+		protected readonly ConcurrentDictionary<int, SortedList<IGenomeFitness<TGenome>, TGenome>>
+			Generations = new ConcurrentDictionary<int, SortedList<IGenomeFitness<TGenome>, TGenome>>();
+
+		protected readonly ConcurrentHashSet<string> Registry = new ConcurrentHashSet<string>();
+
+		protected readonly ActionBlock<KeyValuePair<TGenome, int>> Reception;
+		readonly ActionBlock<bool> FillEntryAction;
 
 		protected Environment(IGenomeFactory<TGenome> genomeFactory, IProblem<TGenome> problem, int poolSize)
 		{
@@ -36,110 +44,156 @@ namespace GeneticAlgorithmPlatform
 				throw new ArgumentOutOfRangeException("poolSize", poolSize, "Must have a pool size of at least " + MIN_POOL_SIZE);
 
 			PoolSize = poolSize;
+			SelectionPoint = poolSize / 2 + 1;
 			Factory = genomeFactory;
 			Problem = problem;
 
-			FillEntryQueue();
-		}
-
-		void StartNext()
-		{
-			FillEntryQueue(); // Ensure a waiting queue.
-
-			PoolProcessor<TGenome> next = null;
-			ThreadSafety.LockConditional(
-				ProcessorsReadyForNext,
-				() => ProcessorsReadyForNext.Count != 0,
-				() =>
-				{
-					var first = ProcessorsReadyForNext.First();
-					if(ProcessorsReadyForNext.Remove(first.Key))
-						next = first.Value;
-				}
-			);
-
-			if (next != null)
-				next.Next();
-		}
-
-		PoolProcessor<TGenome> FillEntryQueue()
-		{
-			var genQueue = GetProcessorFor(0);
-
-			// Keep the queue filled.
-			Parallel.For(genQueue.Queued, PoolSize * 2, new ParallelOptions() { MaxDegreeOfParallelism = 1 }, i =>
+			Reception = new ActionBlock<KeyValuePair<TGenome, int>>(async kvp =>
 			{
-				int attempts = 0;
-				while (!Receive(Factory.Generate()))
-				{
-					attempts++;
-					if (attempts == 20)
+				var result = await Problem.TestProcessor(kvp.Key, kvp.Value);
+				var global = Problem.AddToGlobalFitness(kvp.Key, result);
+				var list = GetGeneration(kvp.Value);
+				ThreadSafety.SynchronizeWrite(list, () => list.Add(new GenomeFitness<TGenome>(kvp.Key, result), kvp.Key));
+
+			}, new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 64 });
+
+			TGenome latestTop = null;
+
+			FillEntryAction = new ActionBlock<bool>(yes =>
+			{
+				Parallel.Invoke(
+					() =>
 					{
-						throw new Exception("Unable to create new genomes.");
+						var len = PoolSize * 3;
+						// Keep the queue filled.
+						for (var i = NewGenomes.Count; i < len; i++)
+						{
+							int attempts = 0;
+							while (!Receive(Factory.Generate()))
+							{
+								attempts++;
+								if (attempts == 20)
+								{
+									throw new Exception("Unable to create new genomes.");
+								}
+							}
+						};
+					},
+
+					() =>
+					{
+
+						// Work descening through the generations to make sure they flow.
+						var gens = GenerationsWithEntries();
+						var en = gens.GetEnumerator();
+						if (en.MoveNext())
+						{
+							TGenome veryTop = ProcessGeneration(en.Current);
+							var original = Interlocked.CompareExchange(ref latestTop, veryTop, latestTop);
+							if (veryTop != null && veryTop!=original) TopGenome.Post(veryTop);
+						}
+						Parallel.ForEach(gens.Skip(1), e => ProcessGeneration(e));
+					},
+					() =>
+					{
+						var count = PoolSize;
+						TGenome newGenome;
+						while (--count >= 0 && NewGenomes.TryDequeue(out newGenome))
+						{
+							Reception.Post(new KeyValuePair<TGenome, int>(newGenome, 0));
+						}
 					}
-				}
+				);
+
+				// Keep it going...
+				FillEntryAction.Post(true);
 			});
 
-			return genQueue;
+
+
+			// Trick way to ensure only 1 instance is running.
+			FillEntryAction.Post(true);
 		}
 
-		protected bool Receive(TGenome genome, int generation)
+		protected IEnumerable<KeyValuePair<int, SortedList<IGenomeFitness<TGenome>, TGenome>>> GenerationsWithEntries()
+		{
+			var gen = Generations.Count;
+			for (var i = gen; i >= 0; i--)
+			{
+				SortedList<IGenomeFitness<TGenome>, TGenome> list;
+				if (Generations.TryGetValue(i, out list))
+				{
+					if (list.Count > 0)
+					{
+						yield return new KeyValuePair<int, SortedList<IGenomeFitness<TGenome>, TGenome>>(i, list);
+					}
+				}
+			}
+		}
+
+		TGenome ProcessGeneration(KeyValuePair<int, SortedList<IGenomeFitness<TGenome>, TGenome>> e)
+		{
+			var gen = e.Key;
+			var genNext = gen + 1;
+			var list = e.Value;
+			TGenome top = null;
+			if (list.Count >= PoolSize)
+			{
+				ThreadSafety.SynchronizeWrite(list, () =>
+				{
+					foreach (var d in list.Take(SelectionPoint).ToArray())
+					{
+						if (top == null) top = d.Value;
+						list.Remove(d.Key);
+						Reception.Post(new KeyValuePair<TGenome, int>(d.Value, genNext));
+					}
+
+					// Selection (culling) happens here:
+					foreach (var d in list.Skip(list.Count - SelectionPoint).ToArray())
+					{
+						list.Remove(d.Key);
+					}
+
+				});
+			}
+			else
+			{
+				top = list.Select(kvp => kvp.Value).FirstOrDefault();
+			}
+			return top;
+		}
+
+		public int GenerationsCount
+		{
+			get
+			{
+				return Generations.Count;
+			}
+		}
+
+		public int RegistryCount
+		{
+			get
+			{
+				return Registry.Count;
+			}
+		}
+
+		protected bool Receive(TGenome genome)
 		{
 			if (genome != null && Registry.Add(genome.Hash))
 			{
-				GetProcessorFor(generation).Post(genome);
+				NewGenomes.Enqueue(genome);
 				return true;
 			}
 			return false;
 		}
 
-
-		public bool Receive(TGenome genome)
+		SortedList<IGenomeFitness<TGenome>, TGenome> GetGeneration(int generation)
 		{
-			return Receive(genome, 0);
+			return Generations.GetOrAdd(generation, g =>
+				new SortedList<IGenomeFitness<TGenome>, TGenome>(GenomeFitness.Comparer<TGenome>.Instance));
 		}
-
-		int MaxReportedGeneration = 0;
-
-
-
-		protected PoolProcessor<TGenome> GetProcessorFor(int generation)
-		{
-			return Generations.GetOrAdd(generation, key =>
-			{
-				var p = new PoolProcessor<TGenome>(Problem, PoolSize);
-				p.Selected.LinkTo(new ActionBlock<TGenome[]>(results =>
-				{
-					var first = results.FirstOrDefault();
-					if (first != null)
-					{
-						// It's quite possible to get a fitness generation out of sync here. For now, that's ok.
-						if (ThreadSafety.InterlockedExchangeIfLessThanComparison(ref MaxReportedGeneration, generation, generation))
-							TopGenome.Post(first);
-
-						OnNextTop(first);
-					}
-
-					// Redistrubute.
-					foreach (var genome in results)
-					{
-						GetProcessorFor(Problem.GetSampleCountFor(genome)).Post(genome);
-					}
-
-					// Reactivate.
-					lock (ProcessorsReadyForNext)
-					{
-						ProcessorsReadyForNext.Add(generation, p);
-					}
-
-					StartNext();
-
-				}));
-				return p;
-			});
-		}
-
-
 
 		protected virtual void OnNextTop(TGenome genome)
 		{

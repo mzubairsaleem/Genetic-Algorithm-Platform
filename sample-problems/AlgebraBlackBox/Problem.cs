@@ -39,10 +39,10 @@ namespace AlgebraBlackBox
 			Samples = new SampleCache(actualFormula);
 		}
 
-		// protected override Genome GetFitnessForKeyTransform(Genome genome)
-		// {
-		// 	return genome.AsReduced();
-		// }
+		protected override Genome GetFitnessForKeyTransform(Genome genome)
+		{
+			return genome.AsReduced();
+		}
 
 		protected override async Task<IFitness> ProcessTest(Genome g, long sampleId)
 		{

@@ -33,22 +33,26 @@ namespace GeneticAlgorithmPlatform
 		public static void Main(string[] args)
 		{
 			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(SqrtA2B2AB, 20);
+			var env = new AlgebraBlackBox.Environment(SqrtA2B2, 10);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
 			bool converged = false;
 			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(genome =>
 			{
 				var fitness = prob.GetOrCreateFitnessFor(genome).Fitness;
-				converged = fitness.HasConverged(10);
-				if(converged)
+				if(!converged)
+					converged = fitness.HasConverged(10);
+				if (converged)
 				{
 					Console.WriteLine("\nConverged: ");
 					env.TopGenome.Complete();
 				}
 				var asReduced = genome.AsReduced();
-				Console.WriteLine( asReduced==genome ? "{0}:\t{1}" : "{0}:\t{1} => {2}",
-					1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
+				if(asReduced==genome)
+					Console.WriteLine("{0}:\t{1}",1, genome.ToAlphaParameters());
+				else
+					Console.WriteLine("{0}:\t{1} => {2}",1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
+
 				Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
 				Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
 				Console.WriteLine();
@@ -59,7 +63,12 @@ namespace GeneticAlgorithmPlatform
 				while (!converged)
 				{
 					var tc = prob.TestCount;
-					Console.WriteLine("{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
+					if (tc != 0)
+					{
+						Console.WriteLine("{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
+						Console.WriteLine();
+					}
+
 					await Task.Delay(1000);
 				}
 			});
