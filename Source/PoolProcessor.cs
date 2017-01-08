@@ -63,18 +63,16 @@ namespace GeneticAlgorithmPlatform
 		{
 			if (_transform.Post(genome))
 			{
-				// Console.WriteLine("Posting.");
 				return true;
 			}
 			else
 			{
-				// Console.WriteLine("Queueing.");
 				Queue.Enqueue(genome);
 				return false;
 			}
 		}
 
-		static long BatchId = 0;
+		public static long BatchId = 0;
 
 		static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]> Processor(
 			GenomeTestDelegate<TGenome> test,
@@ -90,12 +88,12 @@ namespace GeneticAlgorithmPlatform
 
 			ITargetBlock<TGenome> reception = new ActionBlock<TGenome>(
 				async genome => results[Interlocked.Increment(ref index)]
-					= new GenomeFitness<TGenome>(genome, await test(genome, batchId)),
-				new ExecutionDataflowBlockOptions
-				{
-					MaxDegreeOfParallelism = 32,
-					MaxMessagesPerTask = 3
-				})
+					= new GenomeFitness<TGenome>(genome, await test(genome, batchId))
+					, new ExecutionDataflowBlockOptions
+					{
+						MaxDegreeOfParallelism = 32,
+						MaxMessagesPerTask = 3
+					})
 				.AutoCompleteAfter(size)
 				// Eat any repeats.
 				.Distinct(DataflowMessageStatus.Accepted);

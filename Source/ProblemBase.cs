@@ -77,8 +77,12 @@ namespace GeneticAlgorithmPlatform
 
 		public IFitness AddToGlobalFitness(IGenomeFitness<TGenome> result)
 		{
-			var fitness = result.Fitness;
-			var global = GetOrCreateFitnessFor(result.Genome).Fitness;
+			return AddToGlobalFitness(result.Genome,result.Fitness);
+		}
+
+		public IFitness AddToGlobalFitness(TGenome genome, IFitness fitness)
+		{
+			var global = GetOrCreateFitnessFor(genome).Fitness;
 			if (global == fitness)
 				throw new InvalidOperationException("Adding fitness on to itself.");
 			global.Merge(fitness);

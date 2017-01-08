@@ -18,6 +18,7 @@ namespace GeneticAlgorithmPlatform
 		GenomeTestDelegate<TGenome> TestProcessor { get; }
 
 		IFitness AddToGlobalFitness(IGenomeFitness<TGenome> result);
+		IFitness AddToGlobalFitness(TGenome genome, IFitness result);
 
 		int GetSampleCountFor(TGenome genome);
 	}

@@ -98,11 +98,12 @@ namespace AlgebraBlackBox.Genes
 						return new ConstantGene(this.Multiple);
 				}
 
-				// var d = c as DivisionGene;
-				// if (d != null && d.Multiple == 1)
-				// {
-				// 	d.Multiple *= this.Multiple;					
-				// }
+				var d = c as DivisionGene;
+				if (d != null && d.Multiple == 1)
+				{
+					d.Multiple *= this.Multiple;					
+					return d;
+				}
 
 			}
 			return base.ReplaceWithReduced();

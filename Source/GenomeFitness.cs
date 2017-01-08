@@ -122,16 +122,16 @@ namespace GeneticAlgorithmPlatform
 			return ComparisonInternal(x, y);
 		}
 
-		// public class Comparer<TGenome> : IComparer<IGenomeFitness<TGenome>>
-		// 	where TGenome : IGenome
-		// {
-		// 	public int Compare(IGenomeFitness<TGenome> x, IGenomeFitness<TGenome> y)
-		// 	{
-		// 		return Comparison(x, y);
-		// 	}
+		public class Comparer<TGenome> : IComparer<IGenomeFitness<TGenome>>
+			where TGenome : IGenome
+		{
+			public int Compare(IGenomeFitness<TGenome> x, IGenomeFitness<TGenome> y)
+			{
+				return Comparison(x, y);
+			}
 
-		// 	public static readonly Comparer<TGenome> Instance = new Comparer<TGenome>();
-		// }
+			public static readonly Comparer<TGenome> Instance = new Comparer<TGenome>();
+		}
 
 
 		public static GenomeFitness<TGenome> SnapShot<TGenome>(this IGenomeFitness<TGenome> source)
