@@ -36,44 +36,51 @@ namespace GeneticAlgorithmPlatform
 			var env = new AlgebraBlackBox.Environment(SqrtA2B2, 10);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
-			bool converged = false;
-			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(genome =>
+			Action emitStats = () =>
+			{
+				var tc = prob.TestCount;
+				if (tc != 0)
+				{
+					Console.WriteLine("{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
+					Console.WriteLine();
+				}
+			};
+
+			Action<AlgebraBlackBox.Genome> emitGenomeStats = genome =>
 			{
 				var fitness = prob.GetOrCreateFitnessFor(genome).Fitness;
-				if(!converged)
-					converged = fitness.HasConverged(10);
-				if (converged)
-				{
-					Console.WriteLine("\nConverged: ");
-					env.TopGenome.Complete();
-				}
+
 				var asReduced = genome.AsReduced();
-				if(asReduced==genome)
-					Console.WriteLine("{0}:\t{1}",1, genome.ToAlphaParameters());
+				if (asReduced == genome)
+					Console.WriteLine("{0}:\t{1}", 1, genome.ToAlphaParameters());
 				else
-					Console.WriteLine("{0}:\t{1} => {2}",1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
+					Console.WriteLine("{0}:\t{1} => {2}", 1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
 
 				Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
 				Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
 				Console.WriteLine();
-			}));
+			};
+
+			bool converged = false;
+			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats));
 
 			Task.Run(async () =>
 			{
 				while (!converged)
 				{
-					var tc = prob.TestCount;
-					if (tc != 0)
-					{
-						Console.WriteLine("{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
-						Console.WriteLine();
-					}
+					emitStats();
 
-					await Task.Delay(1000);
+					await Task.Delay(5000);
 				}
 			});
 
-			env.TopGenome.Completion.Wait();
+			env.TopGenome.Completion.ContinueWith(task =>
+			{
+				converged = true;
+				emitStats();
+				Console.WriteLine();
+				Console.WriteLine("Converged.");
+			}).Wait();
 
 		}
 

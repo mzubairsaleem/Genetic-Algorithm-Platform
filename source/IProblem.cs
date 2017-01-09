@@ -20,6 +20,8 @@ namespace GeneticAlgorithmPlatform
 		IFitness AddToGlobalFitness(IGenomeFitness<TGenome> result);
 		IFitness AddToGlobalFitness(TGenome genome, IFitness result);
 
+		GenomeFitness<TGenome, Fitness>? GetFitnessFor(TGenome genome);
+
 		int GetSampleCountFor(TGenome genome);
 	}
 

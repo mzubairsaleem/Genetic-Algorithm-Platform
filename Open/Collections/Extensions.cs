@@ -113,7 +113,6 @@ namespace Open.Collections
 			if (closure == null)
 				throw new ArgumentNullException("closure");
 
-
 			var d0 = source.GetLength(0);
 			var d1 = source.GetLength(1);
 
@@ -233,7 +232,7 @@ namespace Open.Collections
 					closure(t);
 		}
 
-		public static IEnumerable<T> Randomize<T>(this IEnumerable<T> target)
+		public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> target)
 		{
 			if (target == null)
 				return null;
@@ -300,6 +299,43 @@ namespace Open.Collections
 			}
 
 		}
+
+
+		public static IEnumerable<T> PreCache<T>(this IEnumerable<T> source, int count = 1)
+		{
+			var queue = new Queue<T>(count);
+			var e = source.GetEnumerator();
+
+			if (e.MoveNext()) queue.Enqueue(e.Current);
+			else yield break;
+
+			bool finished = false;
+			while (!finished)
+			{
+				var task = Task.Run(() =>
+				{
+					while (!finished && queue.Count < count)
+					{
+						if (e.MoveNext())
+						{
+							queue.Enqueue(e.Current);
+						}
+						else
+						{
+							finished = true;
+						}
+					}
+				});
+
+				yield return queue.Dequeue();
+
+				task.Wait();
+			}
+
+			while (queue.Count > 0)
+				yield return queue.Dequeue();
+		}
+
 
 		// The idea here is a zero capacity string array is effectively imutable and will not change.  So it can be reused for comparison.
 		public static readonly string[] StringArrayEmpty = new string[0];
@@ -1248,11 +1284,11 @@ namespace Open.Collections
 					var updateValue = updateValueFactory(key, old);
 					// Then with a write lock on the collection, try it all again...
 					ThreadSafety.SynchronizeWrite(target,
-						() =>
-							valueUsed = target.AddOrUpdate(key,
-								newValueFactory,
-								(k, o) => o.Equals(old) && k.Equals(key) ? updateValue : updateValueFactory(k, o)
-					));
+					() =>
+						valueUsed = target.AddOrUpdate(key,
+							newValueFactory,
+							(k, o) => o.Equals(old) && k.Equals(key) ? updateValue : updateValueFactory(k, o)
+				));
 				}
 				else
 				{
@@ -1260,11 +1296,11 @@ namespace Open.Collections
 					var value = newValueFactory(key);
 					// Then with a write lock on the collection, try it all again...
 					ThreadSafety.SynchronizeWrite(target,
-						() =>
-							valueUsed = target.AddOrUpdate(key,
-								k => k.Equals(key) ? value : newValueFactory(k),
-								updateValueFactory
-					));
+					() =>
+						valueUsed = target.AddOrUpdate(key,
+							k => k.Equals(key) ? value : newValueFactory(k),
+							updateValueFactory
+				));
 				}
 			});
 

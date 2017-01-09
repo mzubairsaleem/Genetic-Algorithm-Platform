@@ -1,24 +1,29 @@
-﻿namespace AlgebraBlackBox
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+
+namespace AlgebraBlackBox
 {
 
-    // function actualFormula(a:number, b:number):number // Solve for 'c'.
-    // {
-    // 	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
-    // }
+	// function actualFormula(a:number, b:number):number // Solve for 'c'.
+	// {
+	// 	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) + a) + b;
+	// }
 
-    public class Environment : GeneticAlgorithmPlatform.Environment<Genome>
+	public class Environment : GeneticAlgorithmPlatform.Environment<Genome>
 	{
 
-		public Environment(Formula actualFormula, int poolSize) : base(new GenomeFactory(), new Problem(actualFormula), poolSize)
+		public Environment(Formula actualFormula, ushort poolSize) : base(new GenomeFactory(), new Problem(actualFormula), poolSize)
 		{
 		}
 
-		protected override void OnNextTop(Genome genome)
+		protected override IEnumerable<Genome> Breed(Genome genome)
 		{
-			base.OnNextTop(genome);
+			foreach (var g in base.Breed(genome))
+				yield return g;
 			var r = genome.AsReduced();
-			if(r!=genome)
-				Receive(r);
+			Debug.Assert(r != null);
+			if (r != genome)
+				yield return r;
 		}
 
 	}

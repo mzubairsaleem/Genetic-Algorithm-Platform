@@ -288,6 +288,10 @@ namespace GeneticAlgorithmPlatform
 					var aA = a.Average;
 					var bA = b.Average;
 
+					// Check for weird averages that push the values above maximum and adjust (1).
+					if (aA > 1) aA -= aA - 1;
+					if (bA > 1) bA -= bA - 1;
+
 					// Standard A less than B.
 					if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -ORDER_DIRECTION;
 					// Standard A greater than B.
