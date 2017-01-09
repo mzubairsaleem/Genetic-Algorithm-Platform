@@ -27,7 +27,9 @@ namespace GeneticAlgorithmPlatform
 
 		protected readonly ITargetBlock<TGenome> FinalistPool;
 
-		protected Environment(IGenomeFactory<TGenome> genomeFactory, IProblem<TGenome> problem, ushort poolSize, byte nodeSize = 2, uint networkDepth = 4)
+		const int ConvergenceThreshold = 20;
+
+		protected Environment(IGenomeFactory<TGenome> genomeFactory, IProblem<TGenome> problem, ushort poolSize, uint networkDepth = 3, byte nodeSize = 2)
 		{
 			if (poolSize < MIN_POOL_SIZE)
 				throw new ArgumentOutOfRangeException("poolSize", poolSize, "Must have a pool size of at least " + MIN_POOL_SIZE);
@@ -45,34 +47,48 @@ namespace GeneticAlgorithmPlatform
 					foreach (var offspring in Breed(top))
 						Producer.TryEnqueue(offspring);
 				}
+				// Producer.TryEnqueue(Factory.Generate()); // Can we help out???
 			});
 
 			var pipeline = pipelineBuilder.CreateNetwork(networkDepth); // 3? Start small?
-
 			ActionBlock<TGenome> vipPool = null;
-			vipPool = new ActionBlock<TGenome>(async genome =>
+
+			Action<TGenome> complete = genome =>
+			{
+				TopGenome.Post(genome);
+				TopGenome.Complete();
+				FinalistPool.Complete();
+				Producer.Complete();
+				vipPool.Complete();
+				pipeline.Complete();
+			};
+
+			Func<TGenome, bool> checkForConvergence = genome =>
 			{
 				var fitness = problem.GetFitnessFor(genome).Value.Fitness;
 				var count = fitness.SampleCount;
+				if (fitness.HasConverged(ConvergenceThreshold))
+				{
+					complete(genome);
+					return true;
+				}
+				return false;
+			};
+
+
+			vipPool = new ActionBlock<TGenome>(async genome =>
+			{
+				var fitness = problem.GetFitnessFor(genome).Value.Fitness;
 				if (fitness.HasConverged(0)) // 100 just to prove it.
 				{
-					if (count < 100)
+					if (!checkForConvergence(genome)) // should be enough for perfect convergence.
 					{
 						// Unseen data...
-						await problem.TestProcessor(genome, GenomePipeline.UniqueBatchID());
+						Problem.AddToGlobalFitness(
+							new GenomeFitness<TGenome>(genome, await problem.TestProcessor(genome, GenomePipeline.UniqueBatchID())));
 						vipPool.Post(genome);
 					}
-					else
-					{
-						TopGenome.Post(genome);
-						TopGenome.Complete();
-						vipPool.Complete();
-						FinalistPool.Complete();
-						pipeline.Complete();
-						Producer.Complete();
-					}
 				}
-
 			});
 
 			FinalistPool = pipelineBuilder.Distributor(selected =>
@@ -82,6 +98,7 @@ namespace GeneticAlgorithmPlatform
 				{
 					TopGenome.Post(top);
 					vipPool.Post(top);
+					checkForConvergence(top);
 
 					foreach (var offspring in Breed(top))
 						Producer.TryEnqueue(offspring);
