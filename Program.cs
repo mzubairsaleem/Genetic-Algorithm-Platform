@@ -27,13 +27,13 @@ namespace GeneticAlgorithmPlatform
 		{
 			var a = p[0];
 			var b = p[1];
-			return Math.Sqrt(a * a + b * b + a) + b;
+			return Math.Sqrt(a * a + b * b + a + 2) + b + 1;
 		}
 		static readonly double[] OneOne = new double[] { 1, 1 };
 		public static void Main(string[] args)
 		{
 			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(SqrtA2B2AB, 12, 4);
+			var env = new AlgebraBlackBox.Environment(SqrtA2B2AB, 50, 5);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
 			Action emitStats = () =>

@@ -73,10 +73,16 @@ namespace GeneticAlgorithmPlatform
 		}
 
 
+		public abstract TGenome Generate(IEnumerable<TGenome> source = null);
 
 		public IEnumerable<TGenome> Generator()
 		{
 			while (true) yield return Generate();
+		}
+
+		public TGenome Generate(TGenome source)
+		{
+			return Generate(Enumerable.Repeat(source, 1));
 		}
 
 		public IEnumerable<TGenome> Mutator(TGenome source)
@@ -114,11 +120,7 @@ namespace GeneticAlgorithmPlatform
 			return false;
 		}
 
-		public TGenome Generate(TGenome source)
-		{
-			return Generate(Enumerable.Repeat(source, 1));
-		}
-		public abstract TGenome Generate(IEnumerable<TGenome> source = null);
+
 		protected abstract TGenome MutateInternal(TGenome target);
 
 		protected TGenome Mutate(TGenome source, uint mutations = 1)
