@@ -93,15 +93,23 @@ namespace GeneticAlgorithmPlatform
 
 			FinalistPool = pipelineBuilder.Distributor(selected =>
 			{
-				var top = selected.FirstOrDefault();
+				// Finalists use global fitness?
+				var top = selected.OrderBy(g =>
+					problem.GetFitnessFor(g).Value,
+					GenomeFitness.Comparer<TGenome>.Instance).FirstOrDefault();
+
 				if (top != null)
 				{
-					TopGenome.Post(top);
-					vipPool.Post(top);
+					TopGenome.SendAsync(top);
 					checkForConvergence(top);
+					vipPool.SendAsync(top);
 
-					foreach (var offspring in Breed(top))
-						Producer.TryEnqueue(offspring);
+					// Top get's special treatment.
+					for (var i = 0; i < networkDepth - 1; i++)
+					{
+						foreach (var offspring in Breed(top))
+							Producer.TryEnqueue(offspring);
+					}
 				}
 
 				// The top final pool recycles it's winners.

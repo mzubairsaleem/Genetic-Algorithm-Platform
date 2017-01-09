@@ -306,19 +306,19 @@ namespace Open.Collections
 			var queue = new Queue<T>(count);
 			var e = source.GetEnumerator();
 
-			if (e.MoveNext()) queue.Enqueue(e.Current);
-			else yield break;
-
 			bool finished = false;
 			while (!finished)
 			{
+				if (e.MoveNext()) queue.Enqueue(e.Current);
+				else yield break;
+
 				var task = Task.Run(() =>
 				{
 					while (!finished && queue.Count < count)
 					{
 						if (e.MoveNext())
 						{
-							queue.Enqueue(e.Current);
+							lock(queue) queue.Enqueue(e.Current);
 						}
 						else
 						{
@@ -327,7 +327,12 @@ namespace Open.Collections
 					}
 				});
 
-				yield return queue.Dequeue();
+				while (queue.Count > 0)
+				{
+					T result;
+					lock(queue) result = queue.Dequeue();
+					yield return result;
+				}
 
 				task.Wait();
 			}

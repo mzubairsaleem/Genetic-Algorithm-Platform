@@ -190,7 +190,7 @@ namespace GeneticAlgorithmPlatform
 							// Don't own it? :(
 							if (!Registry.Add(hash)) continue;
 						}
-						Debug.WriteLine("Produce Buffer: " + ProduceBuffer.Count);
+						// Console.WriteLine("Produce Buffer: " + ProduceBuffer.Count);
 						// Producer magic happens here...
 						if (await ProduceBuffer.SendAsync(next))
 						{
@@ -222,7 +222,7 @@ namespace GeneticAlgorithmPlatform
 
 		public GenomeProducer(
 			IEnumerable<TGenome> source,
-			int bufferSize = 100) : this(source.PreCache(2).GetEnumerator(), bufferSize)
+			int bufferSize = 100) : this(source.PreCache(20).GetEnumerator(), bufferSize)
 		{
 
 		}

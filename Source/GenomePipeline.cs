@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -31,21 +30,82 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]>
+			ProcessorBatched<TGenome>(
+				GenomeTestDelegate<TGenome> test,
+				int size)
+			where TGenome : IGenome
+		{
+			var input = new BatchBlock<TGenome>(size, new GroupingDataflowBlockOptions
+			{
+				BoundedCapacity = size * 2
+			});
+
+			var output = new TransformBlock<TGenome[], GenomeFitness<TGenome>[]>(async batch =>
+			{
+				long batchId = UniqueBatchID();
+				return await Task.WhenAll(batch.Select(g => test(g, batchId).ContinueWith(t => new GenomeFitness<TGenome>(g, t.Result))))
+					.ContinueWith(task => task.Result.OrderBy(g => g, GenomeFitness.Comparer<TGenome>.Instance)
+						.ToArray());
+			}, new ExecutionDataflowBlockOptions
+			{
+				MaxDegreeOfParallelism = 2
+			});
+
+			input.LinkTo(output);
+
+			return DataflowBlock.Encapsulate(input, output);
+		}
+
+		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]>
 			Processor<TGenome>(
 				GenomeTestDelegate<TGenome> test,
 				int size)
 			where TGenome : IGenome
 		{
-			var input = new BatchBlock<TGenome>(size);
-			var output = new TransformBlock<TGenome[], GenomeFitness<TGenome>[]>(async batch =>
+			if (size < 1)
+				throw new ArgumentOutOfRangeException("size", size, "Must be at least 1.");
+
+			var output = new TransformBlock<Task<GenomeFitness<TGenome>>[], GenomeFitness<TGenome>[]>(async r =>
 			{
-				long batchId = UniqueBatchID();
-				return await Task.WhenAll(batch.Select(async g => new GenomeFitness<TGenome>(g, await test(g, batchId))))
-					.ContinueWith(task => task.Result.OrderBy(g => g, GenomeFitness.Comparer<TGenome>.Instance)
-						.ToArray());
+				var a = await Task.WhenAll(r);
+				Array.Sort(a, GenomeFitness.Comparison);
+				return a;
+			}, new ExecutionDataflowBlockOptions
+			{
+				MaxDegreeOfParallelism = 2
 			});
 
-			input.LinkTo(output);
+			var sync = new Object();
+			int index = -2;
+			long batchId = -1;
+			Task<GenomeFitness<TGenome>>[] results = null;
+
+			var input = new ActionBlock<TGenome>(genome =>
+			{
+				if (index == -2)
+				{
+					batchId = Interlocked.Increment(ref BatchID);
+					results = new Task<GenomeFitness<TGenome>>[size];
+					index = -1;
+				}
+
+				index++;
+				if (index < size)
+				{
+					results[index] = test(genome, batchId)
+						.ContinueWith(t => new GenomeFitness<TGenome>(genome, t.Result));
+				}
+				else
+				{
+					output.SendAsync(results);
+					index = -2;
+				}
+
+			}, new ExecutionDataflowBlockOptions
+			{
+				BoundedCapacity = size
+			});
+
 
 			return DataflowBlock.Encapsulate(input, output);
 		}
@@ -86,7 +146,7 @@ namespace GeneticAlgorithmPlatform
 			if (problem == null)
 				throw new ArgumentNullException("problem");
 			if (size < 2)
-				throw new ArgumentOutOfRangeException("size", size, "Must be at least 2.");				
+				throw new ArgumentOutOfRangeException("size", size, "Must be at least 2.");
 
 			var processor = Processor(problem.TestProcessor, size);
 			var selector = Selector(problem);
@@ -107,11 +167,14 @@ namespace GeneticAlgorithmPlatform
 				throw new ArgumentNullException("selected");
 
 			var input = Selector(problem, size);
-			input.LinkTo(new ActionBlock<GenomeSelection<TGenome>>(selection =>
+			input.LinkTo(new ActionBlock<GenomeSelection<TGenome>>(async selection =>
 			{
-				selected.Post(selection.Selected);
+				await selected.SendAsync(selection.Selected);
 				if (rejected != null)
-					rejected.Post(selection.Rejected);
+					await rejected.SendAsync(selection.Rejected).ConfigureAwait(false);
+			}, new ExecutionDataflowBlockOptions()
+			{
+				MaxDegreeOfParallelism = 2
 			}));
 			return input;
 		}
@@ -140,9 +203,9 @@ namespace GeneticAlgorithmPlatform
 			var processor = Distributor(problem, size, selected =>
 			{
 				foreach (var g in selected)
-					output.Post(g);
+					output.SendAsync(g);
 
-				if(globalHandler!=null)
+				if (globalHandler != null)
 					globalHandler(selected);
 			});
 			foreach (var source in sources)
