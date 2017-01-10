@@ -12,12 +12,12 @@ namespace Open.Arithmetic
 		{
 			Count = count;
 			Sum = sum;
-			Average = count==0 ? double.NaN : sum / count;
+			Average = count == 0 ? double.NaN : sum / count;
 		}
 
 		public ProcedureResult Add(double value, int count = 1)
 		{
-			return new ProcedureResult(Sum+value,Count+count);
+			return new ProcedureResult(Sum + value, Count + count);
 		}
 
 		public int CompareTo(ProcedureResult other)
@@ -41,22 +41,32 @@ namespace Open.Arithmetic
 
 		public static bool operator >(ProcedureResult a, ProcedureResult b)
 		{
-			return a.CompareTo(b)==1;
+			return a.CompareTo(b) == 1;
 		}
 
 		public static bool operator <(ProcedureResult a, ProcedureResult b)
 		{
-			return a.CompareTo(b)==-1;
+			return a.CompareTo(b) == -1;
 		}
 
 		public static bool operator >=(ProcedureResult a, ProcedureResult b)
 		{
-			return a.CompareTo(b)>=0;
+			return a.CompareTo(b) >= 0;
 		}
 
 		public static bool operator <=(ProcedureResult a, ProcedureResult b)
 		{
-			return a.CompareTo(b)<=0;
+			return a.CompareTo(b) <= 0;
+		}
+
+		public static bool operator ==(ProcedureResult a, ProcedureResult b)
+		{
+			return a.CompareTo(b) == 0;
+		}
+
+		public static bool operator !=(ProcedureResult a, ProcedureResult b)
+		{
+			return a.CompareTo(b) != 0;
 		}
 
 	}
