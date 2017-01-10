@@ -59,15 +59,5 @@ namespace Open.Arithmetic
 			return a.CompareTo(b) <= 0;
 		}
 
-		public static bool operator ==(ProcedureResult a, ProcedureResult b)
-		{
-			return a.CompareTo(b) == 0;
-		}
-
-		public static bool operator !=(ProcedureResult a, ProcedureResult b)
-		{
-			return a.CompareTo(b) != 0;
-		}
-
 	}
 }
