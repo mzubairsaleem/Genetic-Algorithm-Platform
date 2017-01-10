@@ -1441,7 +1441,7 @@ namespace Open.Collections
 			foreach (var kv in values.OrderBy(k => k.Key))
 			{
 				current = current.SumAccurate(kv.Value);
-				yield return new KeyValuePair<TKey, double>(kv.Key, current);
+				yield return KeyValuePair.New(kv.Key, current);
 			}
 
 		}
@@ -1513,7 +1513,7 @@ namespace Open.Collections
 			return values.Select(v =>
 			{
 				var value = v.Value;
-				return new KeyValuePair<TKey, double>(v.Key, value.IsNearZero(tolerance) ? 0d : value);
+				return KeyValuePair.New(v.Key, value.IsNearZero(tolerance) ? 0d : value);
 			});
 		}
 
@@ -1528,7 +1528,7 @@ namespace Open.Collections
 			return values.Select(v =>
 			{
 				var value = v.Value;
-				return new KeyValuePair<TKey, double>(v.Key, value.IsNearZero(tolerance) ? 0d : value);
+				return KeyValuePair.New(v.Key, value.IsNearZero(tolerance) ? 0d : value);
 			});
 		}
 

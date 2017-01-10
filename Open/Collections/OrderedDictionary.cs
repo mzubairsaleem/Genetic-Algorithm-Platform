@@ -242,7 +242,7 @@ namespace Open.Collections
 		{
 
 			foreach (var key in List)
-				yield return new KeyValuePair<TKey, TValue>(key, Dictionary[key]);
+				yield return KeyValuePair.New(key, Dictionary[key]);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()
