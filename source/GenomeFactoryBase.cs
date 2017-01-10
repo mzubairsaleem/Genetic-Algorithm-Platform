@@ -6,11 +6,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Open;
 using Open.Collections;
 
@@ -21,16 +17,34 @@ namespace GeneticAlgorithmPlatform
 	where TGenome : class, IGenome
 	{
 
-		public uint MaxGenomeTracking { get; set; }
-
-		protected ConcurrentDictionary<string, TGenome> _previousGenomes; // Track by hash...
-		ConcurrentQueue<string> _previousGenomesOrder;
-
 		public GenomeFactoryBase()
 		{
-			MaxGenomeTracking = 10000;
 			_previousGenomes = new ConcurrentDictionary<string, TGenome>();
-			_previousGenomesOrder = new ConcurrentQueue<string>();
+			_previousGenomesOrder = new ConcurrentList<string>();
+		}
+
+		protected readonly ConcurrentDictionary<string, TGenome> _previousGenomes; // Track by hash...
+		readonly ConcurrentList<string> _previousGenomesOrder;
+
+		protected bool Register(TGenome genome)
+		{
+			var hash = genome.Hash;
+			if (_previousGenomes.TryAdd(hash, genome))
+			{
+				_previousGenomesOrder.Add(hash);
+				return true;
+			}
+			return false;
+		}
+
+		protected bool Exists(string hash)
+		{
+			return _previousGenomes.ContainsKey(hash);
+		}
+
+		protected bool Exists(TGenome genome)
+		{
+			return Exists(genome.Hash);
 		}
 
 		public string[] PreviousGenomes
@@ -41,51 +55,54 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		public TGenome GetPrevious(string hash)
-		{
-			TGenome result;
-			return _previousGenomes.TryGetValue(hash, out result) ? result : null;
-		}
+		public abstract TGenome GenerateOne(IEnumerable<TGenome> source = null);
 
-		Task _trimmer;
-		public Task TrimPreviousGenomes()
+		public IEnumerable<TGenome> Generate(IEnumerable<TGenome> source = null)
 		{
-			var _ = this;
-			var t = _trimmer;
-			if (t != null)
-				return t;
-
-			return LazyInitializer.EnsureInitialized(ref _trimmer,
-			() => Task.Run(() =>
+			while (true)
 			{
-				while (_previousGenomesOrder.Count > MaxGenomeTracking)
+				var one = GenerateOne(source);
+				if (one == null) break;
+				yield return one;
+			}
+		}
+
+		public TGenome GenerateOne(TGenome source)
+		{
+			return GenerateOne(Enumerable.Repeat(source, 1));
+		}
+
+		public IEnumerable<TGenome> Generate(TGenome source = null)
+		{
+			var e = Enumerable.Repeat(source, 1);
+			while (true) yield return GenerateOne(e);
+		}
+
+		protected abstract TGenome MutateInternal(TGenome target);
+
+		public bool AttemptNewMutation(TGenome source, out TGenome mutation, byte triesPerMutationLevel = 5, byte maxMutations = 3)
+		{
+			return AttemptNewMutation(Enumerable.Repeat(source, 1), out mutation, triesPerMutationLevel, maxMutations);
+		}
+
+		public bool AttemptNewMutation(IEnumerable<TGenome> source, out TGenome genome, byte triesPerMutationLevel = 5, byte maxMutations = 3)
+		{
+			// Find one that will mutate well and use it.
+			for (byte m = 1; m <= maxMutations; m++)
+			{
+				for (byte t = 0; t < triesPerMutationLevel; t++)
 				{
-					string next;
-					if (_previousGenomesOrder.TryDequeue(out next))
-					{
-						TGenome g;
-						this._previousGenomes.TryRemove(next, out g);
-					}
+					genome = Mutate(source.RandomSelectOne(), m);
+					if (genome != null && !_previousGenomes.ContainsKey(genome.Hash))
+						return true;
 				}
-
-				Interlocked.Exchange(ref _trimmer, null);
-			}));
+			}
+			genome = null;
+			return false;
 		}
 
 
-		public abstract TGenome Generate(IEnumerable<TGenome> source = null);
-
-		public IEnumerable<TGenome> Generator()
-		{
-			while (true) yield return Generate();
-		}
-
-		public TGenome Generate(TGenome source)
-		{
-			return Generate(Enumerable.Repeat(source, 1));
-		}
-
-		public IEnumerable<TGenome> Mutator(TGenome source)
+		public IEnumerable<TGenome> Mutate(TGenome source)
 		{
 			TGenome next;
 			while (AttemptNewMutation(source, out next))
@@ -94,214 +111,83 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		public bool AttemptNewMutation(TGenome source, out TGenome mutation, int triesPerMutation = 10)
-		{
-			return AttemptNewMutation(Enumerable.Repeat(source, 1), out mutation, triesPerMutation);
-		}
-
-		public bool AttemptNewMutation(IEnumerable<TGenome> source, out TGenome genome, int triesPerMutation = 10)
-		{
-			genome = null;
-			string hash = null;
-			// Find one that will mutate well and use it.
-			for (uint m = 1; m < 4; m++) // Mutation count
-			{
-				var tries = triesPerMutation;//200;
-				do
-				{
-					genome = Mutate(source.RandomSelectOne(), m);
-					hash = genome == null ? null : genome.Hash;
-				}
-				while ((hash == null || _previousGenomes.ContainsKey(hash)) && --tries != 0);
-
-				if (tries != 0)
-					return true;
-			}
-			return false;
-		}
-
-
-		protected abstract TGenome MutateInternal(TGenome target);
-
-		protected TGenome Mutate(TGenome source, uint mutations = 1)
+		protected TGenome Mutate(TGenome source, byte mutations = 1)
 		{
 			TGenome genome = null;
-			for (uint i = 0; i < mutations; i++)
+			while (mutations != 0)
 			{
-				uint tries = 3;
-				do
+				byte tries = 3;
+				while (tries != 0 && genome == null)
 				{
 					genome = MutateInternal(source);
+					--tries;
 				}
-				while (genome == null && --tries != 0);
 				// Reuse the clone as the source 
-				if (genome == null) break; // No mutation possible? :/
+				if (genome == null) break; // No single mutation possible? :/
 				source = genome;
+				--mutations;
 			}
 			return genome;
 		}
 
-		protected void Register(TGenome genome)
+
+		protected abstract TGenome[] CrossoverInternal(TGenome a, TGenome b);
+
+		public bool AttemptNewCrossover(TGenome a, TGenome b, out TGenome[] offspring, byte maxAttempts = 3)
 		{
-			var hash = genome.Hash;
-			if (_previousGenomes.TryAdd(hash, genome))
+			while (maxAttempts != 0)
 			{
-				_previousGenomesOrder.Enqueue(hash);
+				offspring = CrossoverInternal(a, b)?.Where(g => !_previousGenomes.ContainsKey(g.Hash)).ToArray();
+				if (offspring != null && offspring.Length != 0) return true;
+				--maxAttempts;
 			}
+
+			offspring = null;
+			return false;
 		}
 
+		// Random matchmaking...  It's possible to include repeats in the source to improve their chances. Possile O(n!) operaion.
+		public bool AttemptNewCrossover(IEnumerable<TGenome> source, out TGenome[] offspring, byte maxAttemptsPerCombination = 3)
+		{
+			if (source == null)
+				throw new ArgumentNullException("source");
+			var s = source as TGenome[] ?? source.ToArray();
+			if (s.Length == 2 && s[0] != s[1]) return AttemptNewCrossover(s[0], s[1], out offspring, maxAttemptsPerCombination);
+			if (s.Length <= 2)
+				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
+			bool isFirst = true;
+			do
+			{
+				// Take one.
+				var a = s.RandomSelectOne();
+				// Get all others (in orignal order/duplicates).
+				var s1 = s.Where(g => g != a).ToArray();
+
+				// Any left?
+				while (s1.Length != 0)
+				{
+					isFirst = false;
+					var b = s1.RandomSelectOne();
+					if (AttemptNewCrossover(a, b, out offspring, maxAttemptsPerCombination)) return true;
+					// Reduce the possibilites.
+					s1 = s1.Where(g => g != b).ToArray();
+				}
+
+				if (isFirst) // There were no other available candicates to cross over with. :(
+					throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
+
+				// Okay so we've been through all of them with 'a' Now move on to another.
+				s = s.Where(g => g != a).ToArray();
+			}
+			while (s.Length > 1); // Less than 2 left? Then we have no other options.
+
+			offspring = null;
+
+			return false;
+		}
 	}
 
-
-	public class GenomeProducer<TGenome> : ISourceBlock<TGenome>
-		where TGenome : IGenome
-	{
-
-		BufferBlock<TGenome> EnqueuedBuffer = new BufferBlock<TGenome>();
-		BufferBlock<TGenome> ProduceBuffer = new BufferBlock<TGenome>(new DataflowBlockOptions { BoundedCapacity = 100 });
-		BufferBlock<TGenome> OutputBuffer;
-
-		ActionBlock<bool> Producer;
-		HashSet<string> Registry = new HashSet<string>();
-
-		private GenomeProducer(IEnumerator<TGenome> source, int bufferSize = 100)
-		{
-			OutputBuffer = new BufferBlock<TGenome>(new DataflowBlockOptions
-			{
-				BoundedCapacity = bufferSize
-			});
-			// Should make the enqueue buffer the priority.
-			EnqueuedBuffer.LinkTo(OutputBuffer);
-			ProduceBuffer.LinkTo(OutputBuffer);
-
-			Producer = new ActionBlock<bool>(async retry =>
-			{
-				int attempts = 0;
-				bool more = false;
-				while (attempts++ < 20 && (more = source.MoveNext()))
-				{
-					var next = source.Current;
-					if (next != null)
-					{
-						var hash = next.Hash;
-						if (Registry.Contains(hash)) continue;
-						// Try and reserve this hash.
-						lock (Registry)
-						{
-							// Don't own it? :(
-							if (!Registry.Add(hash)) continue;
-						}
-						// Console.WriteLine("Produce Buffer: " + ProduceBuffer.Count);
-						// Producer magic happens here...
-						if (await ProduceBuffer.SendAsync(next))
-						{
-							attempts = 0;
-						}
-						else
-						{
-							lock (Registry) Registry.Remove(hash);
-							// This does not mean postponed.  Should have not rejected unless complete.
-							more = false;
-							break;
-						}
-					}
-				}
-
-				if (!more)
-				{
-					Producer.Complete();
-					ProduceBuffer.Complete();
-				}
-				else
-				{
-					Producer.Post(true);
-				}
-			});
-
-			Producer.Post(true);
-		}
-
-		public GenomeProducer(
-			IEnumerable<TGenome> source,
-			int bufferSize = 100) : this(source.PreCache(20).GetEnumerator(), bufferSize)
-		{
-
-		}
-
-		bool TryEnqueueInternal(BufferBlock<TGenome> target, TGenome genome)
-		{
-			bool queued = false;
-			if (genome != null)
-			{
-				var hash = genome.Hash;
-				if (!Registry.Contains(hash))
-				{
-					lock (Registry)
-					{
-						if (!Registry.Contains(hash) && target.Post(genome))
-						{
-							queued = Registry.Add(genome.Hash);
-							Debug.Assert(queued);
-						}
-					}
-				}
-			}
-			return queued;
-		}
-
-		public bool TryEnqueue(TGenome genome)
-		{
-			return TryEnqueueInternal(EnqueuedBuffer, genome);
-		}
-
-		// bool TryEnqueueProduction(TGenome genome)
-		// {
-		// 	return TryEnqueueInternal(ProduceBuffer, genome);
-		// }
-
-		public Task Completion
-		{
-			get
-			{
-				return OutputBuffer.Completion;
-			}
-		}
-
-		public void Complete()
-		{
-			Producer.Complete();
-			ProduceBuffer.Complete();
-			EnqueuedBuffer.Complete();
-			OutputBuffer.Complete();
-		}
-
-		public TGenome ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TGenome> target, out bool messageConsumed)
-		{
-			return ((ISourceBlock<TGenome>)OutputBuffer).ConsumeMessage(messageHeader, target, out messageConsumed);
-		}
-
-		public void Fault(Exception exception)
-		{
-			((ISourceBlock<TGenome>)OutputBuffer).Fault(exception);
-		}
-
-		public IDisposable LinkTo(ITargetBlock<TGenome> target, DataflowLinkOptions linkOptions)
-		{
-			return OutputBuffer.LinkTo(target, linkOptions);
-		}
-
-		public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<TGenome> target)
-		{
-			((ISourceBlock<TGenome>)OutputBuffer).ReleaseReservation(messageHeader, target);
-		}
-
-		public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<TGenome> target)
-		{
-			return ((ISourceBlock<TGenome>)OutputBuffer).ReserveMessage(messageHeader, target);
-		}
-
-	}
 
 }
 

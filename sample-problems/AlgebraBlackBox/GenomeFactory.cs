@@ -31,7 +31,7 @@ namespace AlgebraBlackBox
 			return Freeze(result);
 		}
 
-		public override Genome Generate(IEnumerable<Genome> source = null)
+		public override Genome GenerateOne(IEnumerable<Genome> source = null)
 		{
 			var attempts = 0;
 			Genome genome = null;
@@ -47,7 +47,7 @@ namespace AlgebraBlackBox
 
 			if (genome == null)
 			{
-				for (uint m = 1; m < 4; m++)
+				for (byte m = 1; m < 4; m++)
 				{
 
 					// Establish a maximum.
@@ -60,7 +60,7 @@ namespace AlgebraBlackBox
 							genome = this.GenerateParamOnly(paramCount);
 							hash = genome.Hash;
 							attempts++;
-							if (!_previousGenomes.ContainsKey(hash)) break;
+							if (!Exists(hash)) break;
 						}
 
 						paramCount += 1; // Operators need at least 2 params to start.
@@ -69,7 +69,7 @@ namespace AlgebraBlackBox
 							genome = this.GenerateOperated(paramCount + 1);
 							hash = genome.Hash;
 							attempts++;
-							if (!_previousGenomes.ContainsKey(hash)) break;
+							if (!Exists(hash)) break;
 						}
 
 						var t = Math.Min(_previousGenomes.Count * 2, 100); // A local maximum.
@@ -79,7 +79,7 @@ namespace AlgebraBlackBox
 							hash = genome.Hash;
 							attempts++;
 						}
-						while (_previousGenomes.ContainsKey(hash) && --t != 0);
+						while (Exists(hash) && --t != 0);
 
 						// t==0 means nothing found :(
 						if (t != 0) break;
@@ -463,7 +463,7 @@ namespace AlgebraBlackBox
 		{
 			if (target == null) return null;
 			target.RegisterVariations(GenerateVariations(target));
-			target.RegisterMutations(Mutator(target));
+			target.RegisterMutations(Mutate(target));
 			target.Freeze();
 			return target;
 		}
@@ -627,5 +627,10 @@ namespace AlgebraBlackBox
 		{
 			return Freeze(MutateUnfrozen(target));
 		}
-	}
+
+        protected override Genome[] CrossoverInternal(Genome a, Genome b)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

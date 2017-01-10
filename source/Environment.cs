@@ -37,7 +37,7 @@ namespace GeneticAlgorithmPlatform
 			PoolSize = poolSize;
 			Factory = genomeFactory;
 			Problem = problem;
-			Producer = new GenomeProducer<TGenome>(Factory.Generator());
+			Producer = new GenomeProducer<TGenome>(Factory.Generate());
 
 			var pipelineBuilder = new GenomePipelineBuilder<TGenome>(Producer, problem, poolSize, nodeSize, selected =>
 			{
@@ -123,7 +123,7 @@ namespace GeneticAlgorithmPlatform
 
 		protected virtual IEnumerable<TGenome> Breed(TGenome genome)
 		{
-			var m = Factory.Generate(genome);
+			var m = Factory.GenerateOne(genome);
 			if (m != null) yield return m;
 			var v = (TGenome)genome.NextVariation();
 			if (v != null) yield return v;

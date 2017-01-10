@@ -8,28 +8,26 @@ using System.Collections.Generic;
 
 namespace GeneticAlgorithmPlatform
 {
-    public interface IGenomeFactory<TGenome>
+	public interface IGenomeFactory<TGenome>
 	 where TGenome : class, IGenome
 	{
 
-		TGenome Generate(TGenome source);
+		TGenome GenerateOne(TGenome source);
 
-		TGenome Generate(IEnumerable<TGenome> source = null);
+		TGenome GenerateOne(IEnumerable<TGenome> source = null);
 
-		bool AttemptNewMutation(TGenome source, out TGenome mutation, int triesPerMutation = 10);
+		IEnumerable<TGenome> Generate(TGenome source);
 
-		bool AttemptNewMutation(IEnumerable<TGenome> source, out TGenome mutation, int triesPerMutation = 10);
+		IEnumerable<TGenome> Generate(IEnumerable<TGenome> source = null);
 
-		IEnumerable<TGenome> Generator();
-		IEnumerable<TGenome> Mutator(TGenome source);
+		bool AttemptNewMutation(TGenome source, out TGenome mutation, byte triesPerMutationLevel = 5, byte maxMutations = 3);
 
-		// TGenome Generate(IEnumerable<TGenome> source = null);
-		// Task<TGenome> GenerateAsync(IEnumerable<TGenome> source = null);
-		// Task<TGenome> MutateAsync(TGenome source, uint mutations = 1);
-		// uint MaxGenomeTracking { get; set; }
-		// string[] PreviousGenomes { get; }
-		// TGenome GetPrevious(string hash);
-		// Task TrimPreviousGenomes();
-		// void Add(TGenome genome);
+		bool AttemptNewMutation(IEnumerable<TGenome> source, out TGenome mutation, byte triesPerMutationLevel = 5, byte maxMutations = 3);
+
+		IEnumerable<TGenome> Mutate(TGenome source);
+
+		bool AttemptNewCrossover(TGenome a, TGenome b, out TGenome[] offspring, byte maxAttempts = 3);
+		
+		bool AttemptNewCrossover(IEnumerable<TGenome> source, out TGenome[] offspring, byte maxAttemptsPerCombination = 3);
 	}
 }

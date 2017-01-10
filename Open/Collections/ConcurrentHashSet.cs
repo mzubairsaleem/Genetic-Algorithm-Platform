@@ -1,92 +1,69 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Collections;
 using Open.Threading;
 
 namespace Open.Collections
 {
-	public class ConcurrentHashSet<T> : DisposableBase, IEnumerable<T>
+    public class ConcurrentHashSet<T> : ConcurrentCollectionBase<T, HashSet<T>>, ISet<T>
 	{
-		private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-		private readonly HashSet<T> _hashSet = new HashSet<T>();
 
-		#region Implementation of ICollection<T> ...ish
-		public bool Add(T item)
+		public ConcurrentHashSet() : base(new HashSet<T>()) { }
+		public ConcurrentHashSet(IEnumerable<T> collection) : base(new HashSet<T>(collection)) { }
+		public ConcurrentHashSet(IEnumerable<T> collection, IEqualityComparer<T> comparer) : base(new HashSet<T>(collection, comparer)) { }
+
+		public new bool Add(T item)
 		{
-			return _lock.Write(() => _hashSet.Add(item));
+			return Sync.Write(() => Source.Add(item));
 		}
 
-		public void Clear()
-		{
-			_lock.Write(() => _hashSet.Clear());
-		}
+        public void ExceptWith(IEnumerable<T> other)
+        {
+		   Sync.Write(() => Source.ExceptWith(other));
+        }
 
-		public bool Contains(T item)
-		{
-			return _lock.ReadValue(() => _hashSet.Contains(item));
-		}
+        public void IntersectWith(IEnumerable<T> other)
+        {
+			Sync.Write(() =>Source.IntersectWith(other));
+        }
 
-		public bool Remove(T item)
-		{
-			bool result = false;
-			return _lock.ReadWriteConditionalOptimized(
-				lockType => result = _hashSet.Contains(item),
-				() => result = _hashSet.Remove(item));
-		}
+        public bool IsProperSubsetOf(IEnumerable<T> other)
+        {
+			return Sync.ReadValue(() => Source.IsProperSubsetOf(other));
+        }
 
-		public int Count
-		{
-			get
-			{
-				return _lock.ReadValue(() => _hashSet.Count);
-			}
-		}
+        public bool IsProperSupersetOf(IEnumerable<T> other)
+        {
+			return Sync.ReadValue(() => Source.IsProperSupersetOf(other));
+        }
 
-		public T[] ToArrayDirect()
-		{
-			var result = _lock.ReadValue(() => _hashSet.ToArray());
-			return result;
-		}
+        public bool IsSubsetOf(IEnumerable<T> other)
+        {
+			return Sync.ReadValue(() => Source.IsSubsetOf(other));
+        }
 
-		public void Export(HashSet<T> to)
-		{
-			_lock.Read(() => to.Add(_hashSet));
-		}
+        public bool IsSupersetOf(IEnumerable<T> other)
+        {
+			return Sync.ReadValue(() => Source.IsSupersetOf(other));
+        }
 
-		#endregion
+        public bool Overlaps(IEnumerable<T> other)
+        {
+			return Sync.ReadValue(() => Source.Overlaps(other));
+        }
 
-		#region Dispose
-		protected override void OnDispose(bool calledExplicitly)
-		{
-			_lock.Dispose();
-		}
+        public bool SetEquals(IEnumerable<T> other)
+        {
+			return Sync.ReadValue(() => Source.SetEquals(other));
+        }
 
-		public HashSet<T> DisposeAndExtract()
-		{
+        public void SymmetricExceptWith(IEnumerable<T> other)
+        {
+			Sync.Write(() => Source.SymmetricExceptWith(other));
+        }
 
-			Dispose();
-			return _hashSet;
-		}
-		#endregion
+        public void UnionWith(IEnumerable<T> other)
+        {
+			Sync.Write(() => Source.UnionWith(other));
+        }
 
-		#region IEnumerable<T> Members
-
-		public IEnumerator<T> GetEnumerator()
-		{
-			return ((IEnumerable<T>)this.ToArrayDirect()).GetEnumerator();
-		}
-
-		#endregion
-
-		#region IEnumerable Members
-
-
-		IEnumerator IEnumerable.GetEnumerator()
-		{
-			return (IEnumerator)this.GetEnumerator();
-		}
-
-		#endregion
-	}
+    }
 }
