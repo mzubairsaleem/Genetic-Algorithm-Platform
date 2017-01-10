@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -10,21 +11,29 @@ using Open.Collections;
 namespace GeneticAlgorithmPlatform
 {
 
-	public class SingleFitness
-	// : IComparable<SingleFitness>
+	public class SingleFitness : IComparable<SingleFitness>
 	{
+		readonly double _maxScore;
+		readonly double _2xMaxScore;
 		ProcedureResult _result;
 		object _sync = new Object();
-		public SingleFitness(IEnumerable<double> scores = null) : this(new ProcedureResult(0, 0))
+		public SingleFitness(IEnumerable<double> scores = null, double maxScore = 1) : this(new ProcedureResult(0, 0), maxScore)
 		{
 			if (scores != null)
 				Add(scores);
 		}
 
-		public SingleFitness(ProcedureResult initial) : base()
+		public SingleFitness(ProcedureResult initial, double maxScore = 1) : base()
 		{
 			_result = initial;
+			_maxScore = maxScore;
+			_2xMaxScore = 2 * maxScore;
 		}
+
+		public SingleFitness(double maxScore) : this(null, maxScore)
+		{
+		}
+
 
 		public ProcedureResult Result
 		{
@@ -34,9 +43,15 @@ namespace GeneticAlgorithmPlatform
 
 		public void Add(double value, int count = 1)
 		{
+			if (count < 0)
+				throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative.");
+
+			Debug.Assert(count > 0, "Must add a value greater than zero.");
 			if (count != 0)
 			{
+
 				Debug.Assert(!double.IsNaN(value), "Adding a NaN value will completely invalidate the fitness value.");
+				Debug.Assert(value <= _maxScore, "Adding a score that is above the maximum will potentially invalidate the current run.");
 				// Ensures 1 update at a time.
 				lock (_sync) _result = _result.Add(value, count);
 			}
@@ -45,6 +60,7 @@ namespace GeneticAlgorithmPlatform
 		public void Add(ProcedureResult other)
 		{
 			Debug.Assert(!double.IsNaN(other.Average), "Adding a NaN value will completely invalidate the fitness value.");
+			Debug.Assert(other.Average <= _maxScore, "Adding a score that is above the maximum will potentially invalidate the current run.");
 			// Ensures 1 update at a time.
 			lock (_sync) _result += other;
 		}
@@ -61,14 +77,25 @@ namespace GeneticAlgorithmPlatform
 			Add(sum, count);
 		}
 
-		// public int CompareTo(SingleFitness b)
-		// {
-		// 	if (this == b) return 0;
-		// 	if (b == null)
-		// 		throw new ArgumentNullException("other");
+		// Allow for custom comparison of individual fitness types.
+		// By default, it' simply the average regardless of number of samples.
+		public virtual int CompareTo(SingleFitness other)
+		{
+			if (this == other) return 0;
+			if (other == null)
+				throw new ArgumentNullException("other");
 
-		// 	return _result.CompareTo(b._result);
-		// }
+			// Check for weird averages that push the values above maximum and adjust.  (Bounce off the barrier.)   See above for debug assertions.
+
+			var a = _result;
+			if (a.Average > _maxScore)
+				a = new ProcedureResult((_2xMaxScore - a.Average) * a.Count, a.Count);
+			var b = other._result;
+			if (b.Average > _maxScore)
+				b = new ProcedureResult((_2xMaxScore - b.Average) * b.Count, b.Count);
+
+			return a.CompareTo(b);
+		}
 
 	}
 
@@ -82,11 +109,12 @@ namespace GeneticAlgorithmPlatform
 		long ID { get; }
 
 		ProcedureResult GetResult(int index);
+		double GetScore(int index);
 	}
 
 	public struct FitnessScore : IFitness
 	{
-		readonly List<ProcedureResult> _results;
+		readonly ProcedureResult[] _results;
 
 		public FitnessScore(IFitness source)
 		{
@@ -94,10 +122,10 @@ namespace GeneticAlgorithmPlatform
 			Count = len;
 			ID = source.ID;
 			SampleCount = source.SampleCount;
-			Scores = source.Scores;
-			_results = new List<ProcedureResult>();
+			var results = _results = new ProcedureResult[len];
 			for (var i = 0; i < len; i++)
-				_results.Add(source.GetResult(i));
+				results[i] = source.GetResult(i);
+			_scores = Lazy.New(() => results.Select(s => s.Average).ToList().AsReadOnly());
 		}
 
 		public int Count
@@ -118,10 +146,13 @@ namespace GeneticAlgorithmPlatform
 			private set;
 		}
 
+		Lazy<ReadOnlyCollection<double>> _scores;
 		public IReadOnlyList<double> Scores
 		{
-			get;
-			private set;
+			get
+			{
+				return _scores.Value;
+			}
 		}
 
 		public int CompareTo(IFitness other)
@@ -132,6 +163,11 @@ namespace GeneticAlgorithmPlatform
 		public ProcedureResult GetResult(int index)
 		{
 			return _results[index];
+		}
+
+		public double GetScore(int index)
+		{
+			return _results[index].Average;
 		}
 	}
 
@@ -157,11 +193,17 @@ namespace GeneticAlgorithmPlatform
 			return this[index].Result;
 		}
 
+		public double GetScore(int index)
+		{
+			return GetResult(index).Average;
+		}
+
 		public IReadOnlyList<double> Scores
 		{
 			get
 			{
-				return Sync.Reading(() => this.Select(v => v.Result.Average).ToList()).AsReadOnly();
+				return Sync.Reading(() => this.Select(v => v.Result.Average).ToList())
+					.AsReadOnly();
 			}
 		}
 
@@ -200,10 +242,12 @@ namespace GeneticAlgorithmPlatform
 
 		public void Merge(IFitness other)
 		{
+			AssertIsLiving();
+
 			if (other.Count == 0)
 				return; // Nothing to add.
 
-			if (Count != 0 && other.Count != this.Count)
+			if (Count != 0 && other.Count != Count)
 				throw new InvalidOperationException("Cannot add fitness values where the count doesn't match.");
 
 			Sync.Modifying(() =>
@@ -213,7 +257,7 @@ namespace GeneticAlgorithmPlatform
 				{
 					var r = other.GetResult(i);
 					if (i < _source.Count) _source[i].Add(r);
-					else this.Add(r);
+					else _source.Add(new SingleFitness(r));
 				}
 			});
 
@@ -223,6 +267,26 @@ namespace GeneticAlgorithmPlatform
 			this.AddTheseScores(scores);
 		}
 
+		// Allowing for a rejection count opens the possiblity for a second chance.
+
+		int _rejectionCount;
+		public int RejectionCount
+		{
+			get
+			{
+				return _rejectionCount;
+			}
+			set
+			{
+				Interlocked.Exchange(ref _rejectionCount, value);
+			}
+		}
+
+		public void IncrementRejection()
+		{
+			Interlocked.Increment(ref _rejectionCount);
+		}
+
 		static long FitnessCount = 0;
 		public long ID
 		{
@@ -230,7 +294,7 @@ namespace GeneticAlgorithmPlatform
 			private set;
 		}
 
-		internal int TestingCount = 0;
+		// internal int TestingCount = 0;
 
 		// Some cases enumerables are easier to sort in ascending than descending so "Top" in this respect means 'First'.
 		public const int ORDER_DIRECTION = -1;
@@ -275,7 +339,7 @@ namespace GeneticAlgorithmPlatform
 				// It's also possible to fail adding because NaN so avoid.
 				if (xLen == 0 && yLen != 0) return -ORDER_DIRECTION;
 				if (xLen != 0 && yLen == 0) return +ORDER_DIRECTION;
-				Debug.Assert(xLen == y.Count, "Fitnesses must be compatible.");
+				Debug.Assert(xLen == yLen, "Fitnesses must be compatible.");
 
 				// In non-debug, all for the lesser scored to be of lesser importance.
 				if (xLen < yLen) return -ORDER_DIRECTION;
@@ -283,23 +347,8 @@ namespace GeneticAlgorithmPlatform
 
 				for (var i = 0; i < xLen; i++)
 				{
-					var a = x.GetResult(i);
-					var b = y.GetResult(i);
-					var aA = a.Average;
-					var bA = b.Average;
-
-					// Check for weird averages that push the values above maximum and adjust (1).
-					if (aA > 1) aA -= aA - 1;
-					if (bA > 1) bA -= bA - 1;
-
-					// Standard A less than B.
-					if (aA < bA || double.IsNaN(aA) && !double.IsNaN(bA)) return -ORDER_DIRECTION;
-					// Standard A greater than B.
-					if (aA > bA || !double.IsNaN(aA) && double.IsNaN(bA)) return +ORDER_DIRECTION;
-
-					// Who has the most samples?
-					if (a.Count < b.Count) return -ORDER_DIRECTION;
-					if (a.Count > b.Count) return +ORDER_DIRECTION;
+					var c = x.GetResult(i).CompareTo(y.GetResult(i));
+					if (c != 0) return c * ORDER_DIRECTION;
 				}
 			}
 
@@ -308,6 +357,7 @@ namespace GeneticAlgorithmPlatform
 
 		public static int IdComparison(IFitness x, IFitness y)
 		{
+			if (x == y) return 0;
 			if (x.ID < y.ID) return +ORDER_DIRECTION;
 			if (x.ID > y.ID) return -ORDER_DIRECTION;
 			return 0;
