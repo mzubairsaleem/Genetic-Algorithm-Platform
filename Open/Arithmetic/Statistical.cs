@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Open.Arithmetic
 {
-    public static class Statistical
+	public static class Statistical
 	{
 		public static double Variance(this IEnumerable<double> source)
 		{
