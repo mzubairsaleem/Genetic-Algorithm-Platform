@@ -31,8 +31,8 @@ namespace GeneticAlgorithmPlatform
 				BoundedCapacity = bufferSize
 			});
 			// Should make the enqueue buffer the priority.
-			EnqueuedBuffer.LinkTo(OutputBuffer);
-			ProduceBuffer.LinkTo(OutputBuffer);
+			EnqueuedBuffer.LinkTo(OutputBuffer, new DataflowLinkOptions() { PropagateCompletion = true });
+			ProduceBuffer.LinkTo(OutputBuffer, new DataflowLinkOptions() { PropagateCompletion = true });
 
 			Producer = new ActionBlock<bool>(async retry =>
 			{
@@ -83,7 +83,7 @@ namespace GeneticAlgorithmPlatform
 
 		public GenomeProducer(
 			IEnumerable<TGenome> source,
-			int bufferSize = 100) : this(source.PreCache(20).GetEnumerator(), bufferSize)
+			int bufferSize = 100) : this(source.PreCache(200).GetEnumerator(), bufferSize)
 		{
 
 		}

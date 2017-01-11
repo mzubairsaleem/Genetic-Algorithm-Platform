@@ -33,7 +33,7 @@ namespace Open.DataFlow
 				foreach (var value in array)
 					output.Post(value);
 			});
-			source.LinkTo(input);
+			source.LinkTo(input, new DataflowLinkOptions() { PropagateCompletion = true });
 
 			return output;
 		}

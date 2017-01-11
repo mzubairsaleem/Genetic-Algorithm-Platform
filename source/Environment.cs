@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks.Dataflow;
 using Open.Arithmetic;
-using Open.DataFlow;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -54,15 +53,6 @@ namespace GeneticAlgorithmPlatform
 			var pipeline = pipelineBuilder.CreateNetwork(networkDepth); // 3? Start small?
 			ActionBlock<TGenome> vipPool = null;
 
-			Action<TGenome> complete = genome =>
-			{
-				TopGenome.Post(genome);
-				TopGenome.Complete();
-				FinalistPool.Complete();
-				Producer.Complete();
-				vipPool.Complete();
-				pipeline.Complete();
-			};
 
 			Func<TGenome, bool> checkForConvergence = genome =>
 			{
@@ -70,7 +60,8 @@ namespace GeneticAlgorithmPlatform
 				var count = fitness.SampleCount;
 				if (fitness.HasConverged(ConvergenceThreshold))
 				{
-					complete(genome);
+					TopGenome.Post(genome);
+					pipeline.Complete();
 					return true;
 				}
 				return false;
@@ -114,7 +105,7 @@ namespace GeneticAlgorithmPlatform
 
 					// Crossover.
 					TGenome[] o2;
-					if (Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected.Skip(1)).ToArray(), out o2))
+					if (Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected).ToArray(), out o2))
 					{
 						foreach (var o in o2)
 							Producer.TryEnqueue(o);
@@ -126,8 +117,21 @@ namespace GeneticAlgorithmPlatform
 					FinalistPool.Post(g); // Might need to look at the whole pool and use pareto to retain.
 			});
 
-			pipeline.LinkTo(FinalistPool);
+			FinalistPool.Completion.ContinueWith(task =>
+			{
+				if (task.IsFaulted) ((IDataflowBlock)TopGenome).Fault(task.Exception.InnerException);
+				else TopGenome.Complete();
+				vipPool.Complete();
+				pipeline.Complete();
+			});
 
+			pipeline.LinkTo(FinalistPool, new DataflowLinkOptions() { PropagateCompletion = true });
+			pipeline.Completion.ContinueWith(task =>
+			{
+				Console.WriteLine("Pipeline COMPLETED");
+				Producer.Complete();
+				FinalistPool.Complete();
+			});
 		}
 
 		protected virtual IEnumerable<TGenome> Breed(TGenome genome)

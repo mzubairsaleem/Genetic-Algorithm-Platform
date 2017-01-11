@@ -7,8 +7,8 @@ using System.Threading.Tasks.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {
-	// GenomeSelection should be short lived.
-	public struct GenomeSelection<TGenome>
+    // GenomeSelection should be short lived.
+    public struct GenomeSelection<TGenome>
 	{
 		public readonly TGenome[] Rejected;
 		public readonly TGenome[] Selected;
@@ -51,7 +51,7 @@ namespace GeneticAlgorithmPlatform
 				MaxDegreeOfParallelism = 2
 			});
 
-			input.LinkTo(output);
+			input.LinkTo(output, new DataflowLinkOptions() { PropagateCompletion = true });
 
 			return DataflowBlock.Encapsulate(input, output);
 		}
@@ -106,6 +106,10 @@ namespace GeneticAlgorithmPlatform
 				BoundedCapacity = size
 			});
 
+			input.Completion.ContinueWith(task =>
+			{
+				if (task.IsFaulted) ((IDataflowBlock)output).Fault(task.Exception.InnerException);
+			});
 
 			return DataflowBlock.Encapsulate(input, output);
 		}
@@ -150,7 +154,7 @@ namespace GeneticAlgorithmPlatform
 
 			var processor = Processor(problem.TestProcessor, size);
 			var selector = Selector(problem);
-			processor.LinkTo(selector);
+			processor.LinkTo(selector, new DataflowLinkOptions() { PropagateCompletion = true });
 
 			return DataflowBlock.Encapsulate(processor, selector);
 		}
@@ -175,7 +179,18 @@ namespace GeneticAlgorithmPlatform
 			}, new ExecutionDataflowBlockOptions()
 			{
 				MaxDegreeOfParallelism = 2
-			}));
+			}),
+				new DataflowLinkOptions() { PropagateCompletion = true }
+			);
+			input.Completion.ContinueWith(task =>
+			{
+				if (task.IsFaulted && !selected.Completion.IsFaulted)
+				{
+					selected.Fault(task.Exception.InnerException);
+					if (rejected != null)
+						rejected.Fault(task.Exception.InnerException);
+				}
+			});
 			return input;
 		}
 
@@ -208,11 +223,27 @@ namespace GeneticAlgorithmPlatform
 				if (globalHandler != null)
 					globalHandler(selected);
 			});
+			processor.Completion.ContinueWith(task =>
+			{
+				if (task.IsFaulted)
+				{
+					if (!output.Completion.IsFaulted)
+						((IDataflowBlock)output).Fault(task.Exception.InnerException);
+				}
+			});
 			foreach (var source in sources)
 			{
 				source.LinkTo(processor);
+				source.Completion.ContinueWith(task =>
+				{
+					if (task.IsFaulted)
+					{
+						if (!processor.Completion.IsFaulted)
+							processor.Fault(task.Exception.InnerException);
+					}
+				});
 			}
-
+			//x.Fault(new Exception("HERE I AM"));
 			return output;
 		}
 

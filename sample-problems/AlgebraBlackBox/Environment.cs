@@ -22,8 +22,11 @@ namespace AlgebraBlackBox
 				yield return g;
 			var r = genome.AsReduced();
 			Debug.Assert(r != null);
-			if (r != genome)
+			if (r != genome) {
+				yield return (Genome)r.NextVariation();
+				yield return (Genome)r.NextMutation();
 				yield return r;
+			}
 		}
 
 	}

@@ -7,7 +7,7 @@ using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
-	public class Program
+    public class Program
 	{
 		static double AB(params double[] p)
 		{
@@ -32,7 +32,7 @@ namespace GeneticAlgorithmPlatform
 		static readonly double[] OneOne = new double[] { 1, 1 };
 		public static void Main(string[] args)
 		{
-
+			Console.WriteLine("Starting...");
 			// // Througput test...
 			// var factory = new AlgebraBlackBox.GenomeFactory();
 			// Parallel.ForEach(factory.Generate(),g=>{
@@ -70,7 +70,9 @@ namespace GeneticAlgorithmPlatform
 			};
 
 			bool converged = false;
-			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats));
+			env.TopGenome.LinkTo(
+				new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats),
+				new DataflowLinkOptions() { PropagateCompletion = true });
 
 			Task.Run(async () =>
 			{
@@ -87,7 +89,10 @@ namespace GeneticAlgorithmPlatform
 				converged = true;
 				emitStats();
 				Console.WriteLine();
-				Console.WriteLine("Converged.");
+				if (task.IsFaulted)
+					Console.WriteLine(task.Exception.GetBaseException());
+				else
+					Console.WriteLine("Converged.");
 			}).Wait();
 
 		}
