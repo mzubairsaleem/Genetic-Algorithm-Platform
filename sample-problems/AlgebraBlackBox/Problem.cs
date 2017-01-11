@@ -105,7 +105,8 @@ namespace AlgebraBlackBox
 			}
 			else
 			{
-				var c = correct.Correlation(calc.Where(v => !double.IsNaN(v)));
+				var c = correct.Correlation(calc);
+				if(c>1) c = 3 - 2*c; // Correlation compensation for double precision insanity.
 				var d = divergence.Where(v => !double.IsNaN(v)).Average() + 1;
 
 				fitness.AddScores(
