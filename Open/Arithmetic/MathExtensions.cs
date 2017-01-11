@@ -69,8 +69,8 @@ namespace Open.Arithmetic
 		/// <returns>32 bit integer</returns>
 		public static int AsInteger(this bool[] source)
 		{
-			if(source==null) throw new NullReferenceException();
-			if(source.Length>32) throw new ArgumentOutOfRangeException("Array cannot be greater than 32 bits.");
+			if (source == null) throw new NullReferenceException();
+			if (source.Length > 32) throw new ArgumentOutOfRangeException("Array cannot be greater than 32 bits.");
 
 			int result = 0;
 
@@ -88,8 +88,8 @@ namespace Open.Arithmetic
 		/// <returns>32 bit integer</returns>
 		public static long AsLong(this bool[] source)
 		{
-			if(source==null) throw new NullReferenceException();
-			if(source.Length>64) throw new ArgumentOutOfRangeException("Array cannot be greater than 32 bits.");
+			if (source == null) throw new NullReferenceException();
+			if (source.Length > 64) throw new ArgumentOutOfRangeException("Array cannot be greater than 32 bits.");
 
 			long result = 0;
 
@@ -102,14 +102,14 @@ namespace Open.Arithmetic
 
 		public static double Product(this IEnumerable<double> source)
 		{
-			
-			if(source==null) throw new NullReferenceException();
+
+			if (source == null) throw new NullReferenceException();
 
 			var any = false;
 			var result = 1d;
 			foreach (var s in source)
 			{
-				if(double.IsNaN(s)) return double.NaN;
+				if (double.IsNaN(s)) return double.NaN;
 				any = true;
 				result *= s;
 			}
@@ -117,53 +117,73 @@ namespace Open.Arithmetic
 			return any ? result : double.NaN;
 		}
 
+		public static double AverageDouble(this IEnumerable<double> source)
+		{
+			double sum = 0;
+			double count = 0;
+			foreach (var s in source)
+			{
+				if (double.IsNaN(s))
+					return double.NaN;
+				sum += s;
+				count++;
+			}
+
+			if (count == 0)
+				return double.NaN;
+
+			return sum / count;
+		}
+
 		public static double Quotient(this IEnumerable<double> source)
 		{
-			if(source==null) throw new NullReferenceException();
+			if (source == null) throw new NullReferenceException();
 
 			var index = 0;
-            var result = double.NaN;
-            foreach (var s in source)
-            {
-				if(double.IsNaN(s)) return double.NaN;	
-                if (index == 0){
-					if(s==0) return 0;
-                    result = s;
+			var result = double.NaN;
+			foreach (var s in source)
+			{
+				if (double.IsNaN(s)) return double.NaN;
+				if (index == 0)
+				{
+					if (s == 0) return 0;
+					result = s;
 				}
-                else {
-                    result /= s;				
+				else
+				{
+					result /= s;
 				}
 
-                index++;
-            }
+				index++;
+			}
 
-            return result;
+			return result;
 		}
 
 
-        public static double QuotientOf(this IEnumerable<double> divisors, double numerator)
-        {
-            var any = false;
-            var result = numerator;
-            foreach (var s in divisors)
-            {
-				if(s==0 || double.IsNaN(s)) return double.NaN;	
-                result /= s;
-                any = true;
-            }
+		public static double QuotientOf(this IEnumerable<double> divisors, double numerator)
+		{
+			var any = false;
+			var result = numerator;
+			foreach (var s in divisors)
+			{
+				if (s == 0 || double.IsNaN(s)) return double.NaN;
+				result /= s;
+				any = true;
+			}
 
-            return any ? result : double.NaN;
-        }
+			return any ? result : double.NaN;
+		}
 
 		public static double Difference(this IEnumerable<double> source)
 		{
-			if(source==null) throw new NullReferenceException();
+			if (source == null) throw new NullReferenceException();
 
 			var any = false;
 			var result = 0d;
 			foreach (var s in source)
 			{
-				if(double.IsNaN(s)) return double.NaN;	
+				if (double.IsNaN(s)) return double.NaN;
 				if (!any)
 					result = s;
 				else
@@ -227,63 +247,63 @@ namespace Open.Arithmetic
 
 
 
-        public static bool IsPrime(this int n)
-        {
-            var a = System.Math.Abs(n);
-            if (a == 2 || a == 3)
-                return true;
+		public static bool IsPrime(this int n)
+		{
+			var a = System.Math.Abs(n);
+			if (a == 2 || a == 3)
+				return true;
 
-            if (a % 2 == 0 || a % 3 == 0)
-                return false;
+			if (a % 2 == 0 || a % 3 == 0)
+				return false;
 
-            var divisor = 6;
-            while (divisor * divisor - 2 * divisor + 1 <= a)
-            {
+			var divisor = 6;
+			while (divisor * divisor - 2 * divisor + 1 <= a)
+			{
 
-                if (a % (divisor - 1) == 0)
-                    return false;
+				if (a % (divisor - 1) == 0)
+					return false;
 
-                if (a % (divisor + 1) == 0)
-                    return false;
+				if (a % (divisor + 1) == 0)
+					return false;
 
-                divisor += 6;
+				divisor += 6;
 
-            }
+			}
 
-            return true;
+			return true;
 
-        }
+		}
 
-        public static bool IsPrime(this double n)
-        {
-            return (System.Math.Floor(n) == n)
-                ? IsPrime((int)n)
-                : false;
-        }
+		public static bool IsPrime(this double n)
+		{
+			return (System.Math.Floor(n) == n)
+				? IsPrime((int)n)
+				: false;
+		}
 
-        public static int NextPrime(this int n)
-        {
-            if(n==0)
-                return 0;
+		public static int NextPrime(this int n)
+		{
+			if (n == 0)
+				return 0;
 
-            if (n < 0)
-            {
-                while (!IsPrime(--n))
-                { }
-            }
-            else
-            {
-                while (!IsPrime(++n))
-                { }
-            }
+			if (n < 0)
+			{
+				while (!IsPrime(--n))
+				{ }
+			}
+			else
+			{
+				while (!IsPrime(++n))
+				{ }
+			}
 
-            return n;
-        }
+			return n;
+		}
 
-        public static int NextPrime(this double a)
-        {
-            return NextPrime((int)a);
-        }
+		public static int NextPrime(this double a)
+		{
+			return NextPrime((int)a);
+		}
 
 
 

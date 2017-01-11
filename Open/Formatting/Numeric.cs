@@ -41,7 +41,7 @@ namespace Open.Formatting
 		}
 
 		/// <summary>
-		/// Shortcut for validating a if a floating point addValue is considered zero (within epsilon tolerance).
+		/// Shortcut for validating a if a floating point value is considered zero (within epsilon tolerance).
 		/// </summary>
 		public static bool IsZero(this float value)
 		{
@@ -49,7 +49,7 @@ namespace Open.Formatting
 		}
 
 		/// <summary>
-		/// Shortcut for validating a if a double tolerance floating point addValue is considered zero (within epsilon tolerance).
+		/// Shortcut for validating a if a double tolerance floating point value is considered zero (within epsilon tolerance).
 		/// </summary>
 		public static bool IsZero(this double value)
 		{
@@ -58,7 +58,7 @@ namespace Open.Formatting
 
 
 		/// <summary>
-		/// Shortcut for validating a if a double tolerance floating point addValue is considered zero (within epsilon tolerance).
+		/// Shortcut for validating a if a double tolerance floating point value is considered zero (within epsilon tolerance).
 		/// </summary>
 		public static bool IsNearZero(this double value, double precision = 0.001)
 		{
@@ -66,7 +66,7 @@ namespace Open.Formatting
 		}
 
 		/// <summary>
-		/// Shortcut for returning true zero if a double tolerance floating point addValue is considered zero (within epsilon tolerance).
+		/// Shortcut for returning true zero if a double tolerance floating point value is considered zero (within epsilon tolerance).
 		/// </summary>
 		public static double FixZero(this double value)
 		{
@@ -100,7 +100,7 @@ namespace Open.Formatting
 
 
 		/// <summary>
-		/// Shortcut for validating a if a floating point addValue is close enough to another addValue using the given tolerance tolerance.
+		/// Shortcut for validating a if a floating point value is close enough to another addValue using the given tolerance tolerance.
 		/// </summary>
 		public static bool IsNearEqual(this float a, float b, float tolerance)
 		{
@@ -108,7 +108,7 @@ namespace Open.Formatting
 		}
 
 		/// <summary>
-		/// Shortcut for validating a if a double precision floating point addValue is close enough to another addValue using the given tolerance tolerance.
+		/// Shortcut for validating a if a double precision floating point value is close enough to another addValue using the given tolerance tolerance.
 		/// </summary>
 		public static bool IsNearEqual(this double a, double b, double tolerance)
 		{

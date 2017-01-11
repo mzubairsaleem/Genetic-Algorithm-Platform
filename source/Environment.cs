@@ -114,7 +114,7 @@ namespace GeneticAlgorithmPlatform
 
 				// The top final pool recycles it's winners.
 				foreach (var g in selected)
-					FinalistPool.Post(g);
+					FinalistPool.Post(g); // Might need to look at the whole pool and use pareto to retain.
 			});
 
 			pipeline.LinkTo(FinalistPool);

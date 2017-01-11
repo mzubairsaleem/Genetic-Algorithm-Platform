@@ -553,7 +553,7 @@ namespace AlgebraBlackBox
 							// Apply a function
 							case 2:
 								// Reduce the pollution of functions...
-								if (RandomUtilities.Random.Next(0, 3) == 0)
+								if (RandomUtilities.Random.Next(0, 2) == 0)
 								{
 									return VariationCatalog
 										.ApplyFunction(target, gene, Operators.GetRandomFunction());
@@ -607,7 +607,7 @@ namespace AlgebraBlackBox
 							// Apply a function
 							case 3:
 								// Reduce the pollution of functions...
-								if (RandomUtilities.Random.Next(0, gene is FunctionGene ? 5 : 3) == 0)
+								if (RandomUtilities.Random.Next(0, gene is FunctionGene ? 4 : 2) == 0)
 								{
 									var f = Operators.GetRandomFunction();
 									// Function of function? Reduce probability even further. Coin toss.
