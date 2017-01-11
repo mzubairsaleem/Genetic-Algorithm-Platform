@@ -4,11 +4,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Open.DataFlow;
 
 namespace GeneticAlgorithmPlatform
 {
-    // GenomeSelection should be short lived.
-    public struct GenomeSelection<TGenome>
+	// GenomeSelection should be short lived.
+	public struct GenomeSelection<TGenome>
 	{
 		public readonly TGenome[] Rejected;
 		public readonly TGenome[] Selected;
@@ -27,6 +28,20 @@ namespace GeneticAlgorithmPlatform
 		public static long UniqueBatchID()
 		{
 			return Interlocked.Increment(ref BatchID);
+		}
+
+		public static TransformBlock<Task<GenomeFitness<TGenome>>[], GenomeFitness<TGenome>[]> Processor<TGenome>()
+			where TGenome : IGenome
+		{
+			return new TransformBlock<Task<GenomeFitness<TGenome>>[], GenomeFitness<TGenome>[]>(async r =>
+			{
+				var a = await Task.WhenAll(r);
+				Array.Sort(a, GenomeFitness.Comparison);
+				return a;
+			}, new ExecutionDataflowBlockOptions
+			{
+				MaxDegreeOfParallelism = 64
+			});
 		}
 
 		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]>
@@ -48,10 +63,10 @@ namespace GeneticAlgorithmPlatform
 						.ToArray());
 			}, new ExecutionDataflowBlockOptions
 			{
-				MaxDegreeOfParallelism = 2
+				MaxDegreeOfParallelism = 32
 			});
 
-			input.LinkTo(output, new DataflowLinkOptions() { PropagateCompletion = true });
+			input.LinkToWithExceptions(output);
 
 			return DataflowBlock.Encapsulate(input, output);
 		}
@@ -65,15 +80,7 @@ namespace GeneticAlgorithmPlatform
 			if (size < 1)
 				throw new ArgumentOutOfRangeException("size", size, "Must be at least 1.");
 
-			var output = new TransformBlock<Task<GenomeFitness<TGenome>>[], GenomeFitness<TGenome>[]>(async r =>
-			{
-				var a = await Task.WhenAll(r);
-				Array.Sort(a, GenomeFitness.Comparison);
-				return a;
-			}, new ExecutionDataflowBlockOptions
-			{
-				MaxDegreeOfParallelism = 2
-			});
+			var output = Processor<TGenome>();
 
 			var sync = new Object();
 			int index = -2;
@@ -103,7 +110,7 @@ namespace GeneticAlgorithmPlatform
 
 			}, new ExecutionDataflowBlockOptions
 			{
-				BoundedCapacity = size
+				BoundedCapacity = size * 2
 			});
 
 			input.Completion.ContinueWith(task =>
@@ -138,6 +145,9 @@ namespace GeneticAlgorithmPlatform
 						rejected[i - selectionPoint] = gf.Genome;
 				}
 				return new GenomeSelection<TGenome>(selected, rejected);
+			}, new ExecutionDataflowBlockOptions()
+			{
+				MaxDegreeOfParallelism = 2
 			});
 		}
 
@@ -154,7 +164,7 @@ namespace GeneticAlgorithmPlatform
 
 			var processor = Processor(problem.TestProcessor, size);
 			var selector = Selector(problem);
-			processor.LinkTo(selector, new DataflowLinkOptions() { PropagateCompletion = true });
+			processor.LinkToWithExceptions(selector);
 
 			return DataflowBlock.Encapsulate(processor, selector);
 		}
@@ -170,27 +180,16 @@ namespace GeneticAlgorithmPlatform
 			if (selected == null)
 				throw new ArgumentNullException("selected");
 
-			var input = Selector(problem, size);
+			var input = Selector(problem, size)
+				.PropagateFaultsTo(selected, rejected);
+
 			input.LinkTo(new ActionBlock<GenomeSelection<TGenome>>(async selection =>
 			{
 				await selected.SendAsync(selection.Selected);
 				if (rejected != null)
 					await rejected.SendAsync(selection.Rejected).ConfigureAwait(false);
-			}, new ExecutionDataflowBlockOptions()
-			{
-				MaxDegreeOfParallelism = 2
-			}),
-				new DataflowLinkOptions() { PropagateCompletion = true }
-			);
-			input.Completion.ContinueWith(task =>
-			{
-				if (task.IsFaulted && !selected.Completion.IsFaulted)
-				{
-					selected.Fault(task.Exception.InnerException);
-					if (rejected != null)
-						rejected.Fault(task.Exception.InnerException);
-				}
-			});
+			}));
+
 			return input;
 		}
 
@@ -215,35 +214,20 @@ namespace GeneticAlgorithmPlatform
 			where TGenome : IGenome
 		{
 			var output = new BufferBlock<TGenome>();
-			var processor = Distributor(problem, size, selected =>
-			{
-				foreach (var g in selected)
-					output.SendAsync(g);
+			var processor = Distributor(problem, size,
+				selected =>
+				{
+					foreach (var g in selected)
+						output.SendAsync(g);
 
-				if (globalHandler != null)
-					globalHandler(selected);
-			});
-			processor.Completion.ContinueWith(task =>
-			{
-				if (task.IsFaulted)
-				{
-					if (!output.Completion.IsFaulted)
-						((IDataflowBlock)output).Fault(task.Exception.InnerException);
-				}
-			});
+					if (globalHandler != null)
+						globalHandler(selected);
+				})
+				.PropagateFaultsTo(output);
+
 			foreach (var source in sources)
-			{
-				source.LinkTo(processor);
-				source.Completion.ContinueWith(task =>
-				{
-					if (task.IsFaulted)
-					{
-						if (!processor.Completion.IsFaulted)
-							processor.Fault(task.Exception.InnerException);
-					}
-				});
-			}
-			//x.Fault(new Exception("HERE I AM"));
+				source.LinkToWithExceptions(processor);
+
 			return output;
 		}
 

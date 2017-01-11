@@ -41,7 +41,7 @@ namespace GeneticAlgorithmPlatform
 
 			// return; 
 			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(SqrtA2B2A2B1, 50, 4);
+			var env = new AlgebraBlackBox.Environment(SqrtA2B2A2B1, 50, 3, 3);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
 			Action emitStats = () =>
@@ -70,9 +70,7 @@ namespace GeneticAlgorithmPlatform
 			};
 
 			bool converged = false;
-			env.TopGenome.LinkTo(
-				new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats),
-				new DataflowLinkOptions() { PropagateCompletion = true });
+			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats));
 
 			Task.Run(async () =>
 			{

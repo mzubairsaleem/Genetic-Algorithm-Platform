@@ -9,11 +9,12 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Collections;
+using Open.DataFlow;
 
 namespace GeneticAlgorithmPlatform
 {
 
-    public class GenomeProducer<TGenome> : ISourceBlock<TGenome>
+	public class GenomeProducer<TGenome> : ISourceBlock<TGenome>
 		where TGenome : IGenome
 	{
 
@@ -31,8 +32,8 @@ namespace GeneticAlgorithmPlatform
 				BoundedCapacity = bufferSize
 			});
 			// Should make the enqueue buffer the priority.
-			EnqueuedBuffer.LinkTo(OutputBuffer, new DataflowLinkOptions() { PropagateCompletion = true });
-			ProduceBuffer.LinkTo(OutputBuffer, new DataflowLinkOptions() { PropagateCompletion = true });
+			EnqueuedBuffer.LinkToWithExceptions(OutputBuffer);
+			ProduceBuffer.LinkToWithExceptions(OutputBuffer);
 
 			Producer = new ActionBlock<bool>(async retry =>
 			{
@@ -112,6 +113,12 @@ namespace GeneticAlgorithmPlatform
 		public bool TryEnqueue(TGenome genome)
 		{
 			return TryEnqueueInternal(EnqueuedBuffer, genome);
+		}
+
+		public void TryEnqueue(IEnumerable<TGenome> genomes)
+		{
+			foreach (var genome in genomes)
+				TryEnqueueInternal(EnqueuedBuffer, genome);
 		}
 
 		// bool TryEnqueueProduction(TGenome genome)
