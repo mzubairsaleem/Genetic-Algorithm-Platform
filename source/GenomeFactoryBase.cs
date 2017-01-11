@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Open;
 using Open.Collections;
@@ -19,19 +20,20 @@ namespace GeneticAlgorithmPlatform
 
 		public GenomeFactoryBase()
 		{
-			_previousGenomes = new ConcurrentDictionary<string, TGenome>();
-			_previousGenomesOrder = new ConcurrentList<string>();
+			PreviousGenomes = new ConcurrentDictionary<string, TGenome>();
+			PreviousGenomesOrder = new ConcurrencyWrapper<string, List<string>>(new List<string>());
 		}
 
-		protected readonly ConcurrentDictionary<string, TGenome> _previousGenomes; // Track by hash...
-		readonly ConcurrentList<string> _previousGenomesOrder;
+		protected readonly ConcurrentDictionary<string, TGenome> PreviousGenomes; // Track by hash...
+		
+		protected readonly ConcurrencyWrapper<string, List<string>> PreviousGenomesOrder;
 
 		protected bool Register(TGenome genome)
 		{
 			var hash = genome.Hash;
-			if (_previousGenomes.TryAdd(hash, genome))
+			if (PreviousGenomes.TryAdd(hash, genome))
 			{
-				_previousGenomesOrder.Add(hash);
+				PreviousGenomesOrder.Add(hash);
 				return true;
 			}
 			return false;
@@ -39,25 +41,27 @@ namespace GeneticAlgorithmPlatform
 
 		protected bool Exists(string hash)
 		{
-			return _previousGenomes.ContainsKey(hash);
+			if(hash==null)
+				throw new ArgumentNullException("hash");
+			return PreviousGenomes.ContainsKey(hash);
 		}
 
 		protected bool Exists(TGenome genome)
 		{
+			if(genome==null)
+				throw new ArgumentNullException("genome");
 			return Exists(genome.Hash);
 		}
 
-		public string[] PreviousGenomes
+		public string[] GetAllPreviousGenomesInOrder()
 		{
-			get
-			{
-				return _previousGenomesOrder.ToArray();
-			}
+
+			return PreviousGenomesOrder.ToArray();
 		}
 
-		public abstract TGenome GenerateOne(IEnumerable<TGenome> source = null);
+		public abstract TGenome GenerateOne(TGenome[] source = null);
 
-		public IEnumerable<TGenome> Generate(IEnumerable<TGenome> source = null)
+		public IEnumerable<TGenome> Generate(TGenome[] source = null)
 		{
 			while (true)
 			{
@@ -69,12 +73,12 @@ namespace GeneticAlgorithmPlatform
 
 		public TGenome GenerateOne(TGenome source)
 		{
-			return GenerateOne(Enumerable.Repeat(source, 1));
+			return GenerateOne(new TGenome[] { source });
 		}
 
-		public IEnumerable<TGenome> Generate(TGenome source = null)
+		public IEnumerable<TGenome> Generate(TGenome source)
 		{
-			var e = Enumerable.Repeat(source, 1);
+			var e = new TGenome[] { source };
 			while (true) yield return GenerateOne(e);
 		}
 
@@ -82,21 +86,31 @@ namespace GeneticAlgorithmPlatform
 
 		public bool AttemptNewMutation(TGenome source, out TGenome mutation, byte triesPerMutationLevel = 5, byte maxMutations = 3)
 		{
-			return AttemptNewMutation(Enumerable.Repeat(source, 1), out mutation, triesPerMutationLevel, maxMutations);
+			if (source == null)
+				throw new ArgumentNullException("source");
+			return AttemptNewMutation(new TGenome[] { source }, out mutation, triesPerMutationLevel, maxMutations);
 		}
 
-		public bool AttemptNewMutation(IEnumerable<TGenome> source, out TGenome genome, byte triesPerMutationLevel = 5, byte maxMutations = 3)
+		public bool AttemptNewMutation(TGenome[] source, out TGenome genome, byte triesPerMutationLevel = 5, byte maxMutations = 3)
 		{
-			// Find one that will mutate well and use it.
-			for (byte m = 1; m <= maxMutations; m++)
+			if (source == null)
+				throw new ArgumentNullException("source");
+
+			Debug.Assert(source.Length!=0, "Should never pass an empty source for mutation.");
+			if (source.Length != 0)
 			{
-				for (byte t = 0; t < triesPerMutationLevel; t++)
+				// Find one that will mutate well and use it.
+				for (byte m = 1; m <= maxMutations; m++)
 				{
-					genome = Mutate(source.RandomSelectOne(), m);
-					if (genome != null && !_previousGenomes.ContainsKey(genome.Hash))
-						return true;
+					for (byte t = 0; t < triesPerMutationLevel; t++)
+					{
+						genome = Mutate(source.RandomSelectOne(), m);
+						if (genome != null && !PreviousGenomes.ContainsKey(genome.Hash))
+							return true;
+					}
 				}
 			}
+
 			genome = null;
 			return false;
 		}
@@ -137,7 +151,7 @@ namespace GeneticAlgorithmPlatform
 		{
 			while (maxAttempts != 0)
 			{
-				offspring = CrossoverInternal(a, b)?.Where(g => !_previousGenomes.ContainsKey(g.Hash)).ToArray();
+				offspring = CrossoverInternal(a, b)?.Where(g => !PreviousGenomes.ContainsKey(g.Hash)).ToArray();
 				if (offspring != null && offspring.Length != 0) return true;
 				--maxAttempts;
 			}
@@ -147,22 +161,21 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		// Random matchmaking...  It's possible to include repeats in the source to improve their chances. Possile O(n!) operaion.
-		public bool AttemptNewCrossover(IEnumerable<TGenome> source, out TGenome[] offspring, byte maxAttemptsPerCombination = 3)
+		public bool AttemptNewCrossover(TGenome[] source, out TGenome[] offspring, byte maxAttemptsPerCombination = 3)
 		{
 			if (source == null)
 				throw new ArgumentNullException("source");
-			var s = source as TGenome[] ?? source.ToArray();
-			if (s.Length == 2 && s[0] != s[1]) return AttemptNewCrossover(s[0], s[1], out offspring, maxAttemptsPerCombination);
-			if (s.Length <= 2)
+			if (source.Length == 2 && source[0] != source[1]) return AttemptNewCrossover((TGenome)source[0], (TGenome)source[1], out offspring, maxAttemptsPerCombination);
+			if (source.Length <= 2)
 				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
 			bool isFirst = true;
 			do
 			{
 				// Take one.
-				var a = s.RandomSelectOne();
+				var a = RandomUtilities.RandomSelectOne<TGenome>(source);
 				// Get all others (in orignal order/duplicates).
-				var s1 = s.Where(g => g != a).ToArray();
+				var s1 = Enumerable.Where<TGenome>(source, (Func<TGenome, bool>)(g => (bool)(g != a))).ToArray();
 
 				// Any left?
 				while (s1.Length != 0)
@@ -178,9 +191,9 @@ namespace GeneticAlgorithmPlatform
 					throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
 				// Okay so we've been through all of them with 'a' Now move on to another.
-				s = s.Where(g => g != a).ToArray();
+				source = Enumerable.Where<TGenome>(source, (Func<TGenome, bool>)(g => (bool)(g != a))).ToArray();
 			}
-			while (s.Length > 1); // Less than 2 left? Then we have no other options.
+			while (source.Length > 1); // Less than 2 left? Then we have no other options.
 
 			offspring = null;
 
