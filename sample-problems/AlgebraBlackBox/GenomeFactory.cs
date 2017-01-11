@@ -181,6 +181,16 @@ namespace AlgebraBlackBox
 		public static class VariationCatalog
 		{
 
+
+			public static Genome AddConstant(Genome source, int geneIndex)
+			{
+				var gene = source.Genes[geneIndex] as SumGene;
+				// Basically, as a helper, if we find a sum gene that doesn't have any constants, then ok, add '1'.
+				return gene != null && !gene.Children.OfType<ConstantGene>().Any()
+					? ApplyClone(source, geneIndex, g => ((SumGene)g).Add(new ConstantGene(1)))
+					: null;
+			}
+
 			public static Genome IncreaseMultipleMagnitude(Genome source, int geneIndex)
 			{
 				return ApplyClone(source, geneIndex, g =>
@@ -446,25 +456,19 @@ namespace AlgebraBlackBox
 
 			for (var i = 0; i < count; i++)
 			{
-				var gene = sourceGenes[i];
-				var isRoot = gene == source.Root;
 				yield return VariationCatalog.RemoveGene(source, i);
 			}
 
 			for (var i = 0; i < count; i++)
 			{
-				var gene = sourceGenes[i];
-				var isRoot = gene == source.Root;
 				yield return VariationCatalog.ReduceMultipleMagnitude(source, i);
 			}
 
 			for (var i = 0; i < count; i++)
 			{
-				var gene = sourceGenes[i];
-				var isRoot = gene == source.Root;
-
 				yield return VariationCatalog.PromoteChildren(source, i);
 
+				// Let mutation take care of this...
 				// foreach (var fn in Operators.Available.Functions)
 				// {
 				// 	yield return VariationCatalog.ApplyFunction(source, i, fn);
@@ -473,9 +477,12 @@ namespace AlgebraBlackBox
 
 			for (var i = 0; i < count; i++)
 			{
-				var gene = sourceGenes[i];
-				var isRoot = gene == source.Root;
 				yield return VariationCatalog.IncreaseMultipleMagnitude(source, i);
+			}
+
+			for (var i = 0; i < count; i++)
+			{
+				yield return VariationCatalog.AddConstant(source, i);
 			}
 
 		}
@@ -640,7 +647,6 @@ namespace AlgebraBlackBox
 										.Square(target, gene);
 								}
 								break;
-
 						}
 
 						if (ng != null)
@@ -664,7 +670,38 @@ namespace AlgebraBlackBox
 
 		protected override Genome[] CrossoverInternal(Genome a, Genome b)
 		{
-			throw new NotImplementedException();
+			if (a == null || b == null) return null;
+
+			// Avoid inbreeding. :P
+			if (a.AsReduced().Hash == b.AsReduced().Hash) return null;
+
+			var aGenes = a.Genes;
+			var bGenes = b.Genes;
+			var aLen = aGenes.Length;
+			var bLen = bGenes.Length;
+			if (aLen == 0 || bLen == 0 || aLen == 1 && bLen == 1) return null;
+
+			// Crossover scheme 1:  Swap a node.
+			a = a.Clone();
+			b = b.Clone();
+			aGenes = a.Genes;
+			bGenes = b.Genes;
+			while (aGenes.Length != 0)
+			{
+				var ag = aGenes.RandomSelectOne();
+				var agS = ag.ToString();
+				var others = bGenes.Where(g => g.ToString() != agS).ToArray();
+				if (others.Length != 0)
+				{
+					var bg = others.RandomSelectOne();
+					a.Replace(ag, bg);
+					b.Replace(bg, ag);
+					return new Genome[] { Freeze(a), Freeze(b) };
+				}
+				aGenes = aGenes.Where(g => g != ag).ToArray();
+			}
+
+			return null;
 		}
 	}
 }

@@ -25,7 +25,7 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		protected readonly ConcurrentDictionary<string, TGenome> PreviousGenomes; // Track by hash...
-		
+
 		protected readonly ConcurrencyWrapper<string, List<string>> PreviousGenomesOrder;
 
 		protected bool Register(TGenome genome)
@@ -41,14 +41,14 @@ namespace GeneticAlgorithmPlatform
 
 		protected bool Exists(string hash)
 		{
-			if(hash==null)
+			if (hash == null)
 				throw new ArgumentNullException("hash");
 			return PreviousGenomes.ContainsKey(hash);
 		}
 
 		protected bool Exists(TGenome genome)
 		{
-			if(genome==null)
+			if (genome == null)
 				throw new ArgumentNullException("genome");
 			return Exists(genome.Hash);
 		}
@@ -96,7 +96,7 @@ namespace GeneticAlgorithmPlatform
 			if (source == null)
 				throw new ArgumentNullException("source");
 
-			Debug.Assert(source.Length!=0, "Should never pass an empty source for mutation.");
+			Debug.Assert(source.Length != 0, "Should never pass an empty source for mutation.");
 			if (source.Length != 0)
 			{
 				// Find one that will mutate well and use it.
@@ -175,7 +175,7 @@ namespace GeneticAlgorithmPlatform
 				// Take one.
 				var a = RandomUtilities.RandomSelectOne<TGenome>(source);
 				// Get all others (in orignal order/duplicates).
-				var s1 = Enumerable.Where<TGenome>(source, (Func<TGenome, bool>)(g => (bool)(g != a))).ToArray();
+				var s1 = source.Where<TGenome>(g => g != a).ToArray();
 
 				// Any left?
 				while (s1.Length != 0)
@@ -191,7 +191,7 @@ namespace GeneticAlgorithmPlatform
 					throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
 				// Okay so we've been through all of them with 'a' Now move on to another.
-				source = Enumerable.Where<TGenome>(source, (Func<TGenome, bool>)(g => (bool)(g != a))).ToArray();
+				source = source.Where<TGenome>(g => g != a).ToArray();
 			}
 			while (source.Length > 1); // Less than 2 left? Then we have no other options.
 
@@ -199,8 +199,40 @@ namespace GeneticAlgorithmPlatform
 
 			return false;
 		}
+
+		public bool AttemptNewCrossover(TGenome primary, TGenome[] others, out TGenome[] offspring, byte maxAttemptsPerCombination = 3)
+		{
+			if (primary == null)
+				throw new ArgumentNullException("primary");
+			if (others == null)
+				throw new ArgumentNullException("source");
+			if (others.Length == 0)
+				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
+			if (others.Length == 1 && primary != others[0]) return AttemptNewCrossover(primary, (TGenome)others[0], out offspring, maxAttemptsPerCombination);
+			var source = others.Where<TGenome>(g => g != primary);
+			if (!source.Any())
+				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
+
+			// Get all others (in orignal order/duplicates).
+			var s1 = source.ToArray();
+
+			// Any left?
+			while (s1.Length != 0)
+			{
+				var b = s1.RandomSelectOne();
+				if (AttemptNewCrossover(primary, b, out offspring, maxAttemptsPerCombination)) return true;
+				// Reduce the possibilites.
+				s1 = s1.Where(g => g != b).ToArray();
+				/* ^^^ Why are we filtering like this you might ask? 
+				 	   Because the source can have duplicates in order to bias randomness. */
+			}
+
+			offspring = null;
+
+			return false;
+		}
 	}
-
-
 }
+
+
 

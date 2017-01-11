@@ -23,7 +23,7 @@ namespace GeneticAlgorithmPlatform
 			return Math.Sqrt(a * a + b * b);
 		}
 
-		static double SqrtA2B2AB(params double[] p)
+		static double SqrtA2B2A2B1(params double[] p)
 		{
 			var a = p[0];
 			var b = p[1];
@@ -41,7 +41,7 @@ namespace GeneticAlgorithmPlatform
 
 			// return; 
 			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(SqrtA2B2, 50, 4);
+			var env = new AlgebraBlackBox.Environment(SqrtA2B2A2B1, 50, 4);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
 			Action emitStats = () =>

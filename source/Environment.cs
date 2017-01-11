@@ -7,13 +7,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks.Dataflow;
+using Open.Arithmetic;
 using Open.DataFlow;
 
 namespace GeneticAlgorithmPlatform
 {
 
-	// Defines the pipeline?
-	public abstract class Environment<TGenome> : IEnvironment<TGenome>
+    // Defines the pipeline?
+    public abstract class Environment<TGenome> : IEnvironment<TGenome>
 		where TGenome : class, IGenome
 	{
 		const ushort MIN_POOL_SIZE = 2;
@@ -109,6 +110,14 @@ namespace GeneticAlgorithmPlatform
 					{
 						foreach (var offspring in Breed(top))
 							Producer.TryEnqueue(offspring);
+					}
+
+					// Crossover.
+					TGenome[] o2;
+					if (Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected.Skip(1)).ToArray(), out o2))
+					{
+						foreach (var o in o2)
+							Producer.TryEnqueue(o);
 					}
 				}
 
