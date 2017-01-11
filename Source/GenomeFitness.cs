@@ -179,12 +179,13 @@ namespace GeneticAlgorithmPlatform
 			do
 			{
 				found = false;
-				p = d.Values.ToList();
+				var values = d.Select(kvp => kvp.Value);
+				p = values.ToList();
 				foreach (var g in p)
 				{
 					var gs = g.Fitness.Scores.ToArray();
 					var len = gs.Length;
-					if (d.Values.Any(o =>
+					if (values.Any(o =>
 						 {
 							 var os = o.Fitness.Scores.ToArray();
 							 for (var i = 0; i < len; i++)
@@ -200,7 +201,8 @@ namespace GeneticAlgorithmPlatform
 						d.Remove(g.Genome.Hash);
 					}
 				}
-			} while (found);
+			}
+			while (found);
 
 			return p;
 		}

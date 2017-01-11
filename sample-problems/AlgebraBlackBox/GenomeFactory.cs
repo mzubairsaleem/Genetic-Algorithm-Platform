@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using AlgebraBlackBox.Genes;
 using Open;
@@ -11,103 +13,135 @@ namespace AlgebraBlackBox
 	public class GenomeFactory : GeneticAlgorithmPlatform.GenomeFactoryBase<Genome>
 	{
 
-		//noinspection JSMethodCanBeStatic
+		ConcurrentHashSet<int> ParamsOnlyAttempted = new ConcurrentHashSet<int>();
 		protected Genome GenerateParamOnly(int id)
 		{
 			return Freeze(new Genome(new ParameterGene(id)));
 		}
 
-		//noinspection JSMethodCanBeStatic
-		protected Genome GenerateOperated(int paramCount = 1)
+		ConcurrentDictionary<int, IEnumerator<Genome>> OperatedCatalog = new ConcurrentDictionary<int, IEnumerator<Genome>>();
+		protected IEnumerable<Genome> GenerateOperated(int paramCount = 2)
 		{
-			var op = Operators.GetRandomOperationGene();
-			var result = new Genome(op);
+			if (paramCount < 2)
+				throw new ArgumentOutOfRangeException("paramCount", paramCount, "Must have at least 2 parameter count.");
 
-			for (var i = 0; i < paramCount; i++)
+			foreach (var combination in Enumerable.Range(0, paramCount).Combinations(paramCount))
 			{
-				op.Add(new ParameterGene(i));
+				foreach (var op in Operators.Available.Operators.Select(o => Operators.New(o)))
+				{
+					foreach (var p in combination)
+						op.Add(new ParameterGene(p));
+					yield return Freeze(new Genome(op));
+				}
 			}
-
-			return Freeze(result);
 		}
 
-		public override Genome GenerateOne(IEnumerable<Genome> source = null)
+		ConcurrentDictionary<int, IEnumerator<Genome>> FunctionedCatalog = new ConcurrentDictionary<int, IEnumerator<Genome>>();
+		protected IEnumerable<Genome> GenerateFunctioned(int id)
 		{
-			var attempts = 0;
+			foreach (var op in Operators.Available.Functions.Select(o => Operators.New(o)))
+			{
+				op.Add(new ParameterGene(id));
+				yield return Freeze(new Genome(op));
+			}
+		}
+
+
+		protected Genome GenerateOneInternal(Genome[] source)
+		{
+			var attempts = 0; // For debugging.
 			Genome genome = null;
 			string hash = null;
 
 			// Note: for now, we will only mutate by 1.
 
 			// See if it's possible to mutate from the provided genomes.
-			if (source != null && source.Any())
+			if (source != null && source.Length != 0)
 			{
 				AttemptNewMutation(source, out genome);
 			}
 
 			if (genome == null)
 			{
-				for (byte m = 1; m < 4; m++)
+				for (byte m = 1; m < 4; m++) // The 4 effectively represents the max parameter depth.
 				{
 
 					// Establish a maximum.
 					var tries = 10;
-					var paramCount = 0;
+					int paramCount = 0;
 
 					do
 					{
-						{ // Try a param only version first.
-							genome = this.GenerateParamOnly(paramCount);
+						if (ParamsOnlyAttempted.Add(paramCount))
+						{
+							// Try a param only version first.
+							genome = GenerateParamOnly(paramCount);
 							hash = genome.Hash;
 							attempts++;
-							if (!Exists(hash)) break;
+							if (!Exists(hash)) // May be supurfulous.
+								return genome;
 						}
 
 						paramCount += 1; // Operators need at least 2 params to start.
 
-						{ // Then try an operator based version.
-							genome = this.GenerateOperated(paramCount + 1);
+						// Then try an operator based version.
+						var operated = OperatedCatalog.GetOrAdd(paramCount + 1, pc => GenerateOperated(pc).GetEnumerator());
+						if (operated.MoveNext())
+						{
+							genome = operated.Current;
 							hash = genome.Hash;
 							attempts++;
-							if (!Exists(hash)) break;
+							if (!Exists(hash)) // May be supurfulous.
+								return genome;
 						}
 
-						var t = Math.Min(_previousGenomes.Count * 2, 100); // A local maximum.
+						var functioned = FunctionedCatalog.GetOrAdd(paramCount - 1, pc => GenerateFunctioned(pc).GetEnumerator());
+						if (functioned.MoveNext())
+						{
+							genome = functioned.Current;
+							hash = genome.Hash;
+							attempts++;
+							if (!Exists(hash)) // May be supurfulous.
+								return genome;
+						}
+
+
+						var t = Math.Min(PreviousGenomes.Count * 2, 100); // A local maximum.
 						do
 						{
-							genome = Mutate(_previousGenomes.Values.RandomSelectOne(), m);
-							hash = genome.Hash;
+							genome = Mutate(PreviousGenomes[PreviousGenomesOrder.Source.RandomSelectOne()], m);
+							hash = genome?.Hash;
 							attempts++;
+							if (hash != null && !Exists(hash))
+								return genome;
 						}
-						while (Exists(hash) && --t != 0);
-
-						// t==0 means nothing found :(
-						if (t != 0) break;
+						while (--t != 0);
 					}
 					while (--tries != 0);
-
-					if (tries != 0)
-						break;
-					// else
-					// 	genome = null; // Failed... Converged? No solutions? Saturated?
 				}
 			}
 
-			//console.log("Generate attempts:",attempts);
-			if (hash != null)
+			return genome;
+
+		}
+		public override Genome GenerateOne(Genome[] source = null)
+		{
+			var genome = GenerateOneInternal(source);
+
+			if (genome != null)
 			{
+				// If by chance the result is not unique to history, keep the existing instance.
 				Genome temp;
-				if (_previousGenomes.TryGetValue(hash, out temp))
-				{
+				if (PreviousGenomes.TryGetValue(genome.Hash, out temp))
 					return temp;
-				}
 
 				if (genome != null)
-					_previousGenomes.TryAdd(hash, genome);
+					Register(genome);
 			}
 
 
-			// if(!genome)
+			Debug.Assert(genome != null, "Converged? No solutions? Saturated?");
+			// if(genome==null)
 			// 	throw "Failed... Converged? No solutions? Saturated?";
 
 			return genome;
@@ -453,7 +487,7 @@ namespace AlgebraBlackBox
 				{
 					genome = genome.AsReduced();
 					Genome temp;
-					return _previousGenomes.TryGetValue(genome.ToString(), out temp) ? temp : Freeze(genome);
+					return PreviousGenomes.TryGetValue(genome.ToString(), out temp) ? temp : Freeze(genome);
 				})
 				.GroupBy(g => g.Hash)
 				.Select(g => g.First());
@@ -519,7 +553,7 @@ namespace AlgebraBlackBox
 							// Apply a function
 							case 2:
 								// Reduce the pollution of functions...
-								if (RandomUtilities.Random.Next(0, 4) == 0)
+								if (RandomUtilities.Random.Next(0, 3) == 0)
 								{
 									return VariationCatalog
 										.ApplyFunction(target, gene, Operators.GetRandomFunction());
@@ -528,7 +562,7 @@ namespace AlgebraBlackBox
 
 							// Split it...
 							case 3:
-								if (RandomUtilities.Random.Next(0, 4) == 0)
+								if (RandomUtilities.Random.Next(0, 3) == 0)
 								{
 									return MutationCatalog
 											.Square(target, gene);
@@ -573,7 +607,7 @@ namespace AlgebraBlackBox
 							// Apply a function
 							case 3:
 								// Reduce the pollution of functions...
-								if (RandomUtilities.Random.Next(0, gene is FunctionGene ? 6 : 4) == 0)
+								if (RandomUtilities.Random.Next(0, gene is FunctionGene ? 5 : 3) == 0)
 								{
 									var f = Operators.GetRandomFunction();
 									// Function of function? Reduce probability even further. Coin toss.
@@ -600,7 +634,7 @@ namespace AlgebraBlackBox
 
 							case 7:
 								// This has a potential to really bloat the function so allow, but very sparingly.
-								if (RandomUtilities.Random.Next(0, 4) == 0)
+								if (RandomUtilities.Random.Next(0, 3) == 0)
 								{
 									return MutationCatalog
 										.Square(target, gene);
@@ -628,9 +662,9 @@ namespace AlgebraBlackBox
 			return Freeze(MutateUnfrozen(target));
 		}
 
-        protected override Genome[] CrossoverInternal(Genome a, Genome b)
-        {
-            throw new NotImplementedException();
-        }
-    }
+		protected override Genome[] CrossoverInternal(Genome a, Genome b)
+		{
+			throw new NotImplementedException();
+		}
+	}
 }

@@ -11,37 +11,37 @@ namespace Open.Collections
 		where TCollection : class, ICollection<T>
 	{
 		protected ReaderWriterLockSlim Sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion); // Support recursion for read -> write locks.
-		protected TCollection Source;
+		protected TCollection InternalSource;
 
 		protected ConcurrentCollectionBase(TCollection source)
 		{
 			if(source==null)
 				throw new ArgumentNullException("source");
-			Source = source;
+			InternalSource = source;
 		}
 
 		#region Implementation of ICollection<T>
 		public void Add(T item)
 		{
-			Sync.Write(() => Source.Add(item));
+			Sync.Write(() => InternalSource.Add(item));
 		}
 
 		public void Clear()
 		{
-			Sync.Write(() => Source.Clear());
+			Sync.Write(() => InternalSource.Clear());
 		}
 
 		public bool Contains(T item)
 		{
-			return Sync.ReadValue(() => Source.Contains(item));
+			return Sync.ReadValue(() => InternalSource.Contains(item));
 		}
 
 		public bool Remove(T item)
 		{
 			bool result = false;
 			Sync.ReadWriteConditionalOptimized(
-				lockType => result = Source.Contains(item),
-				() => result = Source.Remove(item));
+				lockType => result = InternalSource.Contains(item),
+				() => result = InternalSource.Remove(item));
 			return result;
 		}
 
@@ -49,7 +49,7 @@ namespace Open.Collections
 		{
 			get
 			{
-				return Sync.ReadValue(() => Source.Count);
+				return Sync.ReadValue(() => InternalSource.Count);
 			}
 		}
 
@@ -57,19 +57,19 @@ namespace Open.Collections
         {
             get
             {
-                return Source.IsReadOnly;
+                return InternalSource.IsReadOnly;
             }
         }
 
         public T[] ToArrayDirect()
 		{
-			var result = Sync.ReadValue(() => Source.ToArray());
+			var result = Sync.ReadValue(() => InternalSource.ToArray());
 			return result;
 		}
 
 		public void Export(ICollection<T> to)
 		{
-			Sync.Read(() => to.Add(Source));
+			Sync.Read(() => to.Add(InternalSource));
 		}
 
 		#endregion
@@ -78,13 +78,13 @@ namespace Open.Collections
 		protected override void OnDispose(bool calledExplicitly)
 		{
 			Interlocked.Exchange(ref Sync, null).Dispose();
-			Interlocked.Exchange(ref Source, null).SmartDispose();
+			Interlocked.Exchange(ref InternalSource, null).SmartDispose();
 		}
 
 		public TCollection DisposeAndExtract()
 		{
-			var s = Source;
-			Source = null;
+			var s = InternalSource;
+			InternalSource = null;
 			Dispose();
 			return s;
 		}
@@ -104,7 +104,7 @@ namespace Open.Collections
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-			Sync.Read(() => Source.CopyTo(array, arrayIndex));
+			Sync.Read(() => InternalSource.CopyTo(array, arrayIndex));
         }
 
     }

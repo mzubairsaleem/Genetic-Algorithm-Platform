@@ -32,6 +32,14 @@ namespace GeneticAlgorithmPlatform
 		static readonly double[] OneOne = new double[] { 1, 1 };
 		public static void Main(string[] args)
 		{
+
+			// // Througput test...
+			// var factory = new AlgebraBlackBox.GenomeFactory();
+			// Parallel.ForEach(factory.Generate(),g=>{
+
+			// });
+
+			// return; 
 			var sw = Stopwatch.StartNew();
 			var env = new AlgebraBlackBox.Environment(SqrtA2B2AB, 50, 5);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));

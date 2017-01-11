@@ -12,57 +12,57 @@ namespace Open.Collections
 
 		public new bool Add(T item)
 		{
-			return Sync.Write(() => Source.Add(item));
+			return Sync.Write(() => InternalSource.Add(item));
 		}
 
         public void ExceptWith(IEnumerable<T> other)
         {
-		   Sync.Write(() => Source.ExceptWith(other));
+		   Sync.Write(() => InternalSource.ExceptWith(other));
         }
 
         public void IntersectWith(IEnumerable<T> other)
         {
-			Sync.Write(() =>Source.IntersectWith(other));
+			Sync.Write(() =>InternalSource.IntersectWith(other));
         }
 
         public bool IsProperSubsetOf(IEnumerable<T> other)
         {
-			return Sync.ReadValue(() => Source.IsProperSubsetOf(other));
+			return Sync.ReadValue(() => InternalSource.IsProperSubsetOf(other));
         }
 
         public bool IsProperSupersetOf(IEnumerable<T> other)
         {
-			return Sync.ReadValue(() => Source.IsProperSupersetOf(other));
+			return Sync.ReadValue(() => InternalSource.IsProperSupersetOf(other));
         }
 
         public bool IsSubsetOf(IEnumerable<T> other)
         {
-			return Sync.ReadValue(() => Source.IsSubsetOf(other));
+			return Sync.ReadValue(() => InternalSource.IsSubsetOf(other));
         }
 
         public bool IsSupersetOf(IEnumerable<T> other)
         {
-			return Sync.ReadValue(() => Source.IsSupersetOf(other));
+			return Sync.ReadValue(() => InternalSource.IsSupersetOf(other));
         }
 
         public bool Overlaps(IEnumerable<T> other)
         {
-			return Sync.ReadValue(() => Source.Overlaps(other));
+			return Sync.ReadValue(() => InternalSource.Overlaps(other));
         }
 
         public bool SetEquals(IEnumerable<T> other)
         {
-			return Sync.ReadValue(() => Source.SetEquals(other));
+			return Sync.ReadValue(() => InternalSource.SetEquals(other));
         }
 
         public void SymmetricExceptWith(IEnumerable<T> other)
         {
-			Sync.Write(() => Source.SymmetricExceptWith(other));
+			Sync.Write(() => InternalSource.SymmetricExceptWith(other));
         }
 
         public void UnionWith(IEnumerable<T> other)
         {
-			Sync.Write(() => Source.UnionWith(other));
+			Sync.Write(() => InternalSource.UnionWith(other));
         }
 
     }

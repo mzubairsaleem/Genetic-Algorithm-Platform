@@ -8,5 +8,12 @@ namespace Open.Collections
 
 		public ConcurrencyWrapper(TCollection source) : base(source) { }
 
+		public TCollection Source
+		{
+			get {
+				return InternalSource;
+			} 
+		}
+
 	}
 }

@@ -16,28 +16,28 @@ namespace Open.Collections
 		{
 			get
 			{
-				return Sync.ReadValue(() => Source[index]);
+				return Sync.ReadValue(() => InternalSource[index]);
 			}
 
 			set
 			{
-				Sync.Write(() => Source[index] = value);
+				Sync.Write(() => InternalSource[index] = value);
 			}
 		}
 
 		public int IndexOf(T item)
 		{
-			return Sync.ReadValue(() => Source.IndexOf(item));
+			return Sync.ReadValue(() => InternalSource.IndexOf(item));
 		}
 
 		public void Insert(int index, T item)
 		{
-			Sync.Write(() => Source.Insert(index, item));
+			Sync.Write(() => InternalSource.Insert(index, item));
 		}
 
 		public void RemoveAt(int index)
 		{
-			Sync.Write(() => Source.RemoveAt(index));
+			Sync.Write(() => InternalSource.RemoveAt(index));
 		}
 	}
 }

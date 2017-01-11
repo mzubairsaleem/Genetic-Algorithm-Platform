@@ -226,7 +226,7 @@ namespace Open.Threading
 		void Debug_TrackerDisposedWhileInUse(object sender, EventArgs e)
 		{
 			var tracker = (ReaderWriterLockTracker)sender;
-			if (Locks.Values.Contains(tracker))
+			if (Locks.Select(kvp=>kvp.Value).Contains(tracker))
 				Debug.Fail("Attempting to dispose a tracker that is in use.");
 			if (LockPool.Contains(tracker))
 				Debug.Fail("Attempting to dispose a tracker that is still availalbe in the pool.");

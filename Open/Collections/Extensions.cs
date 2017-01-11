@@ -318,7 +318,7 @@ namespace Open.Collections
 					{
 						if (e.MoveNext())
 						{
-							lock(queue) queue.Enqueue(e.Current);
+							lock (queue) queue.Enqueue(e.Current);
 						}
 						else
 						{
@@ -330,7 +330,7 @@ namespace Open.Collections
 				while (queue.Count > 0)
 				{
 					T result;
-					lock(queue) result = queue.Dequeue();
+					lock (queue) result = queue.Dequeue();
 					yield return result;
 				}
 
@@ -2194,6 +2194,20 @@ namespace Open.Collections
 			return -1;
 		}
 
+		// from http://stackoverflow.com/questions/127704/algorithm-to-return-all-combinations-of-k-elements-from-n
+		public static IEnumerable<IEnumerable<T>> Combinations<T>(this IEnumerable<T> elements, int k, bool uniqueOnly = false)
+		{
+			if (k < 0)
+				throw new ArgumentOutOfRangeException("k", k, "Cannot be less than zero.");
+
+			return k == 0 ? new[] { new T[0] } :
+				elements.SelectMany((e, i) =>
+					elements
+						.Skip(i + (uniqueOnly ? 1 : 0))
+						.Combinations(k - 1, uniqueOnly)
+						.Select(c => (new[] { e }).Concat(c)));
+		}
+
 	}
 }
 
@@ -2493,6 +2507,7 @@ namespace Open.Collections.NonGeneric
 
 			return result;
 		}
+
 
 
 	}

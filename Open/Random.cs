@@ -59,6 +59,37 @@ namespace Open
 			return r.RandomSelectOne();
 		}
 
+		public static uint NextRandomIntegerExcluding(
+			uint range,
+			HashSet<uint> excludeSet)
+		{
+			var r = new List<uint>();
+
+			for (uint i = 0; i < range; ++i)
+			{
+				if (!excludeSet.Contains(i)) r.Add(i);
+			}
+
+			return r.RandomSelectOne();
+		}
+
+		public static uint NextRandomIntegerExcluding(
+			int range,
+			HashSet<uint> excludeSet)
+		{
+			if (range < 0)
+				throw new ArgumentOutOfRangeException("range", range, "Must be a number greater than zero.");
+			var r = new List<uint>();
+
+			for (uint i = 0; i < range; ++i)
+			{
+				if (!excludeSet.Contains(i)) r.Add(i);
+			}
+
+			return r.RandomSelectOne();
+		}
+
+
 		public static int NextRandomIntegerExcluding(
 			int range,
 			IEnumerable<int> excluding)
@@ -75,6 +106,36 @@ namespace Open
 			var r = new List<int>();
 
 			for (var i = 0; i < range; ++i)
+			{
+				if (excluding != i) r.Add(i);
+			}
+
+			return r.RandomSelectOne();
+		}
+
+		public static uint NextRandomIntegerExcluding(
+			int range,
+			uint excluding)
+		{
+			if (range < 0)
+				throw new ArgumentOutOfRangeException("range", range, "Must be a number greater than zero.");
+			var r = new List<uint>();
+
+			for (uint i = 0; i < range; ++i)
+			{
+				if (excluding != i) r.Add(i);
+			}
+
+			return r.RandomSelectOne();
+		}
+
+		public static uint NextRandomIntegerExcluding(
+			uint range,
+			uint excluding)
+		{
+			var r = new List<uint>();
+
+			for (uint i = 0; i < range; ++i)
 			{
 				if (excluding != i) r.Add(i);
 			}

@@ -9,11 +9,17 @@ namespace AlgebraBlackBox.Genes
 
 		static readonly Regex PATTERN = new Regex(@"(?<multiple>-?\d*){(?<id>\d+)}");
 
-		public ParameterGene(int id, double multiple = 1) : base(multiple)
+		public ParameterGene(uint id, double multiple = 1) : base(multiple)
 		{
 			_id = id;
 		}
 
+		public ParameterGene(int id, double multiple = 1) : base(multiple)
+		{
+			if(id<0)
+				throw new ArgumentOutOfRangeException("Must be at least zero.");
+			_id = (uint)id;
+		}
 
 		public ParameterGene(string pattern) : base(1)
 		{
@@ -23,11 +29,11 @@ namespace AlgebraBlackBox.Genes
 
 			var g = m.Groups;
 			Multiple = double.Parse(g["multiple"].Value);
-			_id = int.Parse(g["id"].Value);
+			_id = uint.Parse(g["id"].Value);
 		}
 
-		private int _id;
-		public int ID
+		private uint _id;
+		public uint ID
 		{
 			get
 			{

@@ -19,7 +19,7 @@ namespace AlgebraBlackBox
         public static class Available
         {
             public static readonly IReadOnlyList<char> Operators = (new List<char> { ADD, MULTIPLY }).AsReadOnly();
-            public static readonly IReadOnlyList<char> Functions = (new List<char> { SQUARE_ROOT, DIVIDE }).AsReadOnly();
+            public static readonly IReadOnlyList<char> Functions = (new List<char> { DIVIDE, SQUARE_ROOT }).AsReadOnly();
         }
 
         public static OperatorGeneBase New(char op, double multiple = 1)
