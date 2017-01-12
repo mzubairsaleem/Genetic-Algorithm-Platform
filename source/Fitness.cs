@@ -269,7 +269,7 @@ namespace GeneticAlgorithmPlatform
 
 		// Allowing for a rejection count opens the possiblity for a second chance.
 
-		int _rejectionCount;
+		int _rejectionCount = 0;
 		public int RejectionCount
 		{
 			get
@@ -282,9 +282,9 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		public void IncrementRejection()
+		public int IncrementRejection()
 		{
-			Interlocked.Increment(ref _rejectionCount);
+			return Interlocked.Increment(ref _rejectionCount);
 		}
 
 		static long FitnessCount = 0;

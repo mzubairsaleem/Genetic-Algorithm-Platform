@@ -16,7 +16,9 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Open.Arithmetic;
+using Open.DataFlow;
 using Open.Formatting;
 using Open.Threading;
 
@@ -300,45 +302,89 @@ namespace Open.Collections
 
 		}
 
+		public static bool ConcurrentTryMoveNext<T>(this IEnumerator<T> source, out T item)
+		{
+			// Always lock on next to prevent concurrency issues.
+			lock (source) // a standard enumerable can't handle concurrency.
+			{
+				if (source.MoveNext())
+				{
+					item = source.Current;
+					return true;
+				}
+			}
+			item = default(T);
+			return false;
+		}
+
+		public static bool ConcurrentMoveNext<T>(this IEnumerator<T> source, Action<T> trueHandler, Action falseHandler = null)
+		{
+			// Always lock on next to prevent concurrency issues.
+			lock (source) // a standard enumerable can't handle concurrency.
+			{
+				if (source.MoveNext())
+				{
+					trueHandler(source.Current);
+					return true;
+				}
+			}
+			if (falseHandler != null) falseHandler();
+			return false;
+		}
+
 
 		public static IEnumerable<T> PreCache<T>(this IEnumerable<T> source, int count = 1)
 		{
-			var queue = new Queue<T>(count);
 			var e = source.GetEnumerator();
+			var queue = new BufferBlock<T>();
+			ActionBlock<bool> worker = null;
 
-			bool finished = false;
-			while (!finished)
+			Func<bool> tryQueue = () =>
+				e.ConcurrentMoveNext(
+					value => queue.Post(value),
+					() => worker.Complete());
+
+			worker = new ActionBlock<bool>(synchronousFill =>
+				{ while (queue.Count < count && tryQueue() && synchronousFill); },
+				// The consumers will dictate the amount of parallelism.
+				new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 32 });
+
+			worker.PropagateCompletionTo(queue);
+
+			// The very first call (kick-off) should be synchronous.
+			if(tryQueue()) while (true)
 			{
-				if (e.MoveNext()) queue.Enqueue(e.Current);
-				else yield break;
-
-				var task = Task.Run(() =>
+				// Is something already availaible in the queue?  Get it.
+				T item;
+				if (queue.TryReceive(null, out item))
 				{
-					while (!finished && queue.Count < count)
+					worker.SendAsync(true);
+					yield return item;
+				}
+				else
+				{
+					// At this point, something could be in the queue again, but let's assume not and try an trigger more.
+					if (worker.Post(true))
 					{
-						if (e.MoveNext())
+						// The .Post call is 'accepted' (doesn't mean it was run).
+						// Setup the wait for recieve the next avaialable.
+						var task = queue.ReceiveAsync();
+						task.Wait();
+						if(task.IsFaulted)
 						{
-							lock (queue) queue.Enqueue(e.Current);
+							throw task.Exception.InnerException;
 						}
-						else
+						if(!task.IsCanceled) // Cancelled means there's nothing to get.
 						{
-							finished = true;
+							// Task was not cancelled and there is a result availaible;
+							yield return task.Result;
+							continue;
 						}
 					}
-				});
-
-				while (queue.Count > 0)
-				{
-					T result;
-					lock (queue) result = queue.Dequeue();
-					yield return result;
+					
+					yield break;
 				}
-
-				task.Wait();
 			}
-
-			while (queue.Count > 0)
-				yield return queue.Dequeue();
 		}
 
 

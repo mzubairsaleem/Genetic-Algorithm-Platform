@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,11 +46,27 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		public GenomeFitness<TGenome, Fitness>? GetFitnessFor(TGenome genome)
+		public GenomeFitness<TGenome, Fitness>? GetFitnessFor(TGenome genome, bool ensureSourceGenome = false)
 		{
 			GenomeFitness<TGenome, Fitness> gf;
 			TryGetFitnessFor(genome, out gf);
+			if (ensureSourceGenome && gf.Genome != genome) // Possible that a 'version' is stored.
+				gf = new GenomeFitness<TGenome, Fitness>(genome, gf.Fitness);
 			return gf;
+		}
+
+		public IEnumerable<IGenomeFitness<TGenome, Fitness>> GetFitnessFor(IEnumerable<TGenome> genomes, bool ensureSourceGenomes = false)
+		{
+			foreach (var genome in genomes)
+			{
+				GenomeFitness<TGenome, Fitness> gf;
+				if (TryGetFitnessFor(genome, out gf))
+				{
+					if (ensureSourceGenomes && gf.Genome != genome) // Possible that a 'version' is stored.
+						gf = new GenomeFitness<TGenome, Fitness>(genome, gf.Fitness);
+					yield return gf;
+				}
+			}
 		}
 
 		public GenomeFitness<TGenome, Fitness> GetOrCreateFitnessFor(TGenome genome)
@@ -75,9 +92,15 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
+		public void AddToGlobalFitness<T>(IEnumerable<T> results) where T : IGenomeFitness<TGenome>
+		{
+			foreach (var r in results)
+				AddToGlobalFitness(r);
+		}
+
 		public IFitness AddToGlobalFitness(IGenomeFitness<TGenome> result)
 		{
-			return AddToGlobalFitness(result.Genome,result.Fitness);
+			return AddToGlobalFitness(result.Genome, result.Fitness);
 		}
 
 		public IFitness AddToGlobalFitness(TGenome genome, IFitness fitness)
@@ -89,10 +112,10 @@ namespace GeneticAlgorithmPlatform
 			return global.SnapShot();
 		}
 
-        public int GetSampleCountFor(TGenome genome)
-        {
-            GenomeFitness<TGenome,Fitness> fitness;
+		public int GetSampleCountFor(TGenome genome)
+		{
+			GenomeFitness<TGenome, Fitness> fitness;
 			return TryGetFitnessFor(genome, out fitness) ? fitness.Fitness.SampleCount : 0;
-        }
-    }
+		}
+	}
 }

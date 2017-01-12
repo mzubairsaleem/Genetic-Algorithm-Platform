@@ -52,6 +52,8 @@ namespace GeneticAlgorithmPlatform
 			Problem = problem;
 			Producer = new GenomeProducer<TGenome>(Factory.Generate());
 
+			var SecondChance = new BufferBlock<TGenome>();
+
 			Breeders = new ActionBlock<TGenome>(genome => Producer.TryEnqueue(Breed(genome)),
 				new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 8 });
 
@@ -65,11 +67,12 @@ namespace GeneticAlgorithmPlatform
 
 			Func<TGenome, bool> checkForConvergence = genome =>
 			{
-				var fitness = problem.GetFitnessFor(genome).Value.Fitness;
+				var gf = problem.GetFitnessFor(genome).Value;
+				var fitness = gf.Fitness;
 				var count = fitness.SampleCount;
 				if (fitness.HasConverged(ConvergenceThreshold))
 				{
-					TopGenome.Post(genome);
+					TopGenome.Post(gf.Genome);
 					Pipeline.Complete();
 					return true;
 				}
@@ -80,6 +83,8 @@ namespace GeneticAlgorithmPlatform
 			VipPool = new ActionBlock<TGenome>(async genome =>
 			{
 				var fitness = problem.GetFitnessFor(genome).Value.Fitness;
+				// You made it all the way back to the top?  Forget about what I said...
+				fitness.RejectionCount = 0;
 				if (fitness.HasConverged(0)) // 100 just to prove it.
 				{
 					if (!checkForConvergence(genome)) // should be enough for perfect convergence.
@@ -95,13 +100,17 @@ namespace GeneticAlgorithmPlatform
 				MaxDegreeOfParallelism = 3
 			});
 
-			FinalistPool = pipelineBuilder.Distributor(
-				selected =>
+			FinalistPool = pipelineBuilder.Selector(
+				selection =>
 				{
+					var selected = selection.Selected;
 					// Finalists use global fitness?
-					var top = selected.OrderBy(g =>
-						problem.GetFitnessFor(g).Value,
-						GenomeFitness.Comparer<TGenome>.Instance).FirstOrDefault();
+					var top = selected
+						.OrderBy(g =>
+							problem.GetFitnessFor(g, true).Value,
+							GenomeFitness.Comparer<TGenome, Fitness>.Instance)
+						.ThenByDescending(g=>g.Hash.Length) // Might be equals.
+						.FirstOrDefault();
 
 					if (top != null)
 					{
@@ -117,14 +126,31 @@ namespace GeneticAlgorithmPlatform
 							// Crossover.
 							TGenome[] o2;
 							if (Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected).ToArray(), out o2))
-								Producer.TryEnqueue(o2);
+								Producer.TryEnqueue(o2.Select(o=>Problem.GetFitnessFor(o)?.Genome ?? o)); // Get potential stored variation.
 						});
 
 					}
 
+					// NOTE: That global GenomeFitness returns may return a 'version' of the actual genome.
+
+					// Ensure the global pareto is retained. (note is using global version)
+					var paretoGenomes = GenomeFitness.Pareto(Problem.GetFitnessFor(selection.All)).Select(g => g.Genome);
+
 					// The top final pool recycles it's winners.
-					foreach (var g in selected)
+					foreach (var g in selected.Concat(paretoGenomes).Distinct()) //Also avoid re-entrance if there are more than one.
 						FinalistPool.Post(g); // Might need to look at the whole pool and use pareto to retain.
+
+					var rejected = new HashSet<TGenome>(selection.Rejected);
+					rejected.ExceptWith(paretoGenomes);
+
+					// Just in case a challenger got lucky.
+					foreach (var reject in Problem.GetFitnessFor(rejected, true))
+					{
+						if (reject.Fitness.IncrementRejection() == 1)
+							Producer.TryEnqueue(reject.Genome, true);
+						// else
+						// 	Console.WriteLine("2nd Round Rejection: "+reject.Genome);
+					}
 
 				})
 				.PropagateFaultsTo(TopGenome)
@@ -132,8 +158,13 @@ namespace GeneticAlgorithmPlatform
 
 			Pipeline.LinkToWithExceptions(FinalistPool);
 			Pipeline
-				.PropagateCompletionTo(Producer, FinalistPool)
+				.PropagateCompletionTo(Producer, FinalistPool, SecondChance)
 				.OnComplete(() => Console.WriteLine("Pipeline COMPLETED"));
+
+			Producer
+				.ProductionCompetion
+				.ContinueWith(task => Pipeline.Fault("Producer Completed Unexpectedly."));
+
 		}
 
 		protected virtual IEnumerable<TGenome> Breed(TGenome genome)

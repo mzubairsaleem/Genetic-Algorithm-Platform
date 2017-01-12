@@ -84,25 +84,33 @@ namespace GeneticAlgorithmPlatform
 
 		public GenomeProducer(
 			IEnumerable<TGenome> source,
-			int bufferSize = 100) : this(source.PreCache(200).GetEnumerator(), bufferSize)
+			int bufferSize = 100) : this(source.PreCache(100).GetEnumerator(), bufferSize)
 		{
 
 		}
 
-		bool TryEnqueueInternal(BufferBlock<TGenome> target, TGenome genome)
+		public Task ProductionCompetion
+		{
+			get
+			{
+				return ProduceBuffer.Completion;
+			}
+		}
+
+		bool TryEnqueueInternal(BufferBlock<TGenome> target, TGenome genome, bool force = false)
 		{
 			bool queued = false;
 			if (genome != null)
 			{
 				var hash = genome.Hash;
-				if (!Registry.Contains(hash))
+				if (force || !Registry.Contains(hash))
 				{
 					lock (Registry)
 					{
-						if (!Registry.Contains(hash) && target.Post(genome))
+						if ((force || !Registry.Contains(hash)) && target.Post(genome))
 						{
 							queued = Registry.Add(genome.Hash);
-							Debug.Assert(queued);
+							Debug.Assert(force || queued);
 						}
 					}
 				}
@@ -110,15 +118,15 @@ namespace GeneticAlgorithmPlatform
 			return queued;
 		}
 
-		public bool TryEnqueue(TGenome genome)
+		public bool TryEnqueue(TGenome genome, bool force = false)
 		{
 			return TryEnqueueInternal(EnqueuedBuffer, genome);
 		}
 
-		public void TryEnqueue(IEnumerable<TGenome> genomes)
+		public void TryEnqueue(IEnumerable<TGenome> genomes, bool force = false)
 		{
 			foreach (var genome in genomes)
-				TryEnqueueInternal(EnqueuedBuffer, genome);
+				TryEnqueueInternal(EnqueuedBuffer, genome, force);
 		}
 
 		// bool TryEnqueueProduction(TGenome genome)

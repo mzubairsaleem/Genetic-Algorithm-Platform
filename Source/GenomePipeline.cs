@@ -10,15 +10,38 @@ namespace GeneticAlgorithmPlatform
 {
 	// GenomeSelection should be short lived.
 	public struct GenomeSelection<TGenome>
+		where TGenome : IGenome
 	{
-		public readonly TGenome[] Rejected;
+		public readonly TGenome[] All;
 		public readonly TGenome[] Selected;
+		public readonly TGenome[] Rejected;
 
-		public GenomeSelection(TGenome[] selected, TGenome[] rejected)
+		public GenomeSelection(IEnumerable<TGenome> results) : this(results.ToArray())
 		{
+
+		}
+		public GenomeSelection(TGenome[] results)
+		{
+			int len = results.Length;
+			int selectionPoint = len / 2;
+			var all = new TGenome[len];
+			var selected = new TGenome[selectionPoint];
+			var rejected = new TGenome[len - selectionPoint];
+			for (var i = 0; i < len; i++)
+			{
+				var g = results[i];
+				all[i] = g;
+				if (i < selectionPoint)
+					selected[i] = g;
+				else
+					rejected[i - selectionPoint] = g;
+			}
+
+			All = all;
 			Selected = selected;
 			Rejected = rejected;
 		}
+
 	}
 
 	public static class GenomePipeline
@@ -44,32 +67,32 @@ namespace GeneticAlgorithmPlatform
 			});
 		}
 
-		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]>
-			ProcessorBatched<TGenome>(
-				GenomeTestDelegate<TGenome> test,
-				int size)
-			where TGenome : IGenome
-		{
-			var input = new BatchBlock<TGenome>(size, new GroupingDataflowBlockOptions
-			{
-				BoundedCapacity = size * 2
-			});
+		// public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]>
+		// 	ProcessorBatched<TGenome>(
+		// 		GenomeTestDelegate<TGenome> test,
+		// 		int size)
+		// 	where TGenome : IGenome
+		// {
+		// 	var input = new BatchBlock<TGenome>(size, new GroupingDataflowBlockOptions
+		// 	{
+		// 		BoundedCapacity = size * 2
+		// 	});
 
-			var output = new TransformBlock<TGenome[], GenomeFitness<TGenome>[]>(async batch =>
-			{
-				long batchId = UniqueBatchID();
-				return await Task.WhenAll(batch.Select(g => test(g, batchId).ContinueWith(t => new GenomeFitness<TGenome>(g, t.Result))))
-					.ContinueWith(task => task.Result.OrderBy(g => g, GenomeFitness.Comparer<TGenome>.Instance)
-						.ToArray());
-			}, new ExecutionDataflowBlockOptions
-			{
-				MaxDegreeOfParallelism = 32
-			});
+		// 	var output = new TransformBlock<TGenome[], GenomeFitness<TGenome>[]>(async batch =>
+		// 	{
+		// 		long batchId = UniqueBatchID();
+		// 		return await Task.WhenAll(batch.Select(g => test(g, batchId).ContinueWith(t => new GenomeFitness<TGenome>(g, t.Result))))
+		// 			.ContinueWith(task => task.Result.OrderBy(g => g, GenomeFitness.Comparer<TGenome>.Instance)
+		// 				.ToArray());
+		// 	}, new ExecutionDataflowBlockOptions
+		// 	{
+		// 		MaxDegreeOfParallelism = 32
+		// 	});
 
-			input.LinkToWithExceptions(output);
+		// 	input.LinkToWithExceptions(output);
 
-			return DataflowBlock.Encapsulate(input, output);
-		}
+		// 	return DataflowBlock.Encapsulate(input, output);
+		// }
 
 		public static IPropagatorBlock<TGenome, GenomeFitness<TGenome>[]>
 			Processor<TGenome>(
@@ -113,17 +136,13 @@ namespace GeneticAlgorithmPlatform
 				BoundedCapacity = size * 2
 			});
 
-			input.Completion.ContinueWith(task =>
-			{
-				if (task.IsFaulted) ((IDataflowBlock)output).Fault(task.Exception.InnerException);
-			});
+			input.PropagateFaultsTo(output);
 
 			return DataflowBlock.Encapsulate(input, output);
 		}
 
 		public static TransformBlock<GenomeFitness<TGenome>[], GenomeSelection<TGenome>>
-			Selector<TGenome>(
-				IProblem<TGenome> problem)
+			Selector<TGenome>(IProblem<TGenome> problem)
 			where TGenome : IGenome
 		{
 			if (problem == null)
@@ -131,20 +150,8 @@ namespace GeneticAlgorithmPlatform
 
 			return new TransformBlock<GenomeFitness<TGenome>[], GenomeSelection<TGenome>>(results =>
 			{
-				var len = results.Length;
-				var selectionPoint = len / 2;
-				var selected = new TGenome[selectionPoint];
-				var rejected = new TGenome[len - selectionPoint];
-				for (var i = 0; i < len; i++)
-				{
-					var gf = results[i];
-					problem.AddToGlobalFitness(gf);
-					if (i < selectionPoint)
-						selected[i] = gf.Genome;
-					else
-						rejected[i - selectionPoint] = gf.Genome;
-				}
-				return new GenomeSelection<TGenome>(selected, rejected);
+				problem.AddToGlobalFitness(results);
+				return new GenomeSelection<TGenome>(results.Select(r => r.Genome));
 			}, new ExecutionDataflowBlockOptions()
 			{
 				MaxDegreeOfParallelism = 2
@@ -152,9 +159,7 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		public static IPropagatorBlock<TGenome, GenomeSelection<TGenome>>
-			Selector<TGenome>(
-				IProblem<TGenome> problem,
-					int size)
+			Selector<TGenome>(IProblem<TGenome> problem, int size)
 			where TGenome : IGenome
 		{
 			if (problem == null)
@@ -190,6 +195,21 @@ namespace GeneticAlgorithmPlatform
 					await rejected.SendAsync(selection.Rejected).ConfigureAwait(false);
 			}));
 
+			return input;
+		}
+
+		public static ITargetBlock<TGenome>
+			Distributor<TGenome>(
+				IProblem<TGenome> problem,
+				int size,
+				Action<GenomeSelection<TGenome>> selection)
+			where TGenome : IGenome
+		{
+			if (selection == null)
+				throw new ArgumentNullException("selection");
+
+			var input = Selector(problem, size);
+			input.LinkTo(selection);
 			return input;
 		}
 
@@ -250,14 +270,14 @@ namespace GeneticAlgorithmPlatform
 		public readonly ushort PoolSize;
 		public readonly byte SourceCount;
 
-		readonly GenomeProducer<TGenome> Producer;
+		readonly ISourceBlock<TGenome> DefaultSource;
 
 		readonly IProblem<TGenome> Problem;
 
 		readonly Action<TGenome[]> GlobalSelectedHandler;
 
 		public GenomePipelineBuilder(
-			GenomeProducer<TGenome> producer,
+			ISourceBlock<TGenome> defaultSource,
 			IProblem<TGenome> problem,
 			ushort poolSize,
 			byte sourceCount = 2,
@@ -265,21 +285,22 @@ namespace GeneticAlgorithmPlatform
 		{
 			if (sourceCount < 1)
 				throw new ArgumentOutOfRangeException("sourceCount", sourceCount, "Must be at least 1.");
-			if (producer == null)
-				throw new ArgumentNullException("producer");
+			if (defaultSource == null)
+				throw new ArgumentNullException("defaultSource");
 			if (problem == null)
 				throw new ArgumentNullException("problem");
-			Producer = producer;
+			DefaultSource = defaultSource;
 			Problem = problem;
 			PoolSize = poolSize;
 			SourceCount = sourceCount;
 			GlobalSelectedHandler = globalSelectedHandler;
 		}
 
+
 		public ISourceBlock<TGenome> Node(
 			ISourceBlock<TGenome> source = null)
 		{
-			return GenomePipeline.Node(new ISourceBlock<TGenome>[] { source ?? Producer }, Problem, PoolSize, GlobalSelectedHandler);
+			return GenomePipeline.Node(new ISourceBlock<TGenome>[] { source ?? DefaultSource }, Problem, PoolSize, GlobalSelectedHandler);
 		}
 
 		IEnumerable<ISourceBlock<TGenome>> FirstLevelNodes()
@@ -302,7 +323,7 @@ namespace GeneticAlgorithmPlatform
 			if (depth == 2) return CreateNextLevelNode();
 
 			return CreateNextLevelNode(
-				Enumerable.Range(0, (int)SourceCount)
+				Enumerable.Range(0, SourceCount)
 					.Select(i => CreateNetwork(depth - 1))
 			);
 		}
@@ -316,6 +337,27 @@ namespace GeneticAlgorithmPlatform
 				new ActionBlock<TGenome[]>(selected),
 				rejected == null ? null : new ActionBlock<TGenome[]>(rejected));
 		}
+
+		public ITargetBlock<TGenome>
+			Selector(Action<GenomeSelection<TGenome>> selection)
+		{
+			return GenomePipeline.Distributor(Problem, PoolSize, selection);
+		}
+	}
+
+	public static class GenomePipelineBuilder
+	{
+		public static GenomePipelineBuilder<TGenome> New<TGenome>(
+			ISourceBlock<TGenome> defaultSource,
+			IProblem<TGenome> problem,
+			ushort poolSize,
+			byte sourceCount = 2,
+			Action<TGenome[]> globalSelectedHandler = null)
+			where TGenome : IGenome
+		{
+			return new GenomePipelineBuilder<TGenome>(defaultSource, problem, poolSize, sourceCount, globalSelectedHandler);
+		}
+
 	}
 
 }

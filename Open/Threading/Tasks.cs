@@ -26,5 +26,47 @@ namespace Open.Threading
 
 			return false;
 		}
+
+
+		public static Task<T> OnFullfilled<T>(this Task<T> target, Action<T> action)
+		{
+			target.ContinueWith(task =>
+			{
+				if (task.IsCompleted) action(task.Result);
+			});
+			return target;
+		}
+
+		public static Task OnFullfilled<T>(this Task target, Action action)
+			where T : Task
+		{
+			target.ContinueWith(task =>
+			{
+				if (task.IsCompleted) action();
+			});
+			return target;
+		}
+
+		// Tasks don't behave like promises so even though this seems like we should call this "Catch", it's not doing that and a real catch statment needs to be wrapped around a wait call.
+		public static T OnFaulted<T>(this T target, Action<Exception> action)
+			where T : Task
+		{
+			target.ContinueWith(task =>
+			{
+				if (task.IsFaulted) action(task.Exception);
+			});
+			return target;
+		}
+
+		public static T OnCancelled<T>(this T target, Action action)
+			where T : Task
+		{
+			target.ContinueWith(task =>
+			{
+				if (task.IsCanceled) action();
+			});
+			return target;
+		}
+
 	}
 }

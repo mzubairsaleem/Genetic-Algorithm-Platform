@@ -16,16 +16,17 @@ namespace AlgebraBlackBox
 
 		protected override IEnumerable<Genome> Breed(Genome genome)
 		{
+			// Calling AsReduced will cut down on unnecessary retries of existing formulas.
 			var r = genome.AsReduced();
 			Debug.Assert(r != null);
 			if (r != genome)
 			{
 				yield return r;
-				yield return (Genome)r.NextVariation();
-				yield return (Genome)r.NextMutation();
+				yield return ((Genome)r.NextVariation()).AsReduced();
+				yield return ((Genome)r.NextMutation()).AsReduced();
 			}
 			foreach (var g in base.Breed(genome))
-				yield return g;
+				yield return g.AsReduced();
 		}
 
 	}

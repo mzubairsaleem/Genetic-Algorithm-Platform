@@ -33,15 +33,15 @@ namespace GeneticAlgorithmPlatform
 		public static void Main(string[] args)
 		{
 			Console.WriteLine("Starting...");
-			// // Througput test...
+			// Througput test...
 			// var factory = new AlgebraBlackBox.GenomeFactory();
-			// Parallel.ForEach(factory.Generate(),g=>{
+			// factory.Generate().AsParallel().ForAll(g=>{
 
 			// });
 
 			// return; 
 			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(SqrtA2B2A2B1, 50, 3, 3);
+			var env = new AlgebraBlackBox.Environment(SqrtA2B2A2B1, 50, 4, 3);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
 			Action emitStats = () =>
@@ -62,7 +62,7 @@ namespace GeneticAlgorithmPlatform
 				if (asReduced == genome)
 					Console.WriteLine("{0}:\t{1}", 1, genome.ToAlphaParameters());
 				else
-					Console.WriteLine("{0}:\t{1} => {2}", 1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
+					Console.WriteLine("{0}:\t{1}\n=>\t{2}", 1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
 
 				Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
 				Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);

@@ -9,22 +9,20 @@ namespace GeneticAlgorithmPlatform
 	// This is basically a KeyValuePair but more custom.
 	// Can be sorted.
 
-	public interface IGenomeFitness<TGenome> : IComparable<IGenomeFitness<TGenome>>, IEquatable<IGenomeFitness<TGenome>>
-		where TGenome : IGenome
-	{
-		TGenome Genome { get; }
-		IFitness Fitness { get; }
-
-
-	}
-	public interface IGenomeFitness<TGenome, TFitness> : IGenomeFitness<TGenome>
+	public interface IGenomeFitness<TGenome, TFitness> : IComparable<IGenomeFitness<TGenome, TFitness>>, IEquatable<IGenomeFitness<TGenome, TFitness>>
 		where TGenome : IGenome
 		where TFitness : IFitness
 	{
 
-		new TFitness Fitness { get; }
+		TGenome Genome { get; }
+		TFitness Fitness { get; }
 	}
 
+	public interface IGenomeFitness<TGenome> : IGenomeFitness<TGenome, IFitness>, IComparable<IGenomeFitness<TGenome>>, IEquatable<IGenomeFitness<TGenome>>
+		where TGenome : IGenome
+	{
+
+	}
 
 
 	public struct GenomeFitness<TGenome, TFitness> : IGenomeFitness<TGenome, TFitness>
@@ -34,13 +32,6 @@ namespace GeneticAlgorithmPlatform
 		public TGenome Genome { get; private set; }
 		public TFitness Fitness { get; private set; }
 
-		IFitness IGenomeFitness<TGenome>.Fitness
-		{
-			get
-			{
-				return this.Fitness;
-			}
-		}
 
 		public GenomeFitness(TGenome genome, TFitness Fitness)
 		{
@@ -48,12 +39,12 @@ namespace GeneticAlgorithmPlatform
 			this.Fitness = Fitness;
 		}
 
-		public int CompareTo(IGenomeFitness<TGenome> other)
+		public int CompareTo(IGenomeFitness<TGenome, TFitness> other)
 		{
 			return GenomeFitness.Comparison(this, other);
 		}
 
-		public bool Equals(IGenomeFitness<TGenome> other)
+		public bool Equals(IGenomeFitness<TGenome, TFitness> other)
 		{
 			return this.Genome.Equals(other.Genome) && this.Fitness.Equals(other.Fitness);
 		}
@@ -81,6 +72,15 @@ namespace GeneticAlgorithmPlatform
 			return this.Genome.Equals(other.Genome) && this.Fitness.Equals(other.Fitness);
 		}
 
+		public int CompareTo(IGenomeFitness<TGenome, IFitness> other)
+		{
+			return GenomeFitness.Comparison(this, other);
+		}
+
+		public bool Equals(IGenomeFitness<TGenome, IFitness> other)
+		{
+			return this.Genome.Equals(other.Genome) && this.Fitness.Equals(other.Fitness);
+		}
 	}
 
 	public static class GenomeFitness
@@ -92,8 +92,9 @@ namespace GeneticAlgorithmPlatform
 			return Comparison(x, y) == Fitness.ORDER_DIRECTION;
 		}
 
-		static int ComparisonInternal<TGenome>(IGenomeFitness<TGenome> x, IGenomeFitness<TGenome> y)
+		static int ComparisonInternal<TGenome, TFitness>(IGenomeFitness<TGenome, TFitness> x, IGenomeFitness<TGenome, TFitness> y)
 			where TGenome : IGenome
+			where TFitness : IFitness
 		{
 			if (x == y) return 0;
 
@@ -109,6 +110,12 @@ namespace GeneticAlgorithmPlatform
 			return GeneticAlgorithmPlatform.Fitness.IdComparison(x.Fitness, y.Fitness);
 		}
 
+		public static int Comparison<TGenome, TFitness>(IGenomeFitness<TGenome, TFitness> x, IGenomeFitness<TGenome, TFitness> y)
+			where TGenome : IGenome
+			where TFitness : IFitness
+		{
+			return ComparisonInternal(x, y);
+		}
 
 		public static int Comparison<TGenome>(IGenomeFitness<TGenome> x, IGenomeFitness<TGenome> y)
 			where TGenome : IGenome
@@ -133,12 +140,32 @@ namespace GeneticAlgorithmPlatform
 			public static readonly Comparer<TGenome> Instance = new Comparer<TGenome>();
 		}
 
+		public class Comparer<TGenome, TFitness> : IComparer<IGenomeFitness<TGenome, TFitness>>
+			where TGenome : IGenome
+			where TFitness : IFitness
+		{
+			public int Compare(IGenomeFitness<TGenome, TFitness> x, IGenomeFitness<TGenome, TFitness> y)
+			{
+				return Comparison(x, y);
+			}
+
+			public static readonly Comparer<TGenome, TFitness> Instance = new Comparer<TGenome, TFitness>();
+		}
+
 
 		public static GenomeFitness<TGenome> SnapShot<TGenome>(this IGenomeFitness<TGenome> source)
 			where TGenome : IGenome
 		{
 			return new GenomeFitness<TGenome>(source.Genome, source.Fitness.SnapShot());
 		}
+
+		public static GenomeFitness<TGenome> SnapShot<TGenome, TFitness>(this IGenomeFitness<TGenome, TFitness> source)
+			where TGenome : IGenome
+			where TFitness : IFitness
+		{
+			return new GenomeFitness<TGenome>(source.Genome, source.Fitness.SnapShot());
+		}
+
 		public static GenomeFitness<TGenome, TFitness> New<TGenome, TFitness>(TGenome genome, TFitness fitness)
 			where TGenome : IGenome
 			where TFitness : IFitness
@@ -161,8 +188,9 @@ namespace GeneticAlgorithmPlatform
 		}
 
 
-		public static List<GenomeFitness<TGenome>> Pareto<TGenome>(this IEnumerable<IGenomeFitness<TGenome>> population)
+		public static List<GenomeFitness<TGenome>> Pareto<TGenome, TFitness>(this IEnumerable<IGenomeFitness<TGenome, TFitness>> population)
 			where TGenome : IGenome
+			where TFitness : IFitness
 		{
 			if (population == null)
 				throw new ArgumentNullException("population");

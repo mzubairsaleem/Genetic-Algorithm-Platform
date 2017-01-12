@@ -1,9 +1,80 @@
 using System;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Open.Threading;
+
+namespace System.Threading.Tasks.Dataflow
+{
+	public static class TransformBlock
+	{
+		public static TransformBlock<Tin, Tout> New<Tin, Tout>(Func<Tin, Tout> pipe)
+		{
+			return new TransformBlock<Tin, Tout>(pipe);
+		}
+
+		public static TransformBlock<Tin, Tout> New<Tin, Tout>(Func<Tin, Tout> pipe, ExecutionDataflowBlockOptions options)
+		{
+			return new TransformBlock<Tin, Tout>(pipe, options);
+		}
+
+		public static TransformBlock<Tin, Tout> New<Tin, Tout>(Func<Tin, Tout> pipe, int maxParallel)
+		{
+			return new TransformBlock<Tin, Tout>(pipe, new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = maxParallel });
+		}
+
+		public static TransformBlock<Tin, Task<Tout>> NewAsync<Tin, Tout>(Func<Tin, Task<Tout>> pipe)
+		{
+			return new TransformBlock<Tin, Task<Tout>>(pipe);
+		}
+
+		public static TransformBlock<Tin, Task<Tout>> NewAsync<Tin, Tout>(Func<Tin, Task<Tout>> pipe, ExecutionDataflowBlockOptions options)
+		{
+			return new TransformBlock<Tin, Task<Tout>>(pipe, options);
+		}
+
+		public static TransformBlock<Tin, Task<Tout>> NewAsync<Tin, Tout>(Func<Tin, Task<Tout>> pipe, int maxParallel)
+		{
+			return new TransformBlock<Tin, Task<Tout>>(pipe, new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = maxParallel });
+		}
+	}
+
+	public static class ActionBlock
+	{
+		public static ActionBlock<T> New<T>(Action<T> action)
+		{
+			return new ActionBlock<T>(action);
+		}
+
+		public static ActionBlock<T> New<T>(Action<T> action, ExecutionDataflowBlockOptions options)
+		{
+			return new ActionBlock<T>(action, options);
+		}
+
+		public static ActionBlock<T> New<T>(Action<T> consumer, int maxParallel)
+		{
+			return new ActionBlock<T>(consumer, new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = maxParallel });
+		}
+
+		public static ActionBlock<T> NewAsync<T>(Func<T, Task> action)
+		{
+			return new ActionBlock<T>(action);
+		}
+
+		public static ActionBlock<T> NewAsync<T>(Func<T, Task> action, ExecutionDataflowBlockOptions options)
+		{
+			return new ActionBlock<T>(action, options);
+		}
+
+		public static ActionBlock<T> NewAsync<T>(Func<T, Task> consumer, int maxParallel)
+		{
+			return new ActionBlock<T>(consumer, new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = maxParallel });
+		}
+	}
+}
 
 namespace Open.DataFlow
 {
+
 	public static class DataFlowExtensions
 	{
 		public static ITargetBlock<T> AutoCompleteAfter<T>(this ITargetBlock<T> target, int limit)
@@ -16,9 +87,25 @@ namespace Open.DataFlow
 			return new DistinctBlock<T>(defaultResponseForDuplicate, target);
 		}
 
-		public static TransformBlock<T, T> Pipe<T>(this ITargetBlock<T> target, Func<T, T> pipe)
+		public static TransformBlock<Tin, Tout> Pipe<Tin, Tout>(this ISourceBlock<Tin> source, Func<Tin, Tout> pipe)
 		{
-			return new TransformBlock<T, T>(pipe);
+			var output = TransformBlock.New(pipe);
+			source.LinkToWithExceptions(output);
+			return output;
+		}
+
+		public static TransformBlock<Tin, Tout> Pipe<Tin, Tout>(this ISourceBlock<Tin> source, Func<Tin, Tout> pipe, ExecutionDataflowBlockOptions options)
+		{
+			var output = TransformBlock.New(pipe, options);
+			source.LinkToWithExceptions(output);
+			return output;
+		}
+
+		public static TransformBlock<Tin, Tout> Pipe<Tin, Tout>(this ISourceBlock<Tin> source, Func<Tin, Tout> pipe, int maxParallel)
+		{
+			var output = TransformBlock.New(pipe, new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = maxParallel });
+			source.LinkToWithExceptions(output);
+			return output;
 		}
 
 		public static IDisposable LinkTo<T>(this ISourceBlock<T> producer, Action<T> consumer)
@@ -47,15 +134,12 @@ namespace Open.DataFlow
 		public static T PropagateFaultsTo<T>(this T source, params IDataflowBlock[] targets)
 		where T : IDataflowBlock
 		{
-			source.Completion.ContinueWith(task =>
+			source.Completion.OnFaulted(ex =>
 			{
-				if (task.IsFaulted)
+				foreach (var target in targets)
 				{
-					foreach (var target in targets)
-					{
-						if(target!=null) target.Fault(task.Exception.InnerException);
-					}
-				};
+					if (target != null) target.Fault(ex.InnerException);
+				}
 			});
 			return source;
 		}
@@ -85,5 +169,23 @@ namespace Open.DataFlow
 			source.Completion.ContinueWith(oncomplete);
 			return source;
 		}
+
+		public static T OnFault<T>(this T source, Action onfault)
+			where T : IDataflowBlock
+		{
+			source.Completion.OnFaulted(task => onfault());
+			return source;
+		}
+
+		public static void Fault(this IDataflowBlock target, string message)
+		{
+			target.Fault(new Exception(message));
+		}
+
+		public static void Fault(this IDataflowBlock target, string message, Exception innerException)
+		{
+			target.Fault(new Exception(message, innerException));
+		}
+
 	}
 }

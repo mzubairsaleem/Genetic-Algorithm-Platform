@@ -66,7 +66,11 @@ namespace GeneticAlgorithmPlatform
 			while (true)
 			{
 				var one = GenerateOne(source);
-				if (one == null) break;
+				if (one == null)
+				{
+					Console.WriteLine("GenomeFactory failed GenerateOne()");
+					break;
+				}
 				yield return one;
 			}
 		}
