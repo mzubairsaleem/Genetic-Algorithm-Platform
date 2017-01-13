@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using GeneticAlgorithmPlatform.Schemes;
 using Open;
 using Open.Collections;
 
@@ -40,13 +41,16 @@ namespace GeneticAlgorithmPlatform
 			// });
 
 			// return; 
-			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(SqrtA2B2, 20, 3, 2);
-			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
+			var problem = new AlgebraBlackBox.Problem(SqrtA2B2);
+			var scheme = new NodedPipeline<AlgebraBlackBox.Genome>(
+				new AlgebraBlackBox.GenomeFactory(),
+				20, 3, 2);
+			
+			var sw = new Stopwatch();
 
 			Action emitStats = () =>
 			{
-				var tc = prob.TestCount;
+				var tc = problem.TestCount;
 				if (tc != 0)
 				{
 					Console.WriteLine("{0} tests, {1} total time, {2} ticks average", tc, sw.Elapsed.ToStringVerbose(), sw.ElapsedTicks / tc);
@@ -56,7 +60,7 @@ namespace GeneticAlgorithmPlatform
 
 			Action<AlgebraBlackBox.Genome> emitGenomeStats = genome =>
 			{
-				var fitness = prob.GetOrCreateFitnessFor(genome).Fitness;
+				var fitness = problem.GetOrCreateFitnessFor(genome).Fitness;
 
 				var asReduced = genome.AsReduced();
 				if (asReduced == genome)
@@ -69,12 +73,12 @@ namespace GeneticAlgorithmPlatform
 				Console.WriteLine();
 			};
 
-			bool converged = false;
-			env.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats));
+			bool done = false;
+			scheme.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats));
 
 			Task.Run(async () =>
 			{
-				while (!converged)
+				while (!done)
 				{
 					emitStats();
 
@@ -82,15 +86,16 @@ namespace GeneticAlgorithmPlatform
 				}
 			});
 
-			env.TopGenome.Completion.ContinueWith(task =>
+			sw.Start();
+			scheme.Start(problem).ContinueWith(task =>
 			{
-				converged = true;
+				done = true;
 				emitStats();
 				Console.WriteLine();
 				if (task.IsFaulted)
 					Console.WriteLine(task.Exception.GetBaseException());
 				else
-					Console.WriteLine("Converged.");
+					Console.WriteLine("Done.");
 			}).Wait();
 
 		}

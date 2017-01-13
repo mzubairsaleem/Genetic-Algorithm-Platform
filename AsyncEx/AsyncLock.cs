@@ -148,8 +148,8 @@ namespace Nito.AsyncEx
                 else
                     finish = _queue.Dequeue(_cachedKeyTask.Result);
             }
-            if (finish != null)
-                finish.Dispose();
+            
+            finish?.Dispose();
         }
 
         /// <summary>

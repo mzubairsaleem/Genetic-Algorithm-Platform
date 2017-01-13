@@ -37,5 +37,7 @@ namespace GeneticAlgorithmPlatform
 		TGenome[] AttemptNewCrossover(TGenome primary, TGenome[] others, byte maxAttemptsPerCombination = 3);
 
 		TGenome[] AttemptNewCrossover(TGenome[] source, byte maxAttemptsPerCombination = 3);
+
+		IEnumerable<TGenome> Expand(TGenome genome);
 	}
 }

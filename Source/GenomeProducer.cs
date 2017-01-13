@@ -79,7 +79,6 @@ namespace GeneticAlgorithmPlatform
 				}
 			});
 
-			Producer.Post(true);
 		}
 
 		public GenomeProducer(
@@ -87,6 +86,11 @@ namespace GeneticAlgorithmPlatform
 			int bufferSize = 100) : this(source.PreCache(10).GetEnumerator(), bufferSize)
 		{
 
+		}
+
+		public void Poke()
+		{			
+			Producer.Post(true);
 		}
 
 		public Task ProductionCompetion

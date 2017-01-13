@@ -487,8 +487,8 @@ namespace AlgebraBlackBox
 		{
 			if (target == null) return null;
 			Genome registered;
-			if(!Register(target, out registered)) return registered;
-			
+			if (!Register(target, out registered)) return registered;
+
 			target.RegisterVariations(GenerateVariations(target));
 			target.RegisterMutations(Mutate(target));
 
@@ -700,6 +700,24 @@ namespace AlgebraBlackBox
 			}
 
 			return null;
+		}
+
+
+		public override IEnumerable<Genome> Expand(Genome genome)
+		{
+			// Calling AsReduced will cut down on unnecessary retries of existing formulas.
+			var r = genome.AsReduced();
+			Debug.Assert(r != null);
+			if (r != genome)
+			{
+				yield return r;
+				var v = (Genome)r.NextVariation();
+				if (v != null) yield return v.AsReduced();
+				var m = (Genome)r.NextMutation();
+				if (m != null) yield return m.AsReduced();
+			}
+			foreach (var e in base.Expand(genome))
+				yield return e;
 		}
 	}
 }

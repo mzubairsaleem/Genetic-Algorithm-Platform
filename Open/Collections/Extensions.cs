@@ -471,7 +471,7 @@ namespace Open.Collections
 			return target;
 		}*/
 
-		public static IDictionary<TKey, TValue> ToDictionary<TKey, TValue>(this ParallelQuery<KeyValuePair<TKey, TValue>> source)
+		public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this ParallelQuery<KeyValuePair<TKey, TValue>> source)
 		{
 			if (source == null)
 				throw new NullReferenceException();
@@ -479,7 +479,7 @@ namespace Open.Collections
 			return source.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 		}
 
-		public static IDictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> source)
+		public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> source)
 		{
 			if (source == null)
 				throw new NullReferenceException();

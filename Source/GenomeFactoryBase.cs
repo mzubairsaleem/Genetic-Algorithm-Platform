@@ -199,7 +199,7 @@ namespace GeneticAlgorithmPlatform
 				throw new ArgumentNullException("source");
 			if (source.Length == 2 && source[0] != source[1]) return AttemptNewCrossover((TGenome)source[0], (TGenome)source[1], maxAttemptsPerCombination);
 			if (source.Length <= 2)
-				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
+				return null; //throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
 			bool isFirst = true;
 			do
@@ -215,13 +215,13 @@ namespace GeneticAlgorithmPlatform
 					isFirst = false;
 					var b = s1.RandomSelectOne();
 					var offspring = AttemptNewCrossover(a, b, maxAttemptsPerCombination);
-					if (offspring!=null && offspring.Length!=0) return offspring;
+					if (offspring != null && offspring.Length != 0) return offspring;
 					// Reduce the possibilites.
 					s1 = s1.Where(g => g != b).ToArray();
 				}
 
 				if (isFirst) // There were no other available candicates to cross over with. :(
-					throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
+					return null; //throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
 				// Okay so we've been through all of them with 'a' Now move on to another.
 				source = source.Where<TGenome>(g => g != a).ToArray();
@@ -238,11 +238,11 @@ namespace GeneticAlgorithmPlatform
 			if (others == null)
 				throw new ArgumentNullException("source");
 			if (others.Length == 0)
-				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
+				return null;// throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 			if (others.Length == 1 && primary != others[0]) return AttemptNewCrossover(primary, (TGenome)others[0], maxAttemptsPerCombination);
 			var source = others.Where<TGenome>(g => g != primary);
 			if (!source.Any())
-				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
+				return null; //throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
 			// Get all others (in orignal order/duplicates).
 			var s1 = source.ToArray();
@@ -252,7 +252,7 @@ namespace GeneticAlgorithmPlatform
 			{
 				var b = s1.RandomSelectOne();
 				var offspring = AttemptNewCrossover(primary, b, maxAttemptsPerCombination);
-				if (offspring!=null && offspring.Length!=0) return offspring;
+				if (offspring != null && offspring.Length != 0) return offspring;
 				// Reduce the possibilites.
 				s1 = s1.Where(g => g != b).ToArray();
 				/* ^^^ Why are we filtering like this you might ask? 
@@ -260,6 +260,14 @@ namespace GeneticAlgorithmPlatform
 			}
 
 			return null;
+		}
+
+		public virtual IEnumerable<TGenome> Expand(TGenome genome)
+		{
+			var variation = (TGenome)genome.NextVariation();
+			if (variation != null) yield return variation;
+			var mutation = GenerateOne(genome);
+			if (mutation != null) yield return mutation;
 		}
 	}
 }
