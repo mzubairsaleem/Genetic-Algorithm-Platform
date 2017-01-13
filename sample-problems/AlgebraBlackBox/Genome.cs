@@ -162,6 +162,12 @@ namespace AlgebraBlackBox
 			return r;
 		}
 
+		internal void ReplaceReduced(Genome reduced)
+		{
+			if(AsReduced()!=reduced)
+				Interlocked.Exchange(ref _reduced, Lazy.New(()=>reduced));
+		}
+
 		object _varLock = new Object();
 		static readonly IEnumerator<Genome> EmptyEnumerator = Enumerable.Empty<Genome>().GetEnumerator();
 		public override IGenome NextVariation()
@@ -203,21 +209,30 @@ namespace AlgebraBlackBox
 			}
 		}
 
-		public void RegisterVariations(IEnumerable<Genome> variations)
+		internal void RegisterVariations(IEnumerable<Genome> variations)
 		{
-			if (this.IsReadOnly && _variations != null)
-				throw new ArgumentException("Cannot register variations after frozen.", "variations");
 			_variations = variations.Memoize();
 		}
 
-		public void RegisterMutations(IEnumerable<Genome> mutations)
+		internal void RegisterMutations(IEnumerable<Genome> mutations)
 		{
-			if (this.IsReadOnly && _mutationEnumerator != null)
-				throw new ArgumentException("Cannot register mutations after frozen.", "mutations");
 			_mutationEnumerator = mutations.GetEnumerator();
 		}
 
+		ConcurrentHashSet<string> Expansions = new ConcurrentHashSet<string>();
+		Lazy<string[]> Expansions_Array;
+		public bool RegisterExpansion(string genomeHash)
+		{
+			var added = Expansions.Add(genomeHash);
+			if(added)
+				Expansions_Array = Lazy.New(()=>Expansions.ToArrayDirect());
+			return added;
+		}
 
+		public string[] GetExpansions()
+		{
+			return Expansions_Array?.Value;
+		}
 
         // public Task<double> Correlation(
         // 	double[] aSample, double[] bSample,
@@ -254,6 +269,20 @@ namespace AlgebraBlackBox
         // // {
         // // 	return this.correlation(this.sample(), this.sample(), a, b)>0.9999999;
         // // }
+
+
+        // public class EqualityComparer : IEqualityComparer<Genome>
+        // {
+        //     public bool Equals(Genome x, Genome y)
+        //     {
+        //         return x == y || x.Hash == y.Hash;
+        //     }
+
+        //     public int GetHashCode(Genome obj)
+        //     {
+        //         throw new NotImplementedException();
+        //     }
+        // }
 
     }
 }

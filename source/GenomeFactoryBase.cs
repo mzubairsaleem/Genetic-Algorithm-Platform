@@ -20,45 +20,70 @@ namespace GeneticAlgorithmPlatform
 
 		public GenomeFactoryBase()
 		{
-			PreviousGenomes = new ConcurrentDictionary<string, TGenome>();
-			PreviousGenomesOrder = new ConcurrencyWrapper<string, List<string>>(new List<string>());
+			Registry = new ConcurrentDictionary<string, TGenome>();
+			RegistryOrder = new ConcurrencyWrapper<string, List<string>>(new List<string>());
+			PreviouslyProduced = new ConcurrentHashSet<string>();
 		}
 
-		protected readonly ConcurrentDictionary<string, TGenome> PreviousGenomes; // Track by hash...
+		// Help to reduce copies.
+		protected readonly ConcurrentDictionary<string, TGenome> Registry;
 
-		protected readonly ConcurrencyWrapper<string, List<string>> PreviousGenomesOrder;
+		protected readonly ConcurrentHashSet<string> PreviouslyProduced;
 
-		protected bool Register(TGenome genome)
+		protected readonly ConcurrencyWrapper<string, List<string>> RegistryOrder;
+
+		protected bool Register(TGenome genome, out TGenome actual)
 		{
 			var hash = genome.Hash;
-			if (PreviousGenomes.TryAdd(hash, genome))
+			if (Registry.TryAdd(hash, genome))
 			{
-				PreviousGenomesOrder.Add(hash);
+				RegistryOrder.Add(hash);
+				actual = genome;
 				return true;
 			}
+			actual = Registry[hash];
 			return false;
 		}
 
-		protected bool Exists(string hash)
+		protected virtual TGenome Registration(TGenome genome)
 		{
-			if (hash == null)
-				throw new ArgumentNullException("hash");
-			return PreviousGenomes.ContainsKey(hash);
+			if (genome == null) return null;
+			TGenome actual;
+			Register(genome, out actual);
+			return actual;
 		}
 
-		protected bool Exists(TGenome genome)
+		protected bool RegisterProduction(TGenome genome)
 		{
 			if (genome == null)
 				throw new ArgumentNullException("genome");
-			return Exists(genome.Hash);
+			var hash = genome.Hash;
+			if (!Registry.ContainsKey(hash))
+				throw new InvalidOperationException("Registering for production before genome was in global registry.");
+			return PreviouslyProduced.Add(genome.Hash);
+		}
+
+		protected bool AlreadyProduced(string hash)
+		{
+			if (hash == null)
+				throw new ArgumentNullException("hash");
+			return PreviouslyProduced.Contains(hash);
+		}
+
+		protected bool AlreadyProduced(TGenome genome)
+		{
+			if (genome == null)
+				throw new ArgumentNullException("genome");
+			return AlreadyProduced(genome.Hash);
 		}
 
 		public string[] GetAllPreviousGenomesInOrder()
 		{
 
-			return PreviousGenomesOrder.ToArray();
+			return RegistryOrder.ToArray();
 		}
 
+		// Be sure to call Registration within the GenerateOne call.
 		public abstract TGenome GenerateOne(TGenome[] source = null);
 
 		public IEnumerable<TGenome> Generate(TGenome[] source = null)
@@ -77,7 +102,10 @@ namespace GeneticAlgorithmPlatform
 
 		public TGenome GenerateOne(TGenome source)
 		{
-			return GenerateOne(new TGenome[] { source });
+			var one = GenerateOne(new TGenome[] { source });
+			if (one != null)
+				RegisterProduction(one);
+			return one;
 		}
 
 		public IEnumerable<TGenome> Generate(TGenome source)
@@ -86,6 +114,7 @@ namespace GeneticAlgorithmPlatform
 			while (true) yield return GenerateOne(e);
 		}
 
+		// Be sure to call Registration within the GenerateOne call.
 		protected abstract TGenome MutateInternal(TGenome target);
 
 		public bool AttemptNewMutation(TGenome source, out TGenome mutation, byte triesPerMutationLevel = 5, byte maxMutations = 3)
@@ -109,7 +138,7 @@ namespace GeneticAlgorithmPlatform
 					for (byte t = 0; t < triesPerMutationLevel; t++)
 					{
 						genome = Mutate(source.RandomSelectOne(), m);
-						if (genome != null && !PreviousGenomes.ContainsKey(genome.Hash))
+						if (genome != null && RegisterProduction(genome))
 							return true;
 					}
 				}
@@ -155,7 +184,7 @@ namespace GeneticAlgorithmPlatform
 		{
 			while (maxAttempts != 0)
 			{
-				offspring = CrossoverInternal(a, b)?.Where(g => !PreviousGenomes.ContainsKey(g.Hash)).ToArray();
+				offspring = CrossoverInternal(a, b)?.Where(g => RegisterProduction(g)).ToArray();
 				if (offspring != null && offspring.Length != 0) return true;
 				--maxAttempts;
 			}

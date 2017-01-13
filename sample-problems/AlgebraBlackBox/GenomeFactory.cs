@@ -12,11 +12,10 @@ namespace AlgebraBlackBox
 
 	public class GenomeFactory : GeneticAlgorithmPlatform.GenomeFactoryBase<Genome>
 	{
-
 		ConcurrentHashSet<int> ParamsOnlyAttempted = new ConcurrentHashSet<int>();
 		protected Genome GenerateParamOnly(int id)
 		{
-			return Freeze(new Genome(new ParameterGene(id)));
+			return Registration(new Genome(new ParameterGene(id)));
 		}
 
 		ConcurrentDictionary<int, IEnumerator<Genome>> OperatedCatalog = new ConcurrentDictionary<int, IEnumerator<Genome>>();
@@ -31,7 +30,7 @@ namespace AlgebraBlackBox
 				{
 					foreach (var p in combination)
 						op.Add(new ParameterGene(p));
-					yield return Freeze(new Genome(op));
+					yield return Registration(new Genome(op));
 				}
 			}
 		}
@@ -42,7 +41,7 @@ namespace AlgebraBlackBox
 			foreach (var op in Operators.Available.Functions.Select(o => Operators.New(o)))
 			{
 				op.Add(new ParameterGene(id));
-				yield return Freeze(new Genome(op));
+				yield return Registration(new Genome(op));
 			}
 		}
 
@@ -78,7 +77,7 @@ namespace AlgebraBlackBox
 							genome = GenerateParamOnly(paramCount);
 							hash = genome.Hash;
 							attempts++;
-							if (!Exists(hash)) // May be supurfulous.
+							if (RegisterProduction(genome)) // May be supurfulous.
 								return genome;
 						}
 
@@ -91,7 +90,7 @@ namespace AlgebraBlackBox
 							genome = operated.Current;
 							hash = genome.Hash;
 							attempts++;
-							if (!Exists(hash)) // May be supurfulous.
+							if (RegisterProduction(genome)) // May be supurfulous.
 								return genome;
 						}
 
@@ -101,18 +100,19 @@ namespace AlgebraBlackBox
 							genome = functioned.Current;
 							hash = genome.Hash;
 							attempts++;
-							if (!Exists(hash)) // May be supurfulous.
+							if (RegisterProduction(genome)) // May be supurfulous.
 								return genome;
 						}
 
 
-						var t = Math.Min(PreviousGenomes.Count * 2, 100); // A local maximum.
+						var t = Math.Min(Registry.Count * 2, 100); // A local maximum.
 						do
 						{
-							genome = Mutate(PreviousGenomes[PreviousGenomesOrder.Source.RandomSelectOne()], m);
+							// NOTE: Let's use expansions here...
+							genome = Mutate(Registry[RegistryOrder.Source.RandomSelectOne()], m);
 							hash = genome?.Hash;
 							attempts++;
-							if (hash != null && !Exists(hash))
+							if (hash != null && RegisterProduction(genome))
 								return genome;
 						}
 						while (--t != 0);
@@ -126,19 +126,7 @@ namespace AlgebraBlackBox
 		}
 		public override Genome GenerateOne(Genome[] source = null)
 		{
-			var genome = GenerateOneInternal(source);
-
-			if (genome != null)
-			{
-				// If by chance the result is not unique to history, keep the existing instance.
-				Genome temp;
-				if (PreviousGenomes.TryGetValue(genome.Hash, out temp))
-					return temp;
-
-				if (genome != null)
-					Register(genome);
-			}
-
+			var genome = Registration(GenerateOneInternal(source));
 
 			Debug.Assert(genome != null, "Converged? No solutions? Saturated?");
 			// if(genome==null)
@@ -490,22 +478,32 @@ namespace AlgebraBlackBox
 		{
 			return GenerateVariationsUnfiltered(source)
 				.Where(genome => genome != null)
-				.Select(genome =>
-				{
-					genome = genome.AsReduced();
-					Genome temp;
-					return PreviousGenomes.TryGetValue(genome.ToString(), out temp) ? temp : Freeze(genome);
-				})
+				.Select(genome => Registration(genome.AsReduced()))
 				.GroupBy(g => g.Hash)
 				.Select(g => g.First());
 		}
 
-		Genome Freeze(Genome target)
+		protected override Genome Registration(Genome target)
 		{
 			if (target == null) return null;
+			Genome registered;
+			if(!Register(target, out registered)) return registered;
+			
 			target.RegisterVariations(GenerateVariations(target));
 			target.RegisterMutations(Mutate(target));
+
+			var reduced = target.AsReduced();
+			if (reduced != target)
+			{
+				// A little caution here. Some possible evil recursion?
+				var reducedRegistration = Registration(reduced);
+				if (reduced != reducedRegistration)
+					target.ReplaceReduced(reducedRegistration);
+
+				reduced.RegisterExpansion(target.Hash);
+			}
 			target.Freeze();
+
 			return target;
 		}
 
@@ -665,7 +663,7 @@ namespace AlgebraBlackBox
 
 		protected override Genome MutateInternal(Genome target)
 		{
-			return Freeze(MutateUnfrozen(target));
+			return Registration(MutateUnfrozen(target));
 		}
 
 		protected override Genome[] CrossoverInternal(Genome a, Genome b)
@@ -696,7 +694,7 @@ namespace AlgebraBlackBox
 					var bg = others.RandomSelectOne();
 					a.Replace(ag, bg);
 					b.Replace(bg, ag);
-					return new Genome[] { Freeze(a), Freeze(b) };
+					return new Genome[] { Registration(a), Registration(b) };
 				}
 				aGenes = aGenes.Where(g => g != ag).ToArray();
 			}
