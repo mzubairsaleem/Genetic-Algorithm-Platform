@@ -14,7 +14,6 @@ using Open.DataFlow;
 namespace GeneticAlgorithmPlatform.Schemes
 {
 
-	// Defines the pipeline?
 	public sealed class PyramidPipeline<TGenome> : EnvironmentBase<TGenome>
 		where TGenome : class, IGenome
 	{
