@@ -41,7 +41,7 @@ namespace GeneticAlgorithmPlatform
 
 			// return; 
 			var sw = Stopwatch.StartNew();
-			var env = new AlgebraBlackBox.Environment(SqrtA2B2A2B1, 50, 4, 3);
+			var env = new AlgebraBlackBox.Environment(SqrtA2B2, 20, 3, 2);
 			var prob = ((AlgebraBlackBox.Problem)(env.Problem));
 
 			Action emitStats = () =>
