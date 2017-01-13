@@ -15,7 +15,7 @@ namespace GeneticAlgorithmPlatform
 {
 
 	// Defines the pipeline?
-	public abstract class Environment<TGenome> : IEnvironment<TGenome>
+	public abstract class EnvironmentBase<TGenome> : IEnvironment<TGenome>
 		where TGenome : class, IGenome
 	{
 		const ushort MIN_POOL_SIZE = 2;
@@ -37,7 +37,7 @@ namespace GeneticAlgorithmPlatform
 
 		const int ConvergenceThreshold = 20;
 
-		protected Environment(
+		protected EnvironmentBase(
 			IGenomeFactory<TGenome> genomeFactory,
 			IProblem<TGenome> problem,
 			ushort poolSize,
@@ -51,8 +51,6 @@ namespace GeneticAlgorithmPlatform
 			Factory = genomeFactory;
 			Problem = problem;
 			Producer = new GenomeProducer<TGenome>(Factory.Generate());
-
-			var SecondChance = new BufferBlock<TGenome>();
 
 			Breeders = new ActionBlock<TGenome>(genome => Producer.TryEnqueue(Breed(genome)),
 				new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 8 });
@@ -73,6 +71,7 @@ namespace GeneticAlgorithmPlatform
 				if (fitness.HasConverged(ConvergenceThreshold))
 				{
 					TopGenome.Post(gf.Genome);
+					TopGenome.Complete();
 					Pipeline.Complete();
 					return true;
 				}
@@ -161,7 +160,7 @@ namespace GeneticAlgorithmPlatform
 
 			Pipeline.LinkToWithExceptions(FinalistPool);
 			Pipeline
-				.PropagateCompletionTo(Producer, FinalistPool, SecondChance)
+				.PropagateCompletionTo(Producer)
 				.OnComplete(() => Console.WriteLine("Pipeline COMPLETED"));
 
 			Producer
@@ -172,10 +171,10 @@ namespace GeneticAlgorithmPlatform
 
 		protected virtual IEnumerable<TGenome> Breed(TGenome genome)
 		{
-			var m = Factory.GenerateOne(genome);
-			if (m != null) yield return m;
 			var v = (TGenome)genome.NextVariation();
 			if (v != null) yield return v;
+			var m = Factory.GenerateOne(genome);
+			if (m != null) yield return m;
 		}
 
 
