@@ -109,7 +109,7 @@ namespace GeneticAlgorithmPlatform
 						.OrderBy(g =>
 							problem.GetFitnessFor(g, true).Value,
 							GenomeFitness.Comparer<TGenome, Fitness>.Instance)
-						.ThenByDescending(g=>g.Hash.Length) // Might be equals.
+						.ThenByDescending(g => g.Hash.Length) // Might be equals.
 						.FirstOrDefault();
 
 					if (top != null)
@@ -126,7 +126,7 @@ namespace GeneticAlgorithmPlatform
 							// Crossover.
 							TGenome[] o2;
 							if (Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected).ToArray(), out o2))
-								Producer.TryEnqueue(o2.Select(o=>Problem.GetFitnessFor(o)?.Genome ?? o)); // Get potential stored variation.
+								Producer.TryEnqueue(o2.Select(o => Problem.GetFitnessFor(o)?.Genome ?? o)); // Get potential stored variation.
 						});
 
 					}
