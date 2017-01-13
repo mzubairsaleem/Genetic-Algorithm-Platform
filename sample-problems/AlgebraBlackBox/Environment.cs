@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace AlgebraBlackBox
 {
-	public class Environment : GeneticAlgorithmPlatform.Environment<Genome>
+	public class Environment : GeneticAlgorithmPlatform.EnvironmentBase<Genome>
 	{
 
 		public Environment(

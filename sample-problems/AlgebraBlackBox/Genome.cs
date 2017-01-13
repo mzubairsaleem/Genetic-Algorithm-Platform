@@ -11,7 +11,7 @@ using Open.Threading;
 
 namespace AlgebraBlackBox
 {
-    public class Genome : GeneticAlgorithmPlatform.Genome<IGene>, IEquatable<Genome>, IReducible<Genome>
+    public class Genome : GeneticAlgorithmPlatform.GenomeBase<IGene>, IEquatable<Genome>, IReducible<Genome>
 	{
 		public Genome(IGene root) : base(root)
 		{

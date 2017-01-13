@@ -13,11 +13,11 @@ using Open.Threading;
 namespace GeneticAlgorithmPlatform
 {
 
-	public abstract class Genome<T> : ModificationSynchronizedBase, IGenome<T>
+	public abstract class GenomeBase<T> : ModificationSynchronizedBase, IGenome<T>
 	where T : IGene
 	{
 		private T _root;
-		public Genome(T root) : base()
+		public GenomeBase(T root) : base()
 		{
 			if (root == null)
 				throw new ArgumentNullException("root");
@@ -115,7 +115,7 @@ namespace GeneticAlgorithmPlatform
 			}
 		}
 
-		public virtual Genome<T> Clone()
+		public virtual GenomeBase<T> Clone()
 		{
 			throw new NotImplementedException();
 		}
