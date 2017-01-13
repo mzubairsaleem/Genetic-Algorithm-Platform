@@ -12,7 +12,7 @@ namespace Open.Collections
 
 		public new bool Add(T item)
 		{
-			return Sync.Write(() => InternalSource.Add(item));
+			return Sync.WriteValue(() => InternalSource.Add(item));
 		}
 
         public void ExceptWith(IEnumerable<T> other)
