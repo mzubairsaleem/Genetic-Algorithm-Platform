@@ -89,7 +89,7 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		public void Poke()
-		{			
+		{
 			Producer.Post(true);
 		}
 
@@ -129,8 +129,11 @@ namespace GeneticAlgorithmPlatform
 
 		public void TryEnqueue(IEnumerable<TGenome> genomes, bool force = false)
 		{
-			foreach (var genome in genomes)
-				TryEnqueueInternal(EnqueuedBuffer, genome, force);
+			if (genomes != null)
+			{
+				foreach (var genome in genomes)
+					TryEnqueueInternal(EnqueuedBuffer, genome, force);
+			}
 		}
 
 		// bool TryEnqueueProduction(TGenome genome)
