@@ -84,7 +84,7 @@ namespace GeneticAlgorithmPlatform
 			{
 				var fitness = problem.GetFitnessFor(genome).Value.Fitness;
 				// You made it all the way back to the top?  Forget about what I said...
-				fitness.RejectionCount = 0;
+				fitness.RejectionCount = -1;
 				if (fitness.HasConverged(0)) // 100 just to prove it.
 				{
 					if (!checkForConvergence(genome)) // should be enough for perfect convergence.
@@ -112,6 +112,10 @@ namespace GeneticAlgorithmPlatform
 						.ThenByDescending(g => g.Hash.Length) // Might be equals.
 						.FirstOrDefault();
 
+					// NOTE: That global GenomeFitness returns may return a 'version' of the actual genome.
+					// Ensure the global pareto is retained. (note is using global version)
+					var paretoGenomes = GenomeFitness.Pareto(Problem.GetFitnessFor(selection.All)).Select(g => g.Genome).ToArray();
+
 					if (top != null)
 					{
 						TopGenome.SendAsync(top);
@@ -124,17 +128,16 @@ namespace GeneticAlgorithmPlatform
 						Task.Run(() =>
 						{
 							// Crossover.
-							TGenome[] o2;
-							if (Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected).ToArray(), out o2))
+							TGenome[] o2 = Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected).ToArray());
+							if (o2 != null && o2.Length != 0)
 								Producer.TryEnqueue(o2.Select(o => Problem.GetFitnessFor(o)?.Genome ?? o)); // Get potential stored variation.
+
+							// Keep trying to breed pareto genomes since they conversely may have important genetic material.
+							Producer.TryEnqueue(Factory.AttemptNewCrossover(paretoGenomes));
+
 						});
 
 					}
-
-					// NOTE: That global GenomeFitness returns may return a 'version' of the actual genome.
-
-					// Ensure the global pareto is retained. (note is using global version)
-					var paretoGenomes = GenomeFitness.Pareto(Problem.GetFitnessFor(selection.All)).Select(g => g.Genome);
 
 					// The top final pool recycles it's winners.
 					foreach (var g in selected.Concat(paretoGenomes).Distinct()) //Also avoid re-entrance if there are more than one.
@@ -146,7 +149,7 @@ namespace GeneticAlgorithmPlatform
 					// Just in case a challenger got lucky.
 					foreach (var reject in Problem.GetFitnessFor(rejected, true))
 					{
-						if (reject.Fitness.IncrementRejection() == 1)
+						if (reject.Fitness.IncrementRejection() <= 1)
 							Producer.TryEnqueue(reject.Genome, true);
 						// else
 						// 	Console.WriteLine("2nd Round Rejection: "+reject.Genome);

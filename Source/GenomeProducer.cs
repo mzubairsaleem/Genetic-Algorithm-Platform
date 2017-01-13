@@ -84,7 +84,7 @@ namespace GeneticAlgorithmPlatform
 
 		public GenomeProducer(
 			IEnumerable<TGenome> source,
-			int bufferSize = 100) : this(source.PreCache(100).GetEnumerator(), bufferSize)
+			int bufferSize = 100) : this(source.PreCache(10).GetEnumerator(), bufferSize)
 		{
 
 		}

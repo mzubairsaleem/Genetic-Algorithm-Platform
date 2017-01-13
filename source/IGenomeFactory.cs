@@ -32,10 +32,10 @@ namespace GeneticAlgorithmPlatform
 
 		IEnumerable<TGenome> Mutate(TGenome source);
 
-		bool AttemptNewCrossover(TGenome a, TGenome b, out TGenome[] offspring, byte maxAttempts = 3);
+		TGenome[] AttemptNewCrossover(TGenome a, TGenome b, byte maxAttempts = 3);
 		
-		bool AttemptNewCrossover(TGenome primary, TGenome[] others, out TGenome[] offspring, byte maxAttemptsPerCombination = 3);
+		TGenome[] AttemptNewCrossover(TGenome primary, TGenome[] others, byte maxAttemptsPerCombination = 3);
 
-		bool AttemptNewCrossover(TGenome[] source, out TGenome[] offspring, byte maxAttemptsPerCombination = 3);
+		TGenome[] AttemptNewCrossover(TGenome[] source, byte maxAttemptsPerCombination = 3);
 	}
 }

@@ -180,25 +180,24 @@ namespace GeneticAlgorithmPlatform
 
 		protected abstract TGenome[] CrossoverInternal(TGenome a, TGenome b);
 
-		public bool AttemptNewCrossover(TGenome a, TGenome b, out TGenome[] offspring, byte maxAttempts = 3)
+		public TGenome[] AttemptNewCrossover(TGenome a, TGenome b, byte maxAttempts = 3)
 		{
 			while (maxAttempts != 0)
 			{
-				offspring = CrossoverInternal(a, b)?.Where(g => RegisterProduction(g)).ToArray();
-				if (offspring != null && offspring.Length != 0) return true;
+				var offspring = CrossoverInternal(a, b)?.Where(g => RegisterProduction(g)).ToArray();
+				if (offspring != null && offspring.Length != 0) return offspring;
 				--maxAttempts;
 			}
 
-			offspring = null;
-			return false;
+			return null;
 		}
 
 		// Random matchmaking...  It's possible to include repeats in the source to improve their chances. Possile O(n!) operaion.
-		public bool AttemptNewCrossover(TGenome[] source, out TGenome[] offspring, byte maxAttemptsPerCombination = 3)
+		public TGenome[] AttemptNewCrossover(TGenome[] source, byte maxAttemptsPerCombination = 3)
 		{
 			if (source == null)
 				throw new ArgumentNullException("source");
-			if (source.Length == 2 && source[0] != source[1]) return AttemptNewCrossover((TGenome)source[0], (TGenome)source[1], out offspring, maxAttemptsPerCombination);
+			if (source.Length == 2 && source[0] != source[1]) return AttemptNewCrossover((TGenome)source[0], (TGenome)source[1], maxAttemptsPerCombination);
 			if (source.Length <= 2)
 				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
 
@@ -215,7 +214,8 @@ namespace GeneticAlgorithmPlatform
 				{
 					isFirst = false;
 					var b = s1.RandomSelectOne();
-					if (AttemptNewCrossover(a, b, out offspring, maxAttemptsPerCombination)) return true;
+					var offspring = AttemptNewCrossover(a, b, maxAttemptsPerCombination);
+					if (offspring!=null && offspring.Length!=0) return offspring;
 					// Reduce the possibilites.
 					s1 = s1.Where(g => g != b).ToArray();
 				}
@@ -228,12 +228,10 @@ namespace GeneticAlgorithmPlatform
 			}
 			while (source.Length > 1); // Less than 2 left? Then we have no other options.
 
-			offspring = null;
-
-			return false;
+			return null;
 		}
 
-		public bool AttemptNewCrossover(TGenome primary, TGenome[] others, out TGenome[] offspring, byte maxAttemptsPerCombination = 3)
+		public TGenome[] AttemptNewCrossover(TGenome primary, TGenome[] others, byte maxAttemptsPerCombination = 3)
 		{
 			if (primary == null)
 				throw new ArgumentNullException("primary");
@@ -241,7 +239,7 @@ namespace GeneticAlgorithmPlatform
 				throw new ArgumentNullException("source");
 			if (others.Length == 0)
 				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
-			if (others.Length == 1 && primary != others[0]) return AttemptNewCrossover(primary, (TGenome)others[0], out offspring, maxAttemptsPerCombination);
+			if (others.Length == 1 && primary != others[0]) return AttemptNewCrossover(primary, (TGenome)others[0], maxAttemptsPerCombination);
 			var source = others.Where<TGenome>(g => g != primary);
 			if (!source.Any())
 				throw new InvalidOperationException("Must have at least two unique genomes to crossover with.");
@@ -253,16 +251,15 @@ namespace GeneticAlgorithmPlatform
 			while (s1.Length != 0)
 			{
 				var b = s1.RandomSelectOne();
-				if (AttemptNewCrossover(primary, b, out offspring, maxAttemptsPerCombination)) return true;
+				var offspring = AttemptNewCrossover(primary, b, maxAttemptsPerCombination);
+				if (offspring!=null && offspring.Length!=0) return offspring;
 				// Reduce the possibilites.
 				s1 = s1.Where(g => g != b).ToArray();
 				/* ^^^ Why are we filtering like this you might ask? 
 				 	   Because the source can have duplicates in order to bias randomness. */
 			}
 
-			offspring = null;
-
-			return false;
+			return null;
 		}
 	}
 }
