@@ -42,7 +42,7 @@ namespace GeneticAlgorithmPlatform
 
 			// return; 
 			var problem = new AlgebraBlackBox.Problem(SqrtA2B2);
-			var scheme = new NodedPipeline<AlgebraBlackBox.Genome>(
+			var scheme = new PyramidPipeline<AlgebraBlackBox.Genome>(
 				new AlgebraBlackBox.GenomeFactory(),
 				20, 3, 2);
 			

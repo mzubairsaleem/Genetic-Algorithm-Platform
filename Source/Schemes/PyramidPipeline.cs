@@ -15,7 +15,7 @@ namespace GeneticAlgorithmPlatform.Schemes
 {
 
 	// Defines the pipeline?
-	public sealed class NodedPipeline<TGenome> : EnvironmentBase<TGenome>
+	public sealed class PyramidPipeline<TGenome> : EnvironmentBase<TGenome>
 		where TGenome : class, IGenome
 	{
 		public readonly BroadcastBlock<TGenome> TopGenome = new BroadcastBlock<TGenome>(null);
@@ -34,7 +34,7 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 		const int ConvergenceThreshold = 20;
 
-		public NodedPipeline(
+		public PyramidPipeline(
 			IGenomeFactory<TGenome> genomeFactory,
 			ushort poolSize,
 			uint networkDepth = 3,
