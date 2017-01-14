@@ -34,22 +34,16 @@ namespace GeneticAlgorithmPlatform
 			var b = p[1];
 			return Math.Sqrt(a * a + b * b + a + 2) + b + 1;
 		}
-		static readonly double[] OneOne = new double[] { 1, 1 };
 		public static void Main(string[] args)
 		{
 			Console.WriteLine("Starting...");
-			// Througput test...
-			// var factory = new AlgebraBlackBox.GenomeFactory();
-			// factory.Generate().AsParallel().ForAll(g=>{
 
-			// });
-
-			// return; 
 			var done = false;
-			var problem = new AlgebraBlackBox.Problem(AB);
+			var problem = new Problem(AB);
 			var scheme = new PyramidPipeline<AlgebraBlackBox.Genome>(
 				new AlgebraBlackBox.GenomeFactory(),
 				20, 3, 2);
+			scheme.AddProblem(problem);
 
 			var sw = new Stopwatch();
 			Action emitStats = () =>
@@ -65,7 +59,7 @@ namespace GeneticAlgorithmPlatform
 			scheme
 				.AsObservable()
 				.Subscribe(
-					EmitTopGenomeStats,
+					Problem.EmitTopGenomeStats,
 					ex => Console.WriteLine(ex.GetBaseException()),
 					() =>
 					{
@@ -86,26 +80,10 @@ namespace GeneticAlgorithmPlatform
 			});
 
 			sw.Start();
-			scheme.Start(problem).Wait();
+			scheme.Start().Wait();
 
 		}
 
-		static void EmitTopGenomeStats(KeyValuePair<IProblem<Genome>, Genome> kvp)
-		{
-			var p = kvp.Key;
-			var genome = kvp.Value;
-			var fitness = p.GetFitnessFor(genome).Value.Fitness;
-
-			var asReduced = genome.AsReduced();
-			if (asReduced == genome)
-				Console.WriteLine("{0}:\t{1}", p.ID, genome.ToAlphaParameters());
-			else
-				Console.WriteLine("{0}:\t{1}\n=>\t{2}", p.ID, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
-
-			Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
-			Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
-			Console.WriteLine();
-		}
 
 		static void PerfTest()
 		{

@@ -4,11 +4,13 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using GeneticAlgorithmPlatform;
 using Open.Arithmetic;
+using Open.Collections;
 using Fitness = GeneticAlgorithmPlatform.Fitness;
 
 namespace AlgebraBlackBox
@@ -116,7 +118,23 @@ namespace AlgebraBlackBox
 			}
 		}
 
+		static readonly double[] OneOne = new double[] { 1, 1 };
+		public static void EmitTopGenomeStats(KeyValuePair<IProblem<Genome>, Genome> kvp)
+		{
+			var p = kvp.Key;
+			var genome = kvp.Value;
+			var fitness = p.GetFitnessFor(genome).Value.Fitness;
 
+			var asReduced = genome.AsReduced();
+			if (asReduced == genome)
+				Console.WriteLine("{0}:\t{1}", p.ID, genome.ToAlphaParameters());
+			else
+				Console.WriteLine("{0}:\t{1}\n=>\t{2}", p.ID, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
+
+			Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
+			Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
+			Console.WriteLine();
+		}
 
 	}
 
