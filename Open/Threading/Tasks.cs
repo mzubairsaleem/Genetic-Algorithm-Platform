@@ -37,7 +37,7 @@ namespace Open.Threading
 			return target;
 		}
 
-		public static Task OnFullfilled<T>(this T target, Action action)
+		public static T OnFullfilled<T>(this T target, Action action)
 			where T : Task
 		{
 			target.ContinueWith(task =>
