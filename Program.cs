@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
+using Open.Dataflow;
 using GeneticAlgorithmPlatform.Schemes;
 using Open;
 using Open.Collections;
+using System.Collections.Generic;
+using AlgebraBlackBox;
 
 namespace GeneticAlgorithmPlatform
 {
-    public class Program
+	public class Program
 	{
+
+
 		static double AB(params double[] p)
 		{
 			var a = p[0];
@@ -41,13 +45,13 @@ namespace GeneticAlgorithmPlatform
 			// });
 
 			// return; 
-			var problem = new AlgebraBlackBox.Problem(SqrtA2B2);
+			var done = false;
+			var problem = new AlgebraBlackBox.Problem(AB);
 			var scheme = new PyramidPipeline<AlgebraBlackBox.Genome>(
 				new AlgebraBlackBox.GenomeFactory(),
 				20, 3, 2);
-			
-			var sw = new Stopwatch();
 
+			var sw = new Stopwatch();
 			Action emitStats = () =>
 			{
 				var tc = problem.TestCount;
@@ -58,23 +62,18 @@ namespace GeneticAlgorithmPlatform
 				}
 			};
 
-			Action<AlgebraBlackBox.Genome> emitGenomeStats = genome =>
-			{
-				var fitness = problem.GetOrCreateFitnessFor(genome).Fitness;
-
-				var asReduced = genome.AsReduced();
-				if (asReduced == genome)
-					Console.WriteLine("{0}:\t{1}", 1, genome.ToAlphaParameters());
-				else
-					Console.WriteLine("{0}:\t{1}\n=>\t{2}", 1, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
-
-				Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
-				Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
-				Console.WriteLine();
-			};
-
-			bool done = false;
-			scheme.TopGenome.LinkTo(new ActionBlock<AlgebraBlackBox.Genome>(emitGenomeStats));
+			scheme
+				.AsObservable()
+				.Subscribe(
+					EmitTopGenomeStats,
+					ex => Console.WriteLine(ex.GetBaseException()),
+					() =>
+					{
+						done = true;
+						emitStats();
+						Console.WriteLine();
+						Console.WriteLine("Done.");
+					});
 
 			Task.Run(async () =>
 			{
@@ -87,17 +86,25 @@ namespace GeneticAlgorithmPlatform
 			});
 
 			sw.Start();
-			scheme.Start(problem).ContinueWith(task =>
-			{
-				done = true;
-				emitStats();
-				Console.WriteLine();
-				if (task.IsFaulted)
-					Console.WriteLine(task.Exception.GetBaseException());
-				else
-					Console.WriteLine("Done.");
-			}).Wait();
+			scheme.Start(problem).Wait();
 
+		}
+
+		static void EmitTopGenomeStats(KeyValuePair<IProblem<Genome>, Genome> kvp)
+		{
+			var p = kvp.Key;
+			var genome = kvp.Value;
+			var fitness = p.GetFitnessFor(genome).Value.Fitness;
+
+			var asReduced = genome.AsReduced();
+			if (asReduced == genome)
+				Console.WriteLine("{0}:\t{1}", p.ID, genome.ToAlphaParameters());
+			else
+				Console.WriteLine("{0}:\t{1}\n=>\t{2}", p.ID, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
+
+			Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
+			Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
+			Console.WriteLine();
 		}
 
 		static void PerfTest()
@@ -119,5 +126,6 @@ namespace GeneticAlgorithmPlatform
 
 			Console.WriteLine("Elapsed Time: " + sw.ElapsedMilliseconds);
 		}
+
 	}
 }

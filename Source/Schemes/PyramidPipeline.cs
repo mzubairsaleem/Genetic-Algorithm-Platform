@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Arithmetic;
-using Open.DataFlow;
+using Open.Dataflow;
 
 namespace GeneticAlgorithmPlatform.Schemes
 {
@@ -17,7 +17,12 @@ namespace GeneticAlgorithmPlatform.Schemes
 	public sealed class PyramidPipeline<TGenome> : EnvironmentBase<TGenome>
 		where TGenome : class, IGenome
 	{
-		public readonly BroadcastBlock<TGenome> TopGenome = new BroadcastBlock<TGenome>(null);
+		readonly BroadcastBlock<KeyValuePair<IProblem<TGenome>, TGenome>> TopGenome = new BroadcastBlock<KeyValuePair<IProblem<TGenome>, TGenome>>(null);
+
+		public override IObservable<KeyValuePair<IProblem<TGenome>, TGenome>> AsObservable()
+		{
+			return TopGenome.AsObservable();
+		}
 
 		readonly GenomeProducer<TGenome> Producer;
 
@@ -44,59 +49,50 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 			Producer = new GenomeProducer<TGenome>(Factory.Generate());
 
-			Breeders = new ActionBlock<TGenome>(genome => Producer.TryEnqueue(Factory.Expand(genome)),
+			Breeders = new ActionBlock<TGenome>(
+				genome => Producer.TryEnqueue(Factory.Expand(genome)),
 				new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 8 });
 
-			PipelineBuilder = new GenomePipelineBuilder<TGenome>(Producer, Problems, poolSize, nodeSize, selected =>
-			{
-				var top = selected.FirstOrDefault();
-				if (top != null) Breeders.SendAsync(top);
-			});
+			PipelineBuilder = new GenomePipelineBuilder<TGenome>(Producer, Problems, poolSize, nodeSize,
+				selected =>
+				{
+					var top = selected.FirstOrDefault();
+					if (top != null) Breeders.SendAsync(top);
+				});
 
 			Pipeline = PipelineBuilder.CreateNetwork(networkDepth); // 3? Start small?
 
-			Func<TGenome, bool> checkForConvergence = genome =>
-			{
-				foreach (var problem in Problems)
-				{
-					var gf = problem.GetFitnessFor(genome).Value;
-					var fitness = gf.Fitness;
-					var count = fitness.SampleCount;
-					if (fitness.HasConverged(ConvergenceThreshold))
-					{
-						TopGenome.Post(gf.Genome);
-						TopGenome.Complete();
-						Pipeline.Complete();
-						return true;
-					}
-				}
-				return false;
-			};
 
-
-			VipPool = new ActionBlock<TGenome>(async genome =>
-			{
-				foreach (var problem in Problems)
+			VipPool = new ActionBlock<TGenome>(
+				async genome =>
 				{
-					var fitness = problem.GetFitnessFor(genome).Value.Fitness;
-					// You made it all the way back to the top?  Forget about what I said...
-					fitness.RejectionCount = -1;
-					if (fitness.HasConverged(0)) // 100 just to prove it.
+					var repost = false;
+					long? batchID = null;
+					foreach (var problem in Problems)
 					{
-						if (!checkForConvergence(genome)) // should be enough for perfect convergence.
+						var fitness = problem.GetFitnessFor(genome).Value.Fitness;
+						// You made it all the way back to the top?  Forget about what I said...
+						fitness.RejectionCount = -1;
+						if (fitness.HasConverged(0))
 						{
-							// Unseen data...
-							problem.AddToGlobalFitness(
-								new GenomeFitness<TGenome>(genome, await problem.TestProcessor(genome, GenomePipeline.UniqueBatchID())));
-							VipPool.Post(genome);
+							if (!fitness.HasConverged(ConvergenceThreshold)) // should be enough for perfect convergence.
+							{
+								if (!batchID.HasValue) batchID = GenomePipeline.UniqueBatchID();
+								// Give it some unseen data...
+								problem.AddToGlobalFitness(
+									new GenomeFitness<TGenome>(genome, await problem.TestProcessor(genome, batchID.Value)));
+								repost = true;
+							}
 						}
 					}
-				}
+					if (repost)
+						VipPool.Post(genome);
 
-			}, new ExecutionDataflowBlockOptions()
-			{
-				MaxDegreeOfParallelism = 3
-			});
+				},
+				new ExecutionDataflowBlockOptions()
+				{
+					MaxDegreeOfParallelism = 3
+				});
 
 			FinalistPool = PipelineBuilder.Selector(
 				selection =>
@@ -104,63 +100,70 @@ namespace GeneticAlgorithmPlatform.Schemes
 					var selected = selection.Selected;
 					// Finalists use global fitness?
 					// Get the top one for each problem.
-					var top = Problems.Select(p =>
-						selected
-							.OrderBy(g =>
-								p.GetFitnessFor(g, true).Value,
-								GenomeFitness.Comparer<TGenome, Fitness>.Instance)
-							.ThenByDescending(g => g.Hash.Length) // Might be equals.
-							.FirstOrDefault())
-							.Where(g => g != null)
-							.Distinct();
-
-					// NOTE: That global GenomeFitness returns may return a 'version' of the actual genome.
-					// Ensure the global pareto is retained. (note is using global version)
-					var paretoGenomes = Problems.SelectMany(p =>
-							GenomeFitness.Pareto(p.GetFitnessFor(selection.All)).Select(g => g.Genome)
-						)
-						.Distinct()
-						.ToArray();
-
-					foreach (var t in top)
+					var topsConverged = Problems.All(problem =>
 					{
-						TopGenome.SendAsync(t);
-						checkForConvergence(t);
-						VipPool.SendAsync(t);
-						// Top get's special treatment.
-						for (var i = 0; i < networkDepth - 1; i++)
-							Breeders.SendAsync(t);
+						var top = selected
+							.OrderBy(g =>
+								problem.GetFitnessFor(g, true).Value,
+								GenomeFitness.Comparer<TGenome, Fitness>.Instance)
+							.ThenByDescending(g => g.Hash.Length)
+							.FirstOrDefault();
 
-						// Crossover.
-						TGenome[] o2 = Factory.AttemptNewCrossover(t, Triangular.Disperse.Decreasing(selected).ToArray());
-						if (o2 != null && o2.Length != 0)
+						if (top != null)
 						{
-							foreach (var problem in Problems)
-							{
+							TopGenome.Post(KeyValuePair.New(problem, top));
+							var gf = problem.GetFitnessFor(top).Value;
+							var fitness = gf.Fitness;
+							if (fitness.HasConverged(ConvergenceThreshold))
+								return true;
+
+							VipPool.SendAsync(top);
+							// Top get's special treatment.
+							for (var i = 0; i < networkDepth - 1; i++)
+								Breeders.SendAsync(top);
+
+							// Crossover.
+							TGenome[] o2 = Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected).ToArray());
+							if (o2 != null && o2.Length != 0)
 								Producer.TryEnqueue(o2.Select(o => problem.GetFitnessFor(o)?.Genome ?? o)); // Get potential stored variation.
-							}
 						}
+
+						return false;
+					});
+
+					if (topsConverged)
+					{
+						TopGenome.Complete();
+						Pipeline.Complete();
+					}
+					else
+					{
+						// NOTE: That global GenomeFitness returns may return a 'version' of the actual genome.
+						// Ensure the global pareto is retained. (note is using global version)
+						var paretoGenomes = Problems.SelectMany(p =>
+								GenomeFitness.Pareto(p.GetFitnessFor(selection.All)).Select(g => g.Genome)
+							)
+							.Distinct()
+							.ToArray();
 
 						// Keep trying to breed pareto genomes since they conversely may have important genetic material.
 						Producer.TryEnqueue(Factory.AttemptNewCrossover(paretoGenomes));
 
+						// The top final pool recycles it's winners.
+						foreach (var g in selected.Concat(paretoGenomes).Distinct()) //Also avoid re-entrance if there are more than one.
+							FinalistPool.Post(g); // Might need to look at the whole pool and use pareto to retain.
+
+						var rejected = new HashSet<TGenome>(selection.Rejected);
+						rejected.ExceptWith(paretoGenomes);
+
+						// Just in case a challenger got lucky.
+						Producer.TryEnqueue(
+							Problems
+								.SelectMany(p => p.GetFitnessFor(rejected, true))
+								.Where(gf => gf.Fitness.IncrementRejection() <= 1)
+								.Select(gf => gf.Genome)
+								.Distinct(), true);
 					}
-
-					// The top final pool recycles it's winners.
-					foreach (var g in selected.Concat(paretoGenomes).Distinct()) //Also avoid re-entrance if there are more than one.
-						FinalistPool.Post(g); // Might need to look at the whole pool and use pareto to retain.
-
-					var rejected = new HashSet<TGenome>(selection.Rejected);
-					rejected.ExceptWith(paretoGenomes);
-
-					// Just in case a challenger got lucky.
-					Producer.TryEnqueue(
-						Problems
-							.SelectMany(p => p.GetFitnessFor(rejected, true))
-							.Where(gf => gf.Fitness.IncrementRejection() <= 1)
-							.Select(gf => gf.Genome)
-							.Distinct(), true);
-
 				})
 				.PropagateFaultsTo(TopGenome)
 				.PropagateCompletionTo(TopGenome, VipPool, Breeders, Pipeline);

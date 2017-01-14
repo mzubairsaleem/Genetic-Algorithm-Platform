@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Threading;
 
-namespace Open.DataFlow
+namespace Open.Dataflow
 {
 
 	internal class AutoCompleteBlock<T> : ITargetBlock<T>

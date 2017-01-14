@@ -18,7 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Arithmetic;
-using Open.DataFlow;
+using Open.Dataflow;
 using Open.Formatting;
 using Open.Threading;
 

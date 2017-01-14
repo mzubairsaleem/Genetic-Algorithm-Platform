@@ -76,6 +76,8 @@ namespace AlgebraBlackBox.Genes
 			
 			if(child.Multiple != 1) // Can't make a perfect square?
 				return null;
+			else if(child is ConstantGene)
+				return new ConstantGene(1);
 
 			var product = child as ProductGene;
 			if (product != null)
@@ -137,6 +139,7 @@ namespace AlgebraBlackBox.Genes
 				}
 
 			}
+			
 			return base.ReplaceWithReduced();
 		}
 

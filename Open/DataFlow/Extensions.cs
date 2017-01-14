@@ -72,7 +72,7 @@ namespace System.Threading.Tasks.Dataflow
 	}
 }
 
-namespace Open.DataFlow
+namespace Open.Dataflow
 {
 
 	public static class DataFlowExtensions
@@ -185,6 +185,67 @@ namespace Open.DataFlow
 		public static void Fault(this IDataflowBlock target, string message, Exception innerException)
 		{
 			target.Fault(new Exception(message, innerException));
+		}
+
+
+		class Observer<T> : IObserver<T>, IDisposable
+		{
+			public static IObserver<T> New(
+				Action<T> onNext,
+				Action<Exception> onError,
+				Action onCompleted
+			)
+			{
+				return new Observer<T>()
+				{
+					_onNext = onNext,
+					_onError = onError,
+					_onCompleted = onCompleted
+				};
+			}
+
+			Action _onCompleted;
+			Action<Exception> _onError;
+			Action<T> _onNext;
+
+
+			public void OnNext(T value)
+			{
+				if (_onNext != null) _onNext(value);
+			}
+
+			public void OnError(Exception error)
+			{
+				if (_onError != null) _onError(error);
+			}
+
+			public void OnCompleted()
+			{
+				if (_onCompleted != null) _onCompleted();
+			}
+
+
+			public void Dispose()
+			{
+				_onNext = null;
+				_onError = null;
+				_onCompleted = null;
+			}
+		}
+
+		public static IDisposable Subscribe<T>(this IObservable<T> observable,
+			Action<T> onNext,
+			Action<Exception> onError,
+			Action onCompleted = null)
+		{
+			return observable.Subscribe(Observer<T>.New(onNext, onError, onCompleted));
+		}
+
+		public static IDisposable Subscribe<T>(this IObservable<T> observable,
+			Action<T> onNext,
+			Action onCompleted = null)
+		{
+			return observable.Subscribe(Observer<T>.New(onNext, null, onCompleted));
 		}
 
 	}

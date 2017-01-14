@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Collections;
-using Open.DataFlow;
+using Open.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {

@@ -16,7 +16,7 @@ namespace GeneticAlgorithmPlatform
 		where TGenome : class, IGenome
 	{
 
-		public readonly IGenomeFactory<TGenome> Factory;
+		protected readonly IGenomeFactory<TGenome> Factory;
 		protected const ushort MIN_POOL_SIZE = 2;
 		public readonly ushort PoolSize;
 
@@ -50,6 +50,8 @@ namespace GeneticAlgorithmPlatform
 				throw new InvalidOperationException("Cannot start without any registered 'Problems'");
 			return StartInternal();
 		}
+
+		public abstract IObservable<KeyValuePair<IProblem<TGenome>,TGenome>> AsObservable();
 
 	}
 

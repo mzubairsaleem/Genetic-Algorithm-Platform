@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
-namespace Open.DataFlow
+namespace Open.Dataflow
 {
 
     internal class DistinctBlock<T> : ITargetBlock<T>
