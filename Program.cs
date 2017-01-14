@@ -4,13 +4,11 @@ using System.Threading.Tasks;
 using Open.Dataflow;
 using GeneticAlgorithmPlatform.Schemes;
 using Open;
-using Open.Collections;
-using System.Collections.Generic;
 using AlgebraBlackBox;
 
 namespace GeneticAlgorithmPlatform
 {
-	public class Program
+    public class Program
 	{
 
 
