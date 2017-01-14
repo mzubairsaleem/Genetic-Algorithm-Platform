@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Threading;
@@ -136,10 +137,8 @@ namespace Open.Dataflow
 		{
 			source.Completion.OnFaulted(ex =>
 			{
-				foreach (var target in targets)
-				{
-					if (target != null) target.Fault(ex.InnerException);
-				}
+				foreach (var target in targets.Where(t=>t!=null))
+					target.Fault(ex.InnerException);
 			});
 			return source;
 		}
@@ -149,9 +148,12 @@ namespace Open.Dataflow
 		{
 			source.Completion.ContinueWith(task =>
 			{
-				foreach (var target in targets)
+				foreach (var target in targets.Where(t=>t!=null))
 				{
-					target.Complete();
+					if(task.IsFaulted)
+						target.Fault(task.Exception.InnerException);
+					else
+						target.Complete();
 				}
 			});
 			return source;
@@ -170,10 +172,10 @@ namespace Open.Dataflow
 			return source;
 		}
 
-		public static T OnFault<T>(this T source, Action onfault)
+		public static T OnFault<T>(this T source, Action<Exception> onfault)
 			where T : IDataflowBlock
 		{
-			source.Completion.OnFaulted(task => onfault());
+			source.Completion.OnFaulted(task => onfault(task.InnerException));
 			return source;
 		}
 

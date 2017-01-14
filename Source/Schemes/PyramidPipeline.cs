@@ -62,7 +62,7 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 			Pipeline = PipelineBuilder.CreateNetwork(networkDepth); // 3? Start small?
 
-
+			bool converged = false;
 			VipPool = new ActionBlock<TGenome>(
 				async genome =>
 				{
@@ -133,8 +133,13 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 					if (topsConverged)
 					{
+						converged = true;
 						TopGenome.Complete();
-						Pipeline.Complete();
+						FinalistPool.Complete();
+						VipPool.Complete();
+						Breeders.Complete();
+						Producer.Complete();
+						// Calling Pipeline.Complete() will cause an abrupt exit.
 					}
 					else
 					{
@@ -168,13 +173,22 @@ namespace GeneticAlgorithmPlatform.Schemes
 				.PropagateFaultsTo(TopGenome)
 				.PropagateCompletionTo(TopGenome, VipPool, Breeders, Pipeline);
 
+
 			Pipeline.LinkToWithExceptions(FinalistPool);
 			Pipeline.PropagateCompletionTo(Producer)
 				.OnComplete(() => Console.WriteLine("Pipeline COMPLETED"));
 
+			TopGenome.PropagateCompletionTo(Pipeline);
+			VipPool.PropagateFaultsTo(Pipeline);
+			Producer.PropagateFaultsTo(Pipeline);
+			Breeders.PropagateFaultsTo(Pipeline);
+
 			Producer
 				.ProductionCompetion
-				.ContinueWith(task => Pipeline.Fault("Producer Completed Unexpectedly."));
+				.ContinueWith(task => {
+					if(!converged)
+						Pipeline.Fault("Producer Completed Unexpectedly.");
+				});
 
 		}
 

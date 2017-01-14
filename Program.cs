@@ -5,10 +5,12 @@ using Open.Dataflow;
 using GeneticAlgorithmPlatform.Schemes;
 using Open;
 using AlgebraBlackBox;
+using System.Threading;
+using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
-    public class Program
+	public class Program
 	{
 
 
@@ -36,13 +38,13 @@ namespace GeneticAlgorithmPlatform
 		{
 			Console.WriteLine("Starting...");
 
-			var done = false;
-			var problem = new Problem(AB);
+			var problem = new Problem(SqrtA2B2);
 			var scheme = new PyramidPipeline<AlgebraBlackBox.Genome>(
 				new AlgebraBlackBox.GenomeFactory(),
 				20, 3, 2);
 			scheme.AddProblem(problem);
 
+			var cancel = new CancellationTokenSource();
 			var sw = new Stopwatch();
 			Action emitStats = () =>
 			{
@@ -61,24 +63,22 @@ namespace GeneticAlgorithmPlatform
 					ex => Console.WriteLine(ex.GetBaseException()),
 					() =>
 					{
-						done = true;
+						cancel.Cancel();
 						emitStats();
-						Console.WriteLine();
-						Console.WriteLine("Done.");
 					});
 
 			Task.Run(async () =>
 			{
-				while (!done)
-				{
-					emitStats();
-
-					await Task.Delay(5000);
-				}
-			});
+				await Task.Delay(5000, cancel.Token);
+				emitStats();
+			}, cancel.Token);
 
 			sw.Start();
-			scheme.Start().Wait();
+			scheme
+				.Start()
+				.OnFullfilled(() => Console.WriteLine("Done."))
+				.OnFaulted(ex => { throw ex; })
+				.Wait();
 
 		}
 
