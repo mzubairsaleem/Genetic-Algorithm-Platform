@@ -46,7 +46,7 @@ namespace AlgebraBlackBox
 			return genome.AsReduced();
 		}
 
-		protected override async Task<IFitness> ProcessTest(Genome g, long sampleId)
+		public override async Task<IFitness> ProcessTest(Genome g, long sampleId)
 		{
 			var f = new Fitness();
 			await ProcessTest(g, f, sampleId, true);

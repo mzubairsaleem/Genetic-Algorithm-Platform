@@ -177,13 +177,15 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		public static IPropagatorBlock<TGenome, GenomeSelection<TGenome>>
-			Selector<TGenome>(IEnumerable<IProblem<TGenome>> problems, int size)
+			Selector<TGenome>(IEnumerable<IProblem<TGenome>> problems, int size, int count = 1)
 			where TGenome : IGenome
 		{
 			if (problems == null)
 				throw new ArgumentNullException("problems");
 			if (size < 2)
 				throw new ArgumentOutOfRangeException("size", size, "Must be at least 2.");
+			if (count < 1)
+				throw new ArgumentOutOfRangeException("count", size, "Must be at least 1.");
 
 			var processor = Processor(problems, size);
 			var selector = Selector<TGenome>();

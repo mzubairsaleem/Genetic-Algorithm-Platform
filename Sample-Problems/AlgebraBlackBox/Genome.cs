@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
@@ -164,39 +163,28 @@ namespace AlgebraBlackBox
 
 		internal void ReplaceReduced(Genome reduced)
 		{
-			if(AsReduced()!=reduced)
-				Interlocked.Exchange(ref _reduced, Lazy.New(()=>reduced));
+			if (AsReduced() != reduced)
+				Interlocked.Exchange(ref _reduced, Lazy.New(() => reduced));
 		}
 
-		object _varLock = new Object();
-		static readonly IEnumerator<Genome> EmptyEnumerator = Enumerable.Empty<Genome>().GetEnumerator();
 		public override IGenome NextVariation()
 		{
 			var source = _variations;
-			if (source == null || _variationEnumerator==EmptyEnumerator) return null;
+			if (source == null) return null;
 			var e = LazyInitializer.EnsureInitialized(ref _variationEnumerator, () => source.GetEnumerator());
-			// Since multiple threads can request 'next' we need to synchronize this.
-			lock(_varLock)
-			{
-				// All good?
-				if (e.MoveNext()) return e.Current;
-				// // Since we loop, we need to first see if by the rare chance that we have no variations.
-				// // Go ahead and replace the enumerator with a new one.
-				// Interlocked.Exchange(ref _variationEnumerator, e = source.GetEnumerator()).SmartDispose();
-				// if (e.MoveNext()) return e.Current;
-				// // This means there is none, so we replace the enumerator with a permanent empty one.
-				// Interlocked.Exchange(ref _variationEnumerator, EmptyEnumerator);
-			}
-
-			return null;
+			IGenome result;
+			e.ConcurrentTryMoveNext(out result);
+			return result;
 		}
 
 		IEnumerator<Genome> _mutationEnumerator;
 		public override IGenome NextMutation()
 		{
 			var source = _mutationEnumerator;
-			if (source == null || source==EmptyEnumerator) return null;
-			return source.MoveNext() ? source.Current : null;
+			if (source == null) return null;
+			IGenome result;
+			source.ConcurrentTryMoveNext(out result);
+			return result;
 		}
 
 		IEnumerator<Genome> _variationEnumerator;
@@ -224,8 +212,8 @@ namespace AlgebraBlackBox
 		public bool RegisterExpansion(string genomeHash)
 		{
 			var added = Expansions.Add(genomeHash);
-			if(added)
-				Expansions_Array = Lazy.New(()=>Expansions.ToArrayDirect());
+			if (added)
+				Expansions_Array = Lazy.New(() => Expansions.ToArrayDirect());
 			return added;
 		}
 
@@ -234,55 +222,55 @@ namespace AlgebraBlackBox
 			return Expansions_Array?.Value;
 		}
 
-        // public Task<double> Correlation(
-        // 	double[] aSample, double[] bSample,
-        // 	Genome gA, Genome gB)
-        // {
-        // 	return Task.Run(() =>
-        // 	{
-        // 		var len = aSample.Length * bSample.Length;
+		// public Task<double> Correlation(
+		// 	double[] aSample, double[] bSample,
+		// 	Genome gA, Genome gB)
+		// {
+		// 	return Task.Run(() =>
+		// 	{
+		// 		var len = aSample.Length * bSample.Length;
 
-        // 		var gA_result = new double[len];
-        // 		var gB_result = new double[len];
-        // 		var i = 0;
+		// 		var gA_result = new double[len];
+		// 		var gB_result = new double[len];
+		// 		var i = 0;
 
-        // 		foreach (var a in aSample)
-        // 		{
-        // 			foreach (var b in bSample)
-        // 			{
-        // 				var p = new double[] { a, b }; // Could be using Tuples?
-        // 				var r1 = gA.Calculate(p);
-        // 				var r2 = gB.Calculate(p);
-        // 				Task.WaitAll(r1, r2);
-        // 				gA_result[i] = r1.Result;
-        // 				gB_result[i] = r2.Result;
-        // 				i++;
-        // 			}
-        // 		}
+		// 		foreach (var a in aSample)
+		// 		{
+		// 			foreach (var b in bSample)
+		// 			{
+		// 				var p = new double[] { a, b }; // Could be using Tuples?
+		// 				var r1 = gA.Calculate(p);
+		// 				var r2 = gB.Calculate(p);
+		// 				Task.WaitAll(r1, r2);
+		// 				gA_result[i] = r1.Result;
+		// 				gB_result[i] = r2.Result;
+		// 				i++;
+		// 			}
+		// 		}
 
-        // 		return gA_result.Correlation(gB_result);
-        // 	});
-        // }
-
-
-        // // compare(a:AlgebraGenome, b:AlgebraGenome):boolean
-        // // {
-        // // 	return this.correlation(this.sample(), this.sample(), a, b)>0.9999999;
-        // // }
+		// 		return gA_result.Correlation(gB_result);
+		// 	});
+		// }
 
 
-        // public class EqualityComparer : IEqualityComparer<Genome>
-        // {
-        //     public bool Equals(Genome x, Genome y)
-        //     {
-        //         return x == y || x.Hash == y.Hash;
-        //     }
+		// // compare(a:AlgebraGenome, b:AlgebraGenome):boolean
+		// // {
+		// // 	return this.correlation(this.sample(), this.sample(), a, b)>0.9999999;
+		// // }
 
-        //     public int GetHashCode(Genome obj)
-        //     {
-        //         throw new NotImplementedException();
-        //     }
-        // }
 
-    }
+		// public class EqualityComparer : IEqualityComparer<Genome>
+		// {
+		//     public bool Equals(Genome x, Genome y)
+		//     {
+		//         return x == y || x.Hash == y.Hash;
+		//     }
+
+		//     public int GetHashCode(Genome obj)
+		//     {
+		//         throw new NotImplementedException();
+		//     }
+		// }
+
+	}
 }

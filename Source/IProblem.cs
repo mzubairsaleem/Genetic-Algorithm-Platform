@@ -6,6 +6,7 @@
 
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -17,6 +18,9 @@ namespace GeneticAlgorithmPlatform
 	{
 		int ID { get; }
 
+		Task<IFitness> ProcessTest(TGenome g, long sampleId);
+
+		// Alternative for delegate usage.
 		GenomeTestDelegate<TGenome> TestProcessor { get; }
 
 		void AddToGlobalFitness<T>(IEnumerable<T> results) where T : IGenomeFitness<TGenome>;

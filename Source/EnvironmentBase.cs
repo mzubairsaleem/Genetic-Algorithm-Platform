@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Open.Collections;
 
@@ -46,12 +47,32 @@ namespace GeneticAlgorithmPlatform
 		public Task Start(params IProblem<TGenome>[] problems)
 		{
 			AddProblems(problems);
-			if(!Problems.HasAny())
+			if (!Problems.HasAny())
 				throw new InvalidOperationException("Cannot start without any registered 'Problems'");
 			return StartInternal();
 		}
 
-		public abstract IObservable<KeyValuePair<IProblem<TGenome>,TGenome>> AsObservable();
+		public abstract IObservable<KeyValuePair<IProblem<TGenome>, TGenome>> AsObservable();
+
+
+		protected Task<KeyValuePair<IProblem<TGenome>, IFitness>[]>
+		ProcessOnce(TGenome genome, long sampleId)
+		{
+			if (genome == null)
+				throw new ArgumentNullException("genome");
+			if (Problems.Count == 0)
+				throw new InvalidOperationException("No problems to resolve.");
+
+			return Task.WhenAll(
+				Problems.Select(
+					p =>
+					p.ProcessTest(genome, sampleId)
+						.ContinueWith(t => KeyValuePair.New(p, t.Result))
+				)
+			);
+		}
+
+
 
 	}
 
