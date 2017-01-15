@@ -15,7 +15,7 @@ namespace Open.Collections
 
 		protected ConcurrentCollectionBase(TCollection source)
 		{
-			if(source==null)
+			if (source == null)
 				throw new ArgumentNullException("source");
 			InternalSource = source;
 		}
@@ -53,15 +53,15 @@ namespace Open.Collections
 			}
 		}
 
-        public bool IsReadOnly
-        {
-            get
-            {
-                return InternalSource.IsReadOnly;
-            }
-        }
+		public bool IsReadOnly
+		{
+			get
+			{
+				return InternalSource.IsReadOnly;
+			}
+		}
 
-        public T[] ToArrayDirect()
+		public T[] ToArrayDirect()
 		{
 			var result = Sync.ReadValue(() => InternalSource.ToArray());
 			return result;
@@ -102,10 +102,16 @@ namespace Open.Collections
 			return ((IEnumerable<T>)this.ToArrayDirect()).GetEnumerator();
 		}
 
-        public void CopyTo(T[] array, int arrayIndex)
-        {
+		public void CopyTo(T[] array, int arrayIndex)
+		{
 			Sync.Read(() => InternalSource.CopyTo(array, arrayIndex));
-        }
+		}
 
-    }
+		// Allow for multiple modifications at once.
+		public void Write(Action action)
+		{
+			Sync.Write(action);
+		}
+
+	}
 }

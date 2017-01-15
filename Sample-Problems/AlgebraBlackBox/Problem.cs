@@ -46,10 +46,23 @@ namespace AlgebraBlackBox
 			return genome.AsReduced();
 		}
 
-		public override async Task<IFitness> ProcessTest(Genome g, long sampleId)
+		public override async Task<IFitness> ProcessTest(Genome g, long sampleId = 0)
 		{
 			var f = new Fitness();
-			await ProcessTest(g, f, sampleId, true);
+			if (sampleId == 0)
+			{
+				var global = GetOrCreateFitnessFor(g).Fitness;
+				using (await global.Lock.LockAsync())
+				{
+					await ProcessTest(g, f, -global.SampleCount, true);
+					global.Merge(f);
+				}
+			}
+			else
+			{
+				await ProcessTest(g, f, sampleId, true);
+			}
+
 			Interlocked.Increment(ref _testCount);
 			return f;
 		}

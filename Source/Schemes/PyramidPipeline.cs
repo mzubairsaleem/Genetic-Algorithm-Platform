@@ -62,6 +62,7 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 			Pipeline = PipelineBuilder.CreateNetwork(networkDepth); // 3? Start small?
 
+			var TopGenomeFilter = TopGenome.OnlyIfChanged(DataflowMessageStatus.Accepted);
 			bool converged = false;
 			VipPool = new ActionBlock<TGenome>(
 				async genome =>
@@ -77,7 +78,7 @@ namespace GeneticAlgorithmPlatform.Schemes
 						{
 							if (!fitness.HasConverged(ConvergenceThreshold)) // should be enough for perfect convergence.
 							{
-								if (!batchID.HasValue) batchID = GenomePipeline.UniqueBatchID();
+								if (!batchID.HasValue) batchID = SampleID.Next();
 								// Give it some unseen data...
 								problem.AddToGlobalFitness(
 									new GenomeFitness<TGenome>(genome, await problem.TestProcessor(genome, batchID.Value)));
@@ -111,7 +112,7 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 						if (top != null)
 						{
-							TopGenome.Post(KeyValuePair.New(problem, top));
+							TopGenomeFilter.Post(KeyValuePair.New(problem, top));
 							var gf = problem.GetFitnessFor(top).Value;
 							var fitness = gf.Fitness;
 							if (fitness.HasConverged(ConvergenceThreshold))
@@ -119,8 +120,13 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 							VipPool.SendAsync(top);
 							// Top get's special treatment.
-							for (var i = 0; i < networkDepth - 1; i++)
-								Breeders.SendAsync(top);
+							// Problems.Process((IReadOnlyList<TGenome>)top.Variations, 10)
+							// 	.ContinueWith(t => {
+							// 		foreach(var v in t.Result.Select(p => p.Value.FirstOrDefault()).Distinct())
+							// 			FinalistPool.Post(v);
+							// 		});
+
+							Breeders.SendAsync(top);
 
 							// Crossover.
 							TGenome[] o2 = Factory.AttemptNewCrossover(top, Triangular.Disperse.Decreasing(selected).ToArray());
@@ -185,8 +191,9 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 			Producer
 				.ProductionCompetion
-				.ContinueWith(task => {
-					if(!converged)
+				.ContinueWith(task =>
+				{
+					if (!converged)
 						Pipeline.Fault("Producer Completed Unexpectedly.");
 				});
 

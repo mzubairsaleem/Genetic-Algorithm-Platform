@@ -129,6 +129,19 @@ namespace GeneticAlgorithmPlatform
 			return ComparisonInternal(x, y);
 		}
 
+		public static GenomeFitness<TGenome>[] Sort<TGenome>(this GenomeFitness<TGenome>[] target)
+			where TGenome : IGenome
+		{
+			Array.Sort(target, Comparison);
+			return target;
+		}
+
+		public static IOrderedEnumerable<GenomeFitness<TGenome>> Sorted<TGenome>(this IEnumerable<GenomeFitness<TGenome>> target)
+			where TGenome : IGenome
+		{
+			return target.OrderBy(g => g, GenomeFitness.Comparer<TGenome>.Instance);
+		}
+
 		public class Comparer<TGenome> : IComparer<IGenomeFitness<TGenome>>
 			where TGenome : IGenome
 		{

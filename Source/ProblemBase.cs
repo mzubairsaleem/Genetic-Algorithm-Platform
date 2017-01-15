@@ -81,7 +81,7 @@ namespace GeneticAlgorithmPlatform
 		}
 
 
-		public abstract Task<IFitness> ProcessTest(TGenome g, long sampleId);
+		public abstract Task<IFitness> ProcessTest(TGenome g, long sampleId = -1);
 
 		GenomeTestDelegate<TGenome> _testProcessor;
 		public GenomeTestDelegate<TGenome> TestProcessor

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Collections;
@@ -9,8 +8,8 @@ using Open.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {
-	// GenomeSelection should be short lived.
-	public struct GenomeSelection<TGenome>
+    // GenomeSelection should be short lived.
+    public struct GenomeSelection<TGenome>
 		where TGenome : IGenome
 	{
 		public readonly TGenome[] All;
@@ -47,13 +46,6 @@ namespace GeneticAlgorithmPlatform
 
 	public static class GenomePipeline
 	{
-		static long BatchID = 0;
-
-		public static long UniqueBatchID()
-		{
-			return Interlocked.Increment(ref BatchID);
-		}
-
 		public static TransformBlock<
 			IDictionary<IProblem<TGenome>, Task<GenomeFitness<TGenome>>[]>,
 			Dictionary<IProblem<TGenome>, GenomeFitness<TGenome>[]>> Processor<TGenome>()
@@ -127,9 +119,9 @@ namespace GeneticAlgorithmPlatform
 			{
 				if (index == -2)
 				{
-					batchId = Interlocked.Increment(ref BatchID);
+					batchId = SampleID.Next();
 					results = problems.ToDictionary(e => e, e => new Task<GenomeFitness<TGenome>>[size]);
-					if(results.Count==0)
+					if (results.Count == 0)
 						throw new Exception("No problems provided to process.");
 					index = -1;
 				}

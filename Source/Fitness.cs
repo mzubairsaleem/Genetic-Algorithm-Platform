@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Nito.AsyncEx;
 using Open.Arithmetic;
 using Open.Collections;
 
@@ -240,27 +241,29 @@ namespace GeneticAlgorithmPlatform
 
 		}
 
-		public void Merge(IFitness other)
+		public Fitness Merge(IFitness other)
 		{
+
 			AssertIsLiving();
 
-			if (other.Count == 0)
-				return; // Nothing to add.
-
-			if (Count != 0 && other.Count != Count)
-				throw new InvalidOperationException("Cannot add fitness values where the count doesn't match.");
-
-			Sync.Modifying(() =>
+			if (other.Count != 0)
 			{
-				var count = other.Count;
-				for (var i = 0; i < count; i++)
-				{
-					var r = other.GetResult(i);
-					if (i < _source.Count) _source[i].Add(r);
-					else _source.Add(new SingleFitness(r));
-				}
-			});
+				if (Count != 0 && other.Count != Count)
+					throw new InvalidOperationException("Cannot add fitness values where the count doesn't match.");
 
+				Sync.Modifying(() =>
+				{
+					var count = other.Count;
+					for (var i = 0; i < count; i++)
+					{
+						var r = other.GetResult(i);
+						if (i < _source.Count) _source[i].Add(r);
+						else _source.Add(new SingleFitness(r));
+					}
+				});
+			}
+
+			return this;
 		}
 		public void AddScores(params double[] scores)
 		{
@@ -363,6 +366,15 @@ namespace GeneticAlgorithmPlatform
 			return 0;
 		}
 
+		AsyncLock _lock;
+		public AsyncLock Lock
+		{
+			get
+			{
+				return LazyInitializer.EnsureInitialized(ref _lock);
+			}
+		}
+
 	}
 
 	public static class FitnessExtensions
@@ -383,6 +395,11 @@ namespace GeneticAlgorithmPlatform
 		public static FitnessScore SnapShot(this IFitness fitness)
 		{
 			return new FitnessScore(fitness);
+		}
+
+		public static Fitness Merge(this IEnumerable<IFitness> fitnesses)
+		{
+			return fitnesses.Aggregate(new Fitness(), (prev, current) => prev.Merge(current));
 		}
 	}
 }

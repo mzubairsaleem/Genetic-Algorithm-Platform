@@ -80,12 +80,17 @@ namespace Open.Dataflow
 	{
 		public static ITargetBlock<T> AutoCompleteAfter<T>(this ITargetBlock<T> target, int limit)
 		{
-			return new AutoCompleteBlock<T>(limit, target);
+			return new AutoCompleteFilter<T>(limit, target);
 		}
 
 		public static ITargetBlock<T> Distinct<T>(this ITargetBlock<T> target, DataflowMessageStatus defaultResponseForDuplicate)
 		{
-			return new DistinctBlock<T>(defaultResponseForDuplicate, target);
+			return new DistinctFilter<T>(defaultResponseForDuplicate, target);
+		}
+
+		public static ITargetBlock<T> OnlyIfChanged<T>(this ITargetBlock<T> target, DataflowMessageStatus defaultResponseForDuplicate)
+		{
+			return new ChangedFilter<T>(defaultResponseForDuplicate, target);
 		}
 
 		public static TransformBlock<Tin, Tout> Pipe<Tin, Tout>(this ISourceBlock<Tin> source, Func<Tin, Tout> pipe)
@@ -137,7 +142,7 @@ namespace Open.Dataflow
 		{
 			source.Completion.OnFaulted(ex =>
 			{
-				foreach (var target in targets.Where(t=>t!=null))
+				foreach (var target in targets.Where(t => t != null))
 					target.Fault(ex.InnerException);
 			});
 			return source;
@@ -148,9 +153,9 @@ namespace Open.Dataflow
 		{
 			source.Completion.ContinueWith(task =>
 			{
-				foreach (var target in targets.Where(t=>t!=null))
+				foreach (var target in targets.Where(t => t != null))
 				{
-					if(task.IsFaulted)
+					if (task.IsFaulted)
 						target.Fault(task.Exception.InnerException);
 					else
 						target.Complete();

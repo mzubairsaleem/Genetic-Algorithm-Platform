@@ -189,7 +189,7 @@ namespace AlgebraBlackBox
 
 		IEnumerator<Genome> _variationEnumerator;
 		LazyList<Genome> _variations;
-		public IReadOnlyList<Genome> Variations
+		public override IReadOnlyList<IGenome> Variations
 		{
 			get
 			{

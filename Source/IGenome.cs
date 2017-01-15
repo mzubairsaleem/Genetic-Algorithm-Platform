@@ -5,38 +5,42 @@
 
 
 
+using System.Collections.Generic;
+
 namespace GeneticAlgorithmPlatform
 {
 
 
-    public interface IGenome
-    {
-        IGene Root { get; }
-        string Hash { get; }
-        IGene[] Genes { get; }
+	public interface IGenome
+	{
+		IGene Root { get; }
+		string Hash { get; }
+		IGene[] Genes { get; }
 
 
-        IGenome NextVariation();
-        IGenome NextMutation();
+		IGenome NextMutation();
 
-        /*
+		IGenome NextVariation();
+		IReadOnlyList<IGenome> Variations { get; }
+        
+		/*
          * Should prevent further modifications to the genome.
          */
-        void Freeze();
+		void Freeze();
 
-        // True if frozen.
-        bool IsReadOnly {get;}
+		// True if frozen.
+		bool IsReadOnly { get; }
 
-        bool Equivalent(IGenome other);
-     
-    }
+		bool Equivalent(IGenome other);
 
-    public interface IGenome<T> : IGenome /* : ISerializable */
-    where T : IGene
-    {
-        new T Root { get; }
-        new T[] Genes { get; }
-    }
+	}
+
+	public interface IGenome<T> : IGenome /* : ISerializable */
+	where T : IGene
+	{
+		new T Root { get; }
+		new T[] Genes { get; }
+	}
 
 
 

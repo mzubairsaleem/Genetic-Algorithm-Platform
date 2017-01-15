@@ -1,19 +1,14 @@
-using System;
-using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Threading;
 
 namespace Open.Dataflow
 {
 
-	internal class AutoCompleteBlock<T> : ITargetBlock<T>
+    internal class AutoCompleteFilter<T> : TargetBlockFilter<T>
 	{
-		private readonly ITargetBlock<T> _target;
-
-		public AutoCompleteBlock(int limit, ITargetBlock<T> target)
+		public AutoCompleteFilter(int limit, ITargetBlock<T> target) : base(target)
 		{
 			_limit = limit;
-			_target = target;
 		}
 
 		private readonly int _limit;
@@ -28,26 +23,10 @@ namespace Open.Dataflow
 			get { return _allowed; }
 		}
 
-		public Task Completion
-		{
-			get
-			{
-				return _target.Completion;
-			}
-		}
 
-		public void Complete()
-		{
-			_target.Complete();
-		}
-
-		public void Fault(Exception exception)
-		{
-			_target.Fault(exception);
-		}
 
 		// The key here is to reject the message ahead of time.
-		public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
+		public override DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
 		{
 			var result = DataflowMessageStatus.DecliningPermanently;
 			var completed = false;

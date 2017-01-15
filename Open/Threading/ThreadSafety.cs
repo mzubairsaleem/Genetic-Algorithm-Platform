@@ -163,7 +163,10 @@ namespace Open.Threading
 		/// <param name="condition">Logic function to execute DCL pattern.  Passes in a boolean that is true for when a lock is held.  The return value indicates if a lock is still needed and the query should be executed.
 		/// Note: Passing a boolean to the condition when a lock is acquired helps if it is important to the cosuming logic to avoid recursive locking.</param>
 		/// <param name="query">The query to execute once a lock is acquired.  Only executes if the condition returns true.</param>
-		public static void LockConditional<TSync>(TSync syncObject, Func<bool, bool> condition, Action closure) where TSync : class
+		/// <returns>
+		/// True if the Action executed.
+		/// </returns>						
+		public static bool LockConditional<TSync>(TSync syncObject, Func<bool, bool> condition, Action closure) where TSync : class
 		{
 			ValidateSyncObject(syncObject);
 			if (condition == null)
@@ -173,8 +176,9 @@ namespace Open.Threading
 
 			if (condition(false))
 				lock (syncObject)
-					if (condition(true))
-						closure();
+					if (condition(true)) { closure(); return true; }
+
+			return false;
 		}
 
 		/// <summary>
@@ -184,7 +188,10 @@ namespace Open.Threading
 		/// <param name="syncObject">Object used for synchronization.</param>
 		/// <param name="condition">Logic function to execute DCL pattern.  The return value indicates if a lock is still needed and the query should be executed.</param>
 		/// <param name="query">The query to execute once a lock is acquired.  Only executes if the condition returns true.</param>
-		public static void LockConditional<TSync>(TSync syncObject, Func<bool> condition, Action closure) where TSync : class
+		/// <returns>
+		/// True if the Action executed.
+		/// </returns>		
+		public static bool LockConditional<TSync>(TSync syncObject, Func<bool> condition, Action closure) where TSync : class
 		{
 			ValidateSyncObject(syncObject);
 			if (condition == null)
@@ -194,8 +201,9 @@ namespace Open.Threading
 
 			if (condition())
 				lock (syncObject)
-					if (condition())
-						closure();
+					if (condition()) { closure(); return true; }
+
+			return false;
 		}
 
 		/// <summary>

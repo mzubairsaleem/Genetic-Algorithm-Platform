@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Open;
@@ -136,6 +137,9 @@ namespace GeneticAlgorithmPlatform
 		public abstract IGenome NextMutation();
 
 		public abstract IGenome NextVariation();
+
+		public abstract IReadOnlyList<IGenome> Variations { get; }
+
 	}
 
 }

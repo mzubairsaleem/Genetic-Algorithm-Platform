@@ -5,15 +5,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Open.Collections;
 
 namespace GeneticAlgorithmPlatform
 {
 
-	// Defines the pipeline?
-	public abstract class EnvironmentBase<TGenome>
+    // Defines the pipeline?
+    public abstract class EnvironmentBase<TGenome>
 		where TGenome : class, IGenome
 	{
 
@@ -53,24 +52,6 @@ namespace GeneticAlgorithmPlatform
 		}
 
 		public abstract IObservable<KeyValuePair<IProblem<TGenome>, TGenome>> AsObservable();
-
-
-		protected Task<KeyValuePair<IProblem<TGenome>, IFitness>[]>
-		ProcessOnce(TGenome genome, long sampleId)
-		{
-			if (genome == null)
-				throw new ArgumentNullException("genome");
-			if (Problems.Count == 0)
-				throw new InvalidOperationException("No problems to resolve.");
-
-			return Task.WhenAll(
-				Problems.Select(
-					p =>
-					p.ProcessTest(genome, sampleId)
-						.ContinueWith(t => KeyValuePair.New(p, t.Result))
-				)
-			);
-		}
 
 
 

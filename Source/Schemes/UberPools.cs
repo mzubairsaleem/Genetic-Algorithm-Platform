@@ -8,12 +8,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Open.Collections;
 
 namespace GeneticAlgorithmPlatform.Schemes
 {
 
-    public sealed class UberPools<TGenome> : EnvironmentBase<TGenome>
+	public sealed class UberPools<TGenome> : EnvironmentBase<TGenome>
 		where TGenome : class, IGenome
 	{
 
@@ -24,10 +25,13 @@ namespace GeneticAlgorithmPlatform.Schemes
 			MinSampleCount = minSampleCount;
 		}
 
+		readonly BroadcastBlock<KeyValuePair<IProblem<TGenome>, TGenome>> TopGenome = new BroadcastBlock<KeyValuePair<IProblem<TGenome>, TGenome>>(null);
+
 		public override IObservable<KeyValuePair<IProblem<TGenome>, TGenome>> AsObservable()
 		{
-			throw new NotImplementedException();
+			return TopGenome.AsObservable();
 		}
+
 
 		protected override Task StartInternal()
 		{
@@ -37,10 +41,10 @@ namespace GeneticAlgorithmPlatform.Schemes
 		async Task ProcessContenderOnce(
 			KeyValuePair<IProblem<TGenome>, Fitness>[] results,
 			TGenome genome,
-			long sampleId
+			long sampleId = 0
 		)
 		{
-			var r = await ProcessOnce(genome, sampleId);
+			var r = await Problems.ProcessOnce(genome, sampleId);
 			if (results.Length != r.Length)
 				throw new Exception("Problem added/removed while processing.");
 			for (var f = 0; f < r.Length; f++)
@@ -55,11 +59,10 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 		async Task<KeyValuePair<TGenome, KeyValuePair<IProblem<TGenome>, Fitness>[]>?> TryGetContender(
 			IEnumerator<TGenome> source,
-			int generations,
-			int startingSampleId = 0)
+			int samples,
+			bool useGlobalFitness = false)
 		{
-			var end = startingSampleId + generations;
-			var mid = startingSampleId + generations / 2;
+			var mid = samples / 2;
 
 			KeyValuePair<IProblem<TGenome>, Fitness>[] results = null;
 
@@ -68,12 +71,12 @@ namespace GeneticAlgorithmPlatform.Schemes
 			{
 				results = Problems.Select(p => KeyValuePair.New(p, new Fitness())).ToArray();
 
-				for (var sampleId = startingSampleId; sampleId < end; sampleId++)
+				for (var i = 0; i < samples; i++)
 				{
-					await ProcessContenderOnce(results, genome, sampleId);
+					await ProcessContenderOnce(results, genome, useGlobalFitness ? 0 : (-i));
 
 					// Look for lemons and reject them early.
-					if (sampleId > mid && results.Any(s => s.Value.Scores[0] < 0))
+					if (i > mid && results.Any(s => s.Value.Scores[0] < 0))
 					{
 						genome = null;
 						break; // Try again...
@@ -98,14 +101,15 @@ namespace GeneticAlgorithmPlatform.Schemes
 				.ToArray();
 		}
 
-		async Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>>[]> NextContender()
+		async Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>>[]> NextContender(
+			bool useGlobalFitness = false)
 		{
 			var e = Factory.Generate().GetEnumerator();
 			return NextContender(
 				await Task.WhenAll(
 					Enumerable.Range(0, PoolSize)
 						.Select(
-							i => TryGetContender(e, MinSampleCount).ContinueWith(t =>
+							i => TryGetContender(e, MinSampleCount, useGlobalFitness).ContinueWith(t =>
 							{
 								var next = t.Result;
 								if (!next.HasValue) throw new Exception("No more genomes?");
@@ -116,23 +120,18 @@ namespace GeneticAlgorithmPlatform.Schemes
 				);
 		}
 
-		IEnumerable<TGenome> AllVariations(TGenome genome)
-		{
-			while (true)
-			{
-				var next = (TGenome)genome.NextMutation();
-				if (next == null) break;
-				yield return next;
-			}
-		}
-
-		async Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>>[]> NextCondendingVariation(TGenome genome)
+		async Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>>[]> NextCondendingVariation(
+			TGenome genome,
+			bool includeOriginal = false)
 		{
 			var results = new List<KeyValuePair<TGenome, KeyValuePair<IProblem<TGenome>, Fitness>[]>>();
-			var variations = AllVariations(genome).GetEnumerator();
+			var variations = ((IEnumerable<TGenome>)(genome.Variations));
+			if (includeOriginal) variations = (new TGenome[] { genome }).Concat(variations);
+			var e = variations.GetEnumerator();
+
 			while (true)
 			{
-				var next = await TryGetContender(variations, MinSampleCount);
+				var next = await TryGetContender(e, MinSampleCount);
 				if (next.HasValue) results.Add(next.Value);
 				else break;
 			}

@@ -119,9 +119,8 @@ namespace Open.Collections
 		{
 			if (_enumerator != null)
 			{
-				if (_enumerator.MoveNext())
+				if (_enumerator.ConcurrentTryMoveNext(out value))
 				{
-					value = _enumerator.Current;
 					_cached.Add(value);
 					return true;
 				}
