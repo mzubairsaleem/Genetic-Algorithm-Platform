@@ -70,8 +70,13 @@ namespace GeneticAlgorithmPlatform
 
 			Task.Run(async () =>
 			{
-				await Task.Delay(5000, cancel.Token);
-				emitStats();
+				while (!cancel.IsCancellationRequested)
+				{
+					await Task.Delay(5000, cancel.Token);
+					emitStats();
+				}
+
+
 			}, cancel.Token);
 
 			sw.Start();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Open.Arithmetic;
 
 namespace AlgebraBlackBox.Genes
 {
@@ -68,7 +69,20 @@ namespace AlgebraBlackBox.Genes
 				{
 					m *= -1;
 					g.Multiple = m;
-					Multiple *= -1;
+					this.Multiple *= -1;
+				}
+
+				foreach (var i in m.Multiples().Skip(1).Distinct())
+				{
+					while (this.Multiple % i == 0)
+					{ 
+						m /= i;
+						this.Multiple /= i;
+						g.Multiple = m;
+					}
+
+					if (System.Math.Abs(this.Multiple) == 1)
+						break;
 				}
 
 				if (m != 1 && Multiple % m == 0)
@@ -76,7 +90,7 @@ namespace AlgebraBlackBox.Genes
 					g.Multiple = 1;
 					if (g is ConstantGene)
 						children.Remove(g);
-					Multiple /= m;
+					this.Multiple /= m;
 				}
 			}
 		}
