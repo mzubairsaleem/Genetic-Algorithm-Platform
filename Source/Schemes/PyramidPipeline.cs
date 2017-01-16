@@ -120,11 +120,13 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 							VipPool.SendAsync(top);
 							// Top get's special treatment.
-							// Problems.Process((IReadOnlyList<TGenome>)top.Variations, 10)
-							// 	.ContinueWith(t => {
-							// 		foreach(var v in t.Result.Select(p => p.Value.FirstOrDefault()).Distinct())
-							// 			FinalistPool.Post(v);
-							// 		});
+							Problems.Process((IReadOnlyList<TGenome>)top.Variations, 10)
+								.ContinueWith(t =>
+								{
+									KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>[]>[] r = t.Result;
+									foreach (var v in r.Select(p => p.Value.Select(x => x.Genome).FirstOrDefault()).Distinct())
+										FinalistPool.Post(v);
+								});
 
 							Breeders.SendAsync(top);
 

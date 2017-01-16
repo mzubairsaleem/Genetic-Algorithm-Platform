@@ -280,7 +280,7 @@ namespace Open.Collections
 			if (source is System.Array)
 				return ((System.Array)source).Length >= minimum;
 
-			if (source is ICollection<T>)
+			if (source is ICollection)
 				return ((ICollection)source).Count >= minimum;
 
 			var e = source.GetEnumerator();

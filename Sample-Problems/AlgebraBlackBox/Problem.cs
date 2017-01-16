@@ -46,7 +46,7 @@ namespace AlgebraBlackBox
 			return genome.AsReduced();
 		}
 
-		public override async Task<IFitness> ProcessTest(Genome g, long sampleId = 0)
+		public override async Task<IFitness> ProcessTest(Genome g, long sampleId = 0, bool mergeWithGlobal = false)
 		{
 			var f = new Fitness();
 			if (sampleId == 0)
@@ -55,12 +55,13 @@ namespace AlgebraBlackBox
 				using (await global.Lock.LockAsync())
 				{
 					await ProcessTest(g, f, -global.SampleCount, true);
-					global.Merge(f);
+					if (mergeWithGlobal) global.Merge(f);
 				}
 			}
 			else
 			{
 				await ProcessTest(g, f, sampleId, true);
+				if (mergeWithGlobal) AddToGlobalFitness(g, f);
 			}
 
 			Interlocked.Increment(ref _testCount);

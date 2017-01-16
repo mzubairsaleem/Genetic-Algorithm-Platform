@@ -19,8 +19,8 @@ namespace GeneticAlgorithmPlatform
 	{
 		int ID { get; }
 
-		// 0 = acquire sampleId from sample count.
-		Task<IFitness> ProcessTest(TGenome g, long sampleId = 0);
+		// 0 = acquire sampleId from sample count.  Negative numbers are allowed.
+		Task<IFitness> ProcessTest(TGenome g, long sampleId = 0, bool mergeWithGlobal = false);
 
 		// Alternative for delegate usage.
 		GenomeTestDelegate<TGenome> TestProcessor { get; }
@@ -41,7 +41,8 @@ namespace GeneticAlgorithmPlatform
 		public static Task<KeyValuePair<IProblem<TGenome>, IFitness>[]> ProcessOnce<TGenome>(
 			this IEnumerable<IProblem<TGenome>> problems,
 			TGenome genome,
-			long sampleId = 0)
+			long sampleId = 0,
+			bool mergeWithGlobal = true)
 			where TGenome : IGenome
 		{
 			if (genome == null)
@@ -51,7 +52,7 @@ namespace GeneticAlgorithmPlatform
 
 			return Task.WhenAll(
 				problems.Select(p =>
-					p.ProcessTest(genome, sampleId)
+					p.ProcessTest(genome, sampleId, mergeWithGlobal)
 						.ContinueWith(t => KeyValuePair.New(p, t.Result))
 				)
 			);
@@ -60,7 +61,8 @@ namespace GeneticAlgorithmPlatform
 		public static Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>[]>[]> ProcessOnce<TGenome>(
 			this IEnumerable<IProblem<TGenome>> problems,
 			IEnumerable<TGenome> genomes,
-			long sampleId = 0)
+			long sampleId = 0,
+			bool mergeWithGlobal = false)
 			where TGenome : IGenome
 		{
 			if (genomes == null)
@@ -71,7 +73,7 @@ namespace GeneticAlgorithmPlatform
 			return Task.WhenAll(problems
 				.Select(p =>
 					Task.WhenAll(
-						genomes.Select(g => p.ProcessTest(g, sampleId)
+						genomes.Select(g => p.ProcessTest(g, sampleId, mergeWithGlobal)
 							.ContinueWith(t => new GenomeFitness<TGenome>(g, t.Result))))
 						.ContinueWith(t => KeyValuePair.New(p, t.Result.Sort()))));
 		}
@@ -80,7 +82,8 @@ namespace GeneticAlgorithmPlatform
 		public static Task<KeyValuePair<IProblem<TGenome>, IFitness>[]> Process<TGenome>(
 			this IEnumerable<IProblem<TGenome>> problems,
 			TGenome genome,
-			IEnumerable<long> sampleIds)
+			IEnumerable<long> sampleIds,
+			bool mergeWithGlobal = false)
 			where TGenome : IGenome
 		{
 			if (genome == null)
@@ -90,15 +93,22 @@ namespace GeneticAlgorithmPlatform
 
 			return Task.WhenAll(
 				problems.Select(
-					p => Task.WhenAll(sampleIds.Select(id => p.ProcessTest(genome, id)))
-						.ContinueWith(t => KeyValuePair.New(p, (IFitness)t.Result.Merge()))));
+					p => Task.WhenAll(sampleIds.Select(id => p.ProcessTest(genome, id, id >= 0)))
+						.ContinueWith(t =>
+						{
+							var f = (IFitness)t.Result.Merge();
+							var kvp = KeyValuePair.New(p, f);
+							if (mergeWithGlobal) p.AddToGlobalFitness(genome, f);
+							return kvp;
+						})));
 		}
 
 
 		public static Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>[]>[]> Process<TGenome>(
 			this IEnumerable<IProblem<TGenome>> problems,
 			IEnumerable<TGenome> genomes,
-			IEnumerable<long> sampleIds)
+			IEnumerable<long> sampleIds,
+			bool mergeWithGlobal = false)
 			where TGenome : IGenome
 		{
 			if (genomes == null)
@@ -109,7 +119,13 @@ namespace GeneticAlgorithmPlatform
 			return Task.WhenAll(problems.Select(
 				p => Task.WhenAll(genomes.Select(
 					g => Task.WhenAll(sampleIds.Select(id => p.ProcessTest(g, id)))
-						.ContinueWith(t => new GenomeFitness<TGenome>(g, t.Result.Merge()))))
+						.ContinueWith(t =>
+						{
+							var f = t.Result.Merge();
+							var gf = new GenomeFitness<TGenome>(g, f);
+							if (mergeWithGlobal) p.AddToGlobalFitness(g, f);
+							return gf;
+						})))
 						.ContinueWith(t => KeyValuePair.New(p, t.Result.Sort()))));
 		}
 
@@ -117,32 +133,35 @@ namespace GeneticAlgorithmPlatform
 		public static Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>[]>[]> Process<TGenome>(
 			this IEnumerable<IProblem<TGenome>> problems,
 			IEnumerable<TGenome> genomes,
-			int count = 1)
+			int count = 1,
+			bool mergeWithGlobal = false)
 			where TGenome : IGenome
 		{
-			return Process(problems, genomes, Enumerable.Range(0, count).Select(i => SampleID.Next()));
+			return Process(problems, genomes, Enumerable.Range(0, count).Select(i => SampleID.Next()), mergeWithGlobal);
 		}
 
 		public static Task<KeyValuePair<IProblem<TGenome>, IFitness>[]> Process<TGenome>(
 			this IEnumerable<IProblem<TGenome>> problems,
 			TGenome genome,
-			int count = 1)
+			int count = 1,
+			bool mergeWithGlobal = false)
 			where TGenome : IGenome
 		{
-			return Process(problems, genome, Enumerable.Range(0, count).Select(i => SampleID.Next()));
+			return Process(problems, genome, Enumerable.Range(0, count).Select(i => SampleID.Next()), mergeWithGlobal);
 		}
-// need to add to global fitness
+
 		public static Task<KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>[]>> Process<TGenome>(
 			this IProblem<TGenome> problem,
 			IEnumerable<TGenome> genomes,
-			int count = 1)
+			int count = 1,
+			bool mergeWithGlobal = false)
 			where TGenome : IGenome
 		{
 			if (problem == null)
 				throw new ArgumentNullException("problem");
 			if (genomes == null)
 				throw new ArgumentNullException("genomes");
-			return Process(new IProblem<TGenome>[] { problem }, genomes, Enumerable.Range(0, 1).Select(i => SampleID.Next()))
+			return Process(new IProblem<TGenome>[] { problem }, genomes, Enumerable.Range(0, 1).Select(i => SampleID.Next()), mergeWithGlobal)
 				.ContinueWith(t => t.Result.Single());
 		}
 
