@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace AlgebraBlackBox.Genes
 {
-    public class DivisionGene : FunctionGene
+	public class DivisionGene : FunctionGene
 	{
 		public const char Symbol = '/';
 
@@ -37,7 +37,7 @@ namespace AlgebraBlackBox.Genes
 		{
 			var v = values.Single();
 			// Debug.Assert(v != 0);
-			return v==0 ? double.NaN : (1 / v);
+			return v == 0 ? double.NaN : (1 / v);
 		}
 
 		DivisionGene CloneThis()
@@ -101,8 +101,10 @@ namespace AlgebraBlackBox.Genes
 				var d = c as DivisionGene;
 				if (d != null && d.Multiple == 1)
 				{
-					d.Multiple *= this.Multiple;					
-					return d;
+					var x = d.Children.Single();
+					x.Multiple *= this.Multiple;
+					d.Remove(x);
+					return x;
 				}
 
 			}

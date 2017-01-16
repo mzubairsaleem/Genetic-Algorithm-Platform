@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using GeneticAlgorithmPlatform;
 using Open.Arithmetic;
 using Open.Collections;
+using Open.Formatting;
 using Fitness = GeneticAlgorithmPlatform.Fitness;
 
 namespace AlgebraBlackBox
@@ -107,7 +108,7 @@ namespace AlgebraBlackBox
 				// #endif
 				if (!double.IsNaN(correctValue) && double.IsNaN(result)) NaNcount++;
 				calc[i] = result;
-				divergence[i] = -Math.Abs(result - correctValue);
+				divergence[i] = -Math.Abs(result - correctValue) * 10; // Averages can get too small.
 			}
 
 			if (NaNcount != 0)
@@ -122,7 +123,9 @@ namespace AlgebraBlackBox
 			else
 			{
 				var c = correct.Correlation(calc);
-				if (c > 1) c = 3 - 2 * c; // Correlation compensation for double precision insanity.
+				if (c > 1) c = 1; // Must clamp double precision insanity.
+				else if (c.IsPreciseEqual(1)) c = 1; // Compensate for epsilon.
+				//if (c > 1) c = 3 - 2 * c; // Correlation compensation for double precision insanity.
 				var d = divergence.Where(v => !double.IsNaN(v)).Average() + 1;
 
 				fitness.AddScores(

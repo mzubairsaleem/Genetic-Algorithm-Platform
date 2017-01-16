@@ -87,7 +87,7 @@ namespace GeneticAlgorithmPlatform
 
 		T[] GetGenes()
 		{
-			var r = Enumerable.Repeat(_root, 1);
+			var r = new T[] { _root };
 			var rn = _root as IGeneNode<T>;
 			return (rn != null ? r.Concat(rn.Descendants) : r).ToArray();
 		}

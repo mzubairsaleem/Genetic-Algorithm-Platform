@@ -305,6 +305,47 @@ namespace Open.Arithmetic
 			return NextPrime((int)a);
 		}
 
+		public static List<int> Multiples(this int a)
+		{
+			var result = new List<int>();
+			result.Add(a < 1 ? -1 : 1);
+			if (a < 1) a = Math.Abs(a);
+
+			for (var i = 2; a != 1 && i <= a; i = i.NextPrime())
+			{
+				while (a % i == 0)
+				{
+					result.Add(i);
+					a /= i;
+				}
+			}
+
+			return result;
+		}
+
+
+		public static List<double> Multiples(this double a)
+		{
+			var result = new List<double>();
+			result.Add(a < 1 ? -1 : 1);
+			if (a < 1) a = Math.Abs(a);
+
+			if(Math.Floor(a)!=a) {
+				result.Add(a);
+				return result;
+			}
+
+			for (var i = 2; a != 1 && i <= a; i = i.NextPrime())
+			{
+				while (a % i == 0)
+				{
+					result.Add(i);
+					a /= i;
+				}
+			}
+
+			return result;
+		}
 
 
 	}

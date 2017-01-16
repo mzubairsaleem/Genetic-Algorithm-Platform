@@ -8,6 +8,7 @@ using AlgebraBlackBox;
 using System.Threading;
 using Open.Threading;
 
+
 namespace GeneticAlgorithmPlatform
 {
 	public class Program
@@ -38,7 +39,7 @@ namespace GeneticAlgorithmPlatform
 		{
 			Console.WriteLine("Starting...");
 
-			var problem = new Problem(SqrtA2B2);
+			var problem = new Problem(SqrtA2B2A2B1);
 			var scheme = new PyramidPipeline<AlgebraBlackBox.Genome>(
 				new AlgebraBlackBox.GenomeFactory(),
 				20, 3, 2);

@@ -86,7 +86,7 @@ namespace AlgebraBlackBox.Genes
 				if (absMultiples.Any())
 				{
 					var max = absMultiples.Min();
-					for (var i = 2; i <= max; i = i.NextPrime())
+					for (var i = 2; max != 1 && i <= max; i = i.NextPrime())
 					{
 						while (max % i == 0 && children.All(g => g.Multiple % i == 0))
 						{

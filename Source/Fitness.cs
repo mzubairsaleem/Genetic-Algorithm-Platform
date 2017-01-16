@@ -8,14 +8,14 @@ using System.Threading;
 using Nito.AsyncEx;
 using Open.Arithmetic;
 using Open.Collections;
+using Open.Formatting;
 
 namespace GeneticAlgorithmPlatform
 {
 
 	public class SingleFitness : IComparable<SingleFitness>
 	{
-		readonly double _maxScore;
-		readonly double _2xMaxScore;
+		public readonly double MaxScore;
 		ProcedureResult _result;
 		object _sync = new Object();
 		public SingleFitness(IEnumerable<double> scores = null, double maxScore = 1) : this(new ProcedureResult(0, 0), maxScore)
@@ -27,8 +27,7 @@ namespace GeneticAlgorithmPlatform
 		public SingleFitness(ProcedureResult initial, double maxScore = 1) : base()
 		{
 			_result = initial;
-			_maxScore = maxScore;
-			_2xMaxScore = 2 * maxScore;
+			MaxScore = maxScore;
 		}
 
 		public SingleFitness(double maxScore) : this(null, maxScore)
@@ -52,7 +51,7 @@ namespace GeneticAlgorithmPlatform
 			{
 
 				Debug.Assert(!double.IsNaN(value), "Adding a NaN value will completely invalidate the fitness value.");
-				Debug.Assert(value <= _maxScore, "Adding a score that is above the maximum will potentially invalidate the current run.");
+				Debug.Assert(value <= MaxScore, "Adding a score that is above the maximum will potentially invalidate the current run.");
 				// Ensures 1 update at a time.
 				lock (_sync) _result = _result.Add(value, count);
 			}
@@ -61,7 +60,7 @@ namespace GeneticAlgorithmPlatform
 		public void Add(ProcedureResult other)
 		{
 			Debug.Assert(!double.IsNaN(other.Average), "Adding a NaN value will completely invalidate the fitness value.");
-			Debug.Assert(other.Average <= _maxScore, "Adding a score that is above the maximum will potentially invalidate the current run.");
+			Debug.Assert(other.Average <= MaxScore, "Adding a score that is above the maximum will potentially invalidate the current run.");
 			// Ensures 1 update at a time.
 			lock (_sync) _result += other;
 		}
@@ -89,11 +88,11 @@ namespace GeneticAlgorithmPlatform
 			// Check for weird averages that push the values above maximum and adjust.  (Bounce off the barrier.)   See above for debug assertions.
 
 			var a = _result;
-			if (a.Average > _maxScore)
-				a = new ProcedureResult((_2xMaxScore - a.Average) * a.Count, a.Count);
+			if (a.Average > MaxScore)
+				a = new ProcedureResult(MaxScore * a.Count, a.Count);
 			var b = other._result;
-			if (b.Average > _maxScore)
-				b = new ProcedureResult((_2xMaxScore - b.Average) * b.Count, b.Count);
+			if (b.Average > MaxScore)
+				b = new ProcedureResult(MaxScore * b.Count, b.Count);
 
 			return a.CompareTo(b);
 		}
@@ -350,7 +349,10 @@ namespace GeneticAlgorithmPlatform
 
 				for (var i = 0; i < xLen; i++)
 				{
-					var c = x.GetResult(i).CompareTo(y.GetResult(i));
+					var sx = x.GetResult(i);
+					var sy = y.GetResult(i);
+
+					var c = sx.CompareTo(sy);
 					if (c != 0) return c * ORDER_DIRECTION;
 				}
 			}
@@ -386,6 +388,8 @@ namespace GeneticAlgorithmPlatform
 			{
 				if (s > convergence + double.Epsilon)
 					throw new Exception("Score has exceeded convergence value: " + s);
+				if (s.IsNearEqual(convergence, 0.0000001) && s.ToString() == convergence.ToString())
+					continue;
 				if (s < convergence - tolerance)
 					return false;
 			}

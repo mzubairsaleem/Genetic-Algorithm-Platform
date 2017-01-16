@@ -205,7 +205,7 @@ namespace AlgebraBlackBox
 
 				// Search for potential futility...
 				// Basically, if there is no dynamic genes left after reduction then it's not worth removing.
-				if (parent != source.Root && !parent.Where(g => g != gene && !(g is ConstantGene)).Any())
+				if (/*parent != source.Root && */!parent.Where(g => g != gene && !(g is ConstantGene)).Any())
 				{
 					return CheckRemovalValidity(source, parent);
 				}

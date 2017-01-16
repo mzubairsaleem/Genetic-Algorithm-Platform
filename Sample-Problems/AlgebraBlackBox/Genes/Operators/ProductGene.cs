@@ -79,6 +79,32 @@ namespace AlgebraBlackBox.Genes
 				}
 			}
 
+			if (System.Math.Abs(this.Multiple) > 1)
+			{
+				foreach (var d in children.OfType<DivisionGene>())
+				{
+					var c = d.Children.FirstOrDefault();
+					if (c != null)
+					{
+						foreach (var m in c.Multiple.Multiples().Skip(1).Distinct())
+						{
+							while (this.Multiple % m == 0)
+							{
+								this.Multiple /= m;
+								c.Multiple /= m;
+							}
+
+							if (System.Math.Abs(this.Multiple) == 1)
+								break;
+						}
+
+						if (System.Math.Abs(this.Multiple) == 1)
+							break;
+					}
+				}
+			}
+
+
 			return updated;
 		}
 
@@ -119,7 +145,7 @@ namespace AlgebraBlackBox.Genes
 				{
 					var pReduced = ChildReduce(d) ?? d;
 					Debug.Assert(Multiple == m, "Shouldn't have changed!");
-					if(pReduced!=d && pReduced.Multiple!=1)
+					if (pReduced != d && pReduced.Multiple != 1)
 					{
 						Multiple *= pReduced.Multiple;
 						pReduced.Multiple = 1;
