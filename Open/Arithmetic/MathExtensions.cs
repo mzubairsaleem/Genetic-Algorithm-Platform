@@ -327,10 +327,12 @@ namespace Open.Arithmetic
 		public static List<double> Multiples(this double a)
 		{
 			var result = new List<double>();
+			if (double.IsNaN(a)) return result;
 			result.Add(a < 1 ? -1 : 1);
 			if (a < 1) a = Math.Abs(a);
 
-			if(Math.Floor(a)!=a) {
+			if (Math.Floor(a) != a || double.IsInfinity(a))
+			{
 				result.Add(a);
 				return result;
 			}
