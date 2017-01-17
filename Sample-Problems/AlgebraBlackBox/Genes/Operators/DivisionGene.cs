@@ -72,10 +72,15 @@ namespace AlgebraBlackBox.Genes
 					this.Multiple *= -1;
 				}
 
+				if (double.IsNaN(m) || double.IsInfinity(m))
+				{
+					continue;
+				}
+
 				foreach (var i in m.Multiples().Skip(1).Distinct())
 				{
 					while (this.Multiple % i == 0)
-					{ 
+					{
 						m /= i;
 						this.Multiple /= i;
 						g.Multiple = m;
@@ -84,6 +89,7 @@ namespace AlgebraBlackBox.Genes
 					if (System.Math.Abs(this.Multiple) == 1)
 						break;
 				}
+
 
 				if (m != 1 && Multiple % m == 0)
 				{
@@ -101,12 +107,13 @@ namespace AlgebraBlackBox.Genes
 			if (children.Count == 1)
 			{
 				var c = children.Single();
-				if (c.Multiple == 0)
+				var m = c.Multiple;
+				if (m == 0 || double.IsNaN(m))
 				{
-					// WHOA.  Divide by zero.
+					// WHOA.  Divide by zero?  NaN?
 					return new ConstantGene(double.NaN);
 				}
-				else if (c.Multiple == 1)
+				else if (m == 1)
 				{
 					if (c is ConstantGene)
 						return new ConstantGene(this.Multiple);
