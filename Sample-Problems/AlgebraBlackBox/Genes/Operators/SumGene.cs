@@ -70,8 +70,6 @@ namespace AlgebraBlackBox.Genes
 				children.Remove(p);
 			}
 
-
-
 			// Flatten negatives...
 			if (Multiple < 0 && children.Any(c => c.Multiple < 0) || Multiple > 0 && children.All(c => c.Multiple < 0))
 			{
@@ -80,7 +78,11 @@ namespace AlgebraBlackBox.Genes
 					g.Multiple *= -1;
 			}
 
-			if (children.All(c => !double.IsNaN(c.Multiple)))
+			if (children.All(c =>
+			{
+				var cm = c.Multiple;
+				return !double.IsNaN(cm) && !double.IsInfinity(cm);
+			}))
 			{
 				// Pull out multiples.
 				using (var absMultiples = children.Select(c => Math.Abs(c.Multiple)).Where(m => m != 0 && m != 1).Distinct().Memoize())

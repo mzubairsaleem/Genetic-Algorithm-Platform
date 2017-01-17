@@ -26,12 +26,12 @@ namespace GeneticAlgorithmPlatform
 		ActionBlock<bool> Producer;
 		HashSet<string> Registry = new HashSet<string>();
 
-		const int TIMEOUT_MS = 10000;
-		void TimedOut()
+		const int TIMEOUT_MS = 60000;
+		void TimedOut(int ms)
 		{
-			var message = "Source Enumeration took longer than " + TIMEOUT_MS + " seconds to produce.";
+			var message = "Source Enumeration took longer than " + ms + " seconds to produce.";
 			Console.WriteLine(message);
-			OutputBuffer.Fault(message);
+			((ISourceBlock<TGenome>)OutputBuffer).Fault(new TimeoutException(message));
 			Complete();
 		}
 

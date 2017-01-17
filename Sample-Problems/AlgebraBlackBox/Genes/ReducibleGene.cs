@@ -147,9 +147,9 @@ namespace AlgebraBlackBox.Genes
 
 		public IGene Reduce()
 		{
-			using (TimeoutHandler.New(1000, () =>
+			using (TimeoutHandler.New(200, ms =>
 			{
-				Console.WriteLine("Warning: {0}.Reduce({1}) timed out.", this);
+				Console.WriteLine("Warning: {0}.Reduce() is taking longer than {1} milliseconds.", this, ms);
 			}))
 			{
 
