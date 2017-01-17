@@ -21,13 +21,14 @@ namespace GeneticAlgorithmPlatform
 
 		public GenomeFactoryBase()
 		{
-			Registry = new ConcurrentDictionary<string, TGenome>();
+			Registry = new ConcurrentDictionary<string, Lazy<TGenome>>();
 			RegistryOrder = new ConcurrencyWrapper<string, List<string>>(new List<string>());
 			PreviouslyProduced = new ConcurrentHashSet<string>();
 		}
 
 		// Help to reduce copies.
-		protected readonly ConcurrentDictionary<string, TGenome> Registry;
+		// Use a Lazy to enforce one time only execution since ConcurrentDictionary is optimistic.
+		protected readonly ConcurrentDictionary<string, Lazy<TGenome>> Registry;
 
 		protected readonly ConcurrentHashSet<string> PreviouslyProduced;
 
@@ -35,22 +36,24 @@ namespace GeneticAlgorithmPlatform
 
 		protected static TGenome AssertFrozen(TGenome genome)
 		{
-			if (genome!=null && !genome.IsReadOnly)
+			if (genome != null && !genome.IsReadOnly)
 				throw new InvalidOperationException("Genome is not frozen: " + genome);
 			return genome;
 		}
 
-		protected bool Register(TGenome genome, out TGenome actual)
+		protected bool Register(TGenome genome, out TGenome actual, Action<string> onBeforeAdd = null)
 		{
-			var hash = genome.Hash;
-			if (Registry.TryAdd(hash, genome))
+			var added = false;
+			actual = Registry.GetOrAdd(genome.Hash, hash => Lazy.New(() =>
 			{
+				added = true;
+				onBeforeAdd(hash);
+				AssertFrozen(genome); // Cannot allow registration of an unfrozen genome because it then can be used by another thread.
 				RegistryOrder.Add(hash);
-				actual = genome;
-				return true;
-			}
-			actual = Registry[hash];
-			return false;
+				return genome;
+			})).Value;
+
+			return added;
 		}
 
 		protected virtual TGenome Registration(TGenome genome)
@@ -99,9 +102,9 @@ namespace GeneticAlgorithmPlatform
 			while (true)
 			{
 				TGenome one;
-				using (TimeoutHandler.New(9000, () =>
+				using (TimeoutHandler.New(9000, ms =>
 				{
-					Console.WriteLine("Warning: " + this + ".GenerateOne() timed out.");
+					Console.WriteLine("Warning: {0}.GenerateOne() is taking longer than {1} milliseconds.", this, ms);
 				}))
 				{
 					one = GenerateOne(source);
@@ -181,9 +184,9 @@ namespace GeneticAlgorithmPlatform
 				byte tries = 3;
 				while (tries != 0 && genome == null)
 				{
-					using (TimeoutHandler.New(5000, () =>
+					using (TimeoutHandler.New(3000, ms =>
 					{
-						Console.WriteLine("Warning: " + this + ".MutateInternal(source) timed out.");
+						Console.WriteLine("Warning: {0}.MutateInternal({1}) is taking longer than {2} milliseconds.", this, source, ms);
 					}))
 					{
 						genome = MutateInternal(source);

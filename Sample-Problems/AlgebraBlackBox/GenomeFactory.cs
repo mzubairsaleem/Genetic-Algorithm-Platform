@@ -110,7 +110,7 @@ namespace AlgebraBlackBox
 						do
 						{
 							// NOTE: Let's use expansions here...
-							genome = Mutate(Registry[RegistryOrder.Source.RandomSelectOne()], m);
+							genome = Mutate(Registry[RegistryOrder.Source.RandomSelectOne()].Value, m);
 							hash = genome?.Hash;
 							attempts++;
 							if (hash != null && RegisterProduction(genome))
@@ -128,9 +128,9 @@ namespace AlgebraBlackBox
 		public override Genome GenerateOne(Genome[] source = null)
 		{
 			Genome genome;
-			using (TimeoutHandler.New(3000, () =>
+			using (TimeoutHandler.New(5000, ms =>
 			{
-				Console.WriteLine("Warning: " + this + ".GenerateOneInternal() timed out.");
+				Console.WriteLine("Warning: {0}.GenerateOneInternal() is taking longer than {1} milliseconds.", this, ms);
 			}))
 			{
 				genome = GenerateOneInternal(source);
@@ -496,15 +496,9 @@ namespace AlgebraBlackBox
 		protected override Genome Registration(Genome target)
 		{
 			if (target == null) return null;
-			Genome registered;
-			// Prelim check out of lock...
-			if (Registry.TryGetValue(target.Hash, out registered)) return AssertFrozen(registered);
-
-			lock (target) // Before target get's released to the world, we need to process it first.
+			Register(target, out target, hash =>
 			{
-				// In the rare case that multiple registrations are occuring at the same time, only allow 1 do do the work.
-				if (!Register(target, out registered)) return AssertFrozen(registered);
-
+				Debug.Assert(target.Hash == hash);
 				target.RegisterVariations(GenerateVariations(target));
 				target.RegisterMutations(Mutate(target));
 
@@ -516,13 +510,11 @@ namespace AlgebraBlackBox
 					if (reduced != reducedRegistration)
 						target.ReplaceReduced(reducedRegistration);
 
-					reduced.RegisterExpansion(target.Hash);
+					reduced.RegisterExpansion(hash);
 				}
 				target.Freeze();
-			}
-
-			// Rare threading issue where target is not frozen yet.  Assert just to be sure.
-			return AssertFrozen(target);
+			});
+			return target;
 		}
 
 		// Keep in mind that Mutation is more about structure than 'variations' of multiples and constants.
