@@ -7,11 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Open.Threading;
 
 namespace AlgebraBlackBox.Genes
 {
 
-    public abstract class ReducibleGeneNode : GeneNode, IReducibleGene
+	public abstract class ReducibleGeneNode : GeneNode, IReducibleGene
 	{
 
 		public ReducibleGeneNode(double multiple = 1) : base(multiple)
@@ -83,9 +84,9 @@ namespace AlgebraBlackBox.Genes
 		{
 			IGene g = null;
 			var original = child;
-			#if DEBUG
+#if DEBUG
 			var hash = child.ToString();
-			#endif
+#endif
 			// #if DEBUG
 			// var cValue = child.Calculate(QuickCheck);
 			// var cString = child.ToString();
@@ -146,52 +147,59 @@ namespace AlgebraBlackBox.Genes
 
 		public IGene Reduce()
 		{
-			var m = Multiple;
-			if (MultipleIsExtreme(m))
-				return new ConstantGene(m);
-
-			var reduced = this;
-			var sync = Sync;
-			var modified = sync.Modifying(() =>
+			using (TimeoutHandler.New(1000, () =>
 			{
-				var modCount = 0;
-				// Inner loop will keep going while changes are still occuring.
-				while (!MultipleIsExtreme(Multiple) && sync.Modifying(() =>
-				{
-					foreach (var o in GetChildren().OfType<IReducibleGene>().ToArray())
-					{
-						if (ChildReduce(o) != null)
-							modCount++;
-					}
+				Console.WriteLine("Warning: {0}.Reduce({1}) timed out.", this);
+			}))
+			{
 
-					ReduceLoop();
-				}))
+				var m = Multiple;
+				if (MultipleIsExtreme(m))
+					return new ConstantGene(m);
+
+				var reduced = this;
+				var sync = Sync;
+				var modified = sync.Modifying(() =>
 				{
-					modCount++;
-					if (modCount > 1000)
-					{
-						if (Debugger.IsAttached)
-							Debugger.Break();
-						else
+					var modCount = 0;
+					// Inner loop will keep going while changes are still occuring.
+					while (!MultipleIsExtreme(Multiple) && sync.Modifying(() =>
 						{
-							var message = "Potential infinite reduction loop in " + this.GetType();
-							Console.WriteLine("");
-							Console.WriteLine("==========================================================");
-							Console.WriteLine(message);
-							throw new Exception(message);
+							foreach (var o in GetChildren().OfType<IReducibleGene>().ToArray())
+							{
+								if (ChildReduce(o) != null)
+									modCount++;
+							}
+
+							ReduceLoop();
+						}))
+					{
+						modCount++;
+						if (modCount > 500)
+						{
+							if (Debugger.IsAttached)
+								Debugger.Break();
+							else
+							{
+								var message = "Potential infinite reduction loop in " + this.GetType();
+								Console.WriteLine("");
+								Console.WriteLine("==========================================================");
+								Console.WriteLine(message);
+								throw new Exception(message);
+							}
 						}
 					}
-				}
-				return modCount != 0;
-			});
+					return modCount != 0;
+				});
 
-			// Last round check...
-			m = Multiple;
-			if (MultipleIsExtreme(m))
-				return new ConstantGene(m);
+				// Last round check...
+				m = Multiple;
+				if (MultipleIsExtreme(m))
+					return new ConstantGene(m);
 
-			return ReplaceWithReduced() ??
-				(modified ? reduced : null);
+				return ReplaceWithReduced() ??
+					(modified ? reduced : null);
+			}
 		}
 
 
