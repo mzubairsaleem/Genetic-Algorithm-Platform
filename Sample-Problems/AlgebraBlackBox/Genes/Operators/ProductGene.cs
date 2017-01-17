@@ -86,12 +86,17 @@ namespace AlgebraBlackBox.Genes
 					var c = d.Children.FirstOrDefault();
 					if (c != null)
 					{
-						foreach (var m in c.Multiple.Multiples().Skip(1).Distinct())
+						var m = c.Multiple;
+						if (double.IsNaN(m) || double.IsInfinity(m))
 						{
-							while (this.Multiple % m == 0)
+							continue;
+						}
+						foreach (var i in m.Multiples().Skip(1).Distinct())
+						{
+							while (this.Multiple % i == 0)
 							{
-								this.Multiple /= m;
-								c.Multiple /= m;
+								this.Multiple /= i;
+								c.Multiple /= i;
 							}
 
 							if (System.Math.Abs(this.Multiple) == 1)
