@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace AlgebraBlackBox.Genes
 {
-    public class SquareRootGene : FunctionGene
+	public class SquareRootGene : FunctionGene
 	{
 		public const char Symbol = 'S';
 		protected SquareRootGene(double multiple, IEnumerable<IGene> children) : base(Symbol, multiple, children)
@@ -50,7 +50,8 @@ namespace AlgebraBlackBox.Genes
 		{
 			var child = GetChildren().FirstOrDefault();
 			if (child == null) return;
-			if (child.Multiple > 3)
+			var m = child.Multiple;
+			if (m > 3 && !double.IsInfinity(m))
 			{
 				// First migrate any possible multiple.
 				var sqr = Math.Sqrt(child.Multiple);
@@ -70,13 +71,13 @@ namespace AlgebraBlackBox.Genes
 		{
 			var child = GetChildren().FirstOrDefault();
 			if (child == null) return new ConstantGene(this.Multiple);
+			var m = child.Multiple;
+			if (m == 0 || double.IsNaN(m))
+				return new ConstantGene(m);
 
-			if (child.Multiple == 0)
-				return new ConstantGene(0);
-			
-			if(child.Multiple != 1) // Can't make a perfect square?
+			if (child.Multiple != 1) // Can't make a perfect square?
 				return null;
-			else if(child is ConstantGene)
+			else if (child is ConstantGene)
 				return new ConstantGene(1);
 
 			var product = child as ProductGene;
@@ -125,7 +126,7 @@ namespace AlgebraBlackBox.Genes
 					}
 					else
 					{
-						if(wrapper.Count==1)
+						if (wrapper.Count == 1)
 						{
 							var c = wrapper.Single();
 							wrapper.Remove(c);
@@ -139,7 +140,7 @@ namespace AlgebraBlackBox.Genes
 				}
 
 			}
-			
+
 			return base.ReplaceWithReduced();
 		}
 
