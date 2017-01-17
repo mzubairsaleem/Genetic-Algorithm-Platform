@@ -80,28 +80,30 @@ namespace AlgebraBlackBox.Genes
 					g.Multiple *= -1;
 			}
 
-			// Pull out multiples.
-			using (var absMultiples = children.Select(c => Math.Abs(c.Multiple)).Where(m => m != 0 && m != 1).Distinct().Memoize())
+			if (children.All(c => !double.IsNaN(c.Multiple)))
 			{
-				if (absMultiples.Any())
+				// Pull out multiples.
+				using (var absMultiples = children.Select(c => Math.Abs(c.Multiple)).Where(m => m != 0 && m != 1).Distinct().Memoize())
 				{
-					var max = absMultiples.Min();
-					for (var i = 2; max != 1 && i <= max; i = i.NextPrime())
+					if (absMultiples.Any())
 					{
-						while (max % i == 0 && children.All(g => g.Multiple % i == 0))
+						var max = absMultiples.Min();
+						for (var i = 2; max != 1 && i <= max; i = i.NextPrime())
 						{
-							max /= i;
-							Multiple *= i;
-							foreach (var g in children)
+							while (max % i == 0 && children.All(g => g.Multiple % i == 0))
 							{
-								g.Multiple /= i;
+								max /= i;
+								Multiple *= i;
+								foreach (var g in children)
+								{
+									g.Multiple /= i;
+								}
 							}
 						}
-					}
 
+					}
 				}
 			}
-
 
 			// Combine any constants.  This is more optimal because we don't neet to query ToStringContents.
 			var constants = children.OfType<ConstantGene>().ToArray();
@@ -158,8 +160,9 @@ namespace AlgebraBlackBox.Genes
 					c.Multiple *= Multiple;
 					Remove(c);
 					return c;
-
 			}
+			if (children.Any(c => double.IsNaN(c.Multiple)))
+				return new ConstantGene(double.NaN);
 			return base.ReplaceWithReduced();
 		}
 
