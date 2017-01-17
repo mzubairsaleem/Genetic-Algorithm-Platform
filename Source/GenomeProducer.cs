@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Open.Collections;
 using Open.Dataflow;
+using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -25,6 +26,15 @@ namespace GeneticAlgorithmPlatform
 		ActionBlock<bool> Producer;
 		HashSet<string> Registry = new HashSet<string>();
 
+		const int TIMEOUT_MS = 10000;
+		void TimedOut()
+		{
+			var message = "Source Enumeration took longer than " + TIMEOUT_MS + " seconds to produce.";
+			Console.WriteLine(message);
+			OutputBuffer.Fault(message);
+			Complete();
+		}
+
 		private GenomeProducer(IEnumerator<TGenome> source, int bufferSize = 100)
 		{
 			OutputBuffer = new BufferBlock<TGenome>(new DataflowBlockOptions
@@ -37,47 +47,67 @@ namespace GeneticAlgorithmPlatform
 
 			Producer = new ActionBlock<bool>(async retry =>
 			{
-				int attempts = 0;
-				bool more = false;
-				while (attempts++ < 20 && (more = source.MoveNext()))
+				try
 				{
-					var next = source.Current;
-					if (next != null)
+					int attempts = 0;
+					bool more = false;
+					IDisposable timeout;
+					while (attempts++ < 20 && TimeoutHandler.New(TIMEOUT_MS, out timeout, TimedOut) && (more = source.MoveNext()))
 					{
-						var hash = next.Hash;
-						if (Registry.Contains(hash)) continue;
-						// Try and reserve this hash.
-						lock (Registry)
+						timeout.Dispose();
+						var next = source.Current;
+						if (next != null)
 						{
-							// Don't own it? :(
-							if (!Registry.Add(hash)) continue;
-						}
-						// Console.WriteLine("Produce Buffer: " + ProduceBuffer.Count);
-						// Producer magic happens here...
-						if (await ProduceBuffer.SendAsync(next))
-						{
-							attempts = 0;
-						}
-						else
-						{
-							lock (Registry) Registry.Remove(hash);
-							// This does not mean postponed.  Should have not rejected unless complete.
-							more = false;
-							break;
+							if (!next.IsReadOnly)
+								throw new InvalidOperationException("Cannot process an unfrozen genome.");
+
+							var hash = next.Hash;
+							if (Registry.Contains(hash)) continue;
+							// Try and reserve this hash.
+							lock (Registry)
+							{
+								// Don't own it? :(
+								if (!Registry.Add(hash)) continue;
+							}
+							// Console.WriteLine("Produce Buffer: " + ProduceBuffer.Count);
+							// Producer magic happens here...
+							if (await ProduceBuffer.SendAsync(next))
+							{
+								attempts = 0;
+							}
+							else
+							{
+								lock (Registry) Registry.Remove(hash);
+								// This does not mean postponed.  Should have not rejected unless complete.
+								more = false;
+								break;
+							}
 						}
 					}
+
+					if (!more)
+					{
+						Producer.Complete();
+						ProduceBuffer.Complete();
+					}
+					else
+					{
+						Producer.Post(true);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex);
+					throw ex;
 				}
 
-				if (!more)
-				{
-					Producer.Complete();
-					ProduceBuffer.Complete();
-				}
-				else
-				{
-					Producer.Post(true);
-				}
+
 			});
+
+			// Producer.OnComplete(() => Console.WriteLine("Producer Complete."));
+			// ProduceBuffer.OnComplete(() => Console.WriteLine("ProduceBuffer Complete."));
+			// EnqueuedBuffer.OnComplete(() => Console.WriteLine("EnqueuedBuffer Complete."));
+
 
 		}
 
@@ -106,6 +136,9 @@ namespace GeneticAlgorithmPlatform
 			bool queued = false;
 			if (genome != null)
 			{
+				if (!genome.IsReadOnly)
+					throw new InvalidOperationException("Cannot process an unfrozen genome.");
+
 				var hash = genome.Hash;
 				if (force || !Registry.Contains(hash))
 				{
@@ -151,6 +184,7 @@ namespace GeneticAlgorithmPlatform
 
 		public void Complete()
 		{
+			Console.WriteLine("Producer Complete Called.");
 			Producer.Complete();
 			ProduceBuffer.Complete();
 			EnqueuedBuffer.Complete();

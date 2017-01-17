@@ -6,6 +6,7 @@ using System.Linq;
 using AlgebraBlackBox.Genes;
 using Open;
 using Open.Collections;
+using Open.Threading;
 
 namespace AlgebraBlackBox
 {
@@ -126,7 +127,16 @@ namespace AlgebraBlackBox
 		}
 		public override Genome GenerateOne(Genome[] source = null)
 		{
-			var genome = Registration(GenerateOneInternal(source));
+			Genome genome;
+			using (TimeoutHandler.New(3000, () =>
+			{
+				Console.WriteLine("Warning: " + this + ".GenerateOneInternal() timed out.");
+			}))
+			{
+				genome = GenerateOneInternal(source);
+			}
+
+			genome = Registration(genome);
 
 			Debug.Assert(genome != null, "Converged? No solutions? Saturated?");
 			// if(genome==null)
@@ -487,24 +497,32 @@ namespace AlgebraBlackBox
 		{
 			if (target == null) return null;
 			Genome registered;
-			if (!Register(target, out registered)) return registered;
+			// Prelim check out of lock...
+			if (Registry.TryGetValue(target.Hash, out registered)) return AssertFrozen(registered);
 
-			target.RegisterVariations(GenerateVariations(target));
-			target.RegisterMutations(Mutate(target));
-
-			var reduced = target.AsReduced();
-			if (reduced != target)
+			lock (target) // Before target get's released to the world, we need to process it first.
 			{
-				// A little caution here. Some possible evil recursion?
-				var reducedRegistration = Registration(reduced);
-				if (reduced != reducedRegistration)
-					target.ReplaceReduced(reducedRegistration);
+				// In the rare case that multiple registrations are occuring at the same time, only allow 1 do do the work.
+				if (!Register(target, out registered)) return AssertFrozen(registered);
 
-				reduced.RegisterExpansion(target.Hash);
+				target.RegisterVariations(GenerateVariations(target));
+				target.RegisterMutations(Mutate(target));
+
+				var reduced = target.AsReduced();
+				if (reduced != target)
+				{
+					// A little caution here. Some possible evil recursion?
+					var reducedRegistration = Registration(reduced);
+					if (reduced != reducedRegistration)
+						target.ReplaceReduced(reducedRegistration);
+
+					reduced.RegisterExpansion(target.Hash);
+				}
+				target.Freeze();
 			}
-			target.Freeze();
 
-			return target;
+			// Rare threading issue where target is not frozen yet.  Assert just to be sure.
+			return AssertFrozen(target);
 		}
 
 		// Keep in mind that Mutation is more about structure than 'variations' of multiples and constants.
@@ -708,16 +726,16 @@ namespace AlgebraBlackBox
 			// Calling AsReduced will cut down on unnecessary retries of existing formulas.
 			var r = genome.AsReduced();
 			Debug.Assert(r != null);
-			if (r != genome)
+			if (r != null && r != genome)
 			{
-				yield return r;
+				yield return AssertFrozen(r);
 				var v = (Genome)r.NextVariation();
-				if (v != null) yield return v.AsReduced();
+				if (v != null) yield return AssertFrozen(v.AsReduced());
 				var m = (Genome)r.NextMutation();
-				if (m != null) yield return m.AsReduced();
+				if (m != null) yield return AssertFrozen(m.AsReduced());
 			}
 			foreach (var e in base.Expand(genome))
-				yield return e;
+				yield return e; // Assertion happens in base.
 		}
 	}
 }

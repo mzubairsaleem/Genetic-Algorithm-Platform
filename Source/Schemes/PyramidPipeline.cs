@@ -122,42 +122,43 @@ namespace GeneticAlgorithmPlatform.Schemes
 								Console.WriteLine("Converged: " + top);
 								TopGenome.Post(KeyValuePair.New(problem, top));
 
-								// Need at least 200 samples to wash out any double precision issues.
-								Problems.Process(
-									new TGenome[] { top }.Concat((IReadOnlyList<TGenome>)top.Variations),
+								// // Need at least 200 samples to wash out any double precision issues.
+								// Problems.Process(
+								// 	new TGenome[] { top }.Concat((IReadOnlyList<TGenome>)top.Variations),
 
-									Math.Max(fitness.SampleCount, 200))
-									.ContinueWith(t =>
-									{
-										KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>[]>[] r = t.Result;
-										foreach (var p in r)
-										{
-											// foreach (var g in p.Value)
-											// {
-											// 	Console.WriteLine("{0}\n  \t[{1}] ({2} samples)", g.Genome, g.Fitness.Scores.JoinToString(","), g.Fitness.SampleCount);
-											// }
-											if (p.Value.Any())
-											{
-												var first = p.Value.First().Genome;
-												if (first != top)
-												{
-													Console.WriteLine("Best Variation: " + first + " of " + top);
-													TopGenomeFilter.Post(KeyValuePair.New(problem, first));
-												}
+								// 	Math.Max(fitness.SampleCount, 200))
+								// 	.ContinueWith(t =>
+								// 	{
+								// 		KeyValuePair<IProblem<TGenome>, GenomeFitness<TGenome>[]>[] r = t.Result;
+								// 		foreach (var p in r)
+								// 		{
+								// 			// foreach (var g in p.Value)
+								// 			// {
+								// 			// 	Console.WriteLine("{0}\n  \t[{1}] ({2} samples)", g.Genome, g.Fitness.Scores.JoinToString(","), g.Fitness.SampleCount);
+								// 			// }
+								// 			if (p.Value.Any())
+								// 			{
+								// 				var first = p.Value.First().Genome;
+								// 				if (first != top)
+								// 				{
+								// 					Console.WriteLine("Best Variation: " + first + " of " + top);
+								// 					TopGenomeFilter.Post(KeyValuePair.New(problem, first));
+								// 				}
 
-											}
-										}
-										TopGenome.Complete();
-									});
-
+								// 			}
+								// 		}
+								// 		TopGenome.Complete();
+								// 	});
+								TopGenome.Complete();
 								return true;
 							}
-							else
-							{
-								TopGenomeFilter.Post(KeyValuePair.New(problem, top));
-							}
+
+							TopGenomeFilter.Post(KeyValuePair.New(problem, top));
 
 							VipPool.SendAsync(top);
+
+							// Producer.TryEnqueue((IReadOnlyList<TGenome>)top.Variations);
+
 							// Top get's special treatment.
 							for (var i = 0; i < networkDepth - 1; i++)
 								Breeders.SendAsync(top);
@@ -214,8 +215,12 @@ namespace GeneticAlgorithmPlatform.Schemes
 
 
 			Pipeline.LinkToWithExceptions(FinalistPool);
-			Pipeline.PropagateCompletionTo(Producer)
+			Pipeline
+				.OnFault(ex => Console.WriteLine(ex))
 				.OnComplete(() => Console.WriteLine("Pipeline COMPLETED"));
+			Pipeline.PropagateCompletionTo(Producer);
+
+
 
 			TopGenome.PropagateCompletionTo(Pipeline);
 			VipPool.PropagateFaultsTo(Pipeline);

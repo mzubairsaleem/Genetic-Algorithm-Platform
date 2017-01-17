@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using Open;
 using Open.Collections;
+using Open.Threading;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -31,6 +32,13 @@ namespace GeneticAlgorithmPlatform
 		protected readonly ConcurrentHashSet<string> PreviouslyProduced;
 
 		protected readonly ConcurrencyWrapper<string, List<string>> RegistryOrder;
+
+		protected static TGenome AssertFrozen(TGenome genome)
+		{
+			if (genome!=null && !genome.IsReadOnly)
+				throw new InvalidOperationException("Genome is not frozen: " + genome);
+			return genome;
+		}
 
 		protected bool Register(TGenome genome, out TGenome actual)
 		{
@@ -90,7 +98,14 @@ namespace GeneticAlgorithmPlatform
 		{
 			while (true)
 			{
-				var one = GenerateOne(source);
+				TGenome one;
+				using (TimeoutHandler.New(9000, () =>
+				{
+					Console.WriteLine("Warning: " + this + ".GenerateOne() timed out.");
+				}))
+				{
+					one = GenerateOne(source);
+				}
 				if (one == null)
 				{
 					Console.WriteLine("GenomeFactory failed GenerateOne()");
@@ -102,7 +117,7 @@ namespace GeneticAlgorithmPlatform
 
 		public TGenome GenerateOne(TGenome source)
 		{
-			var one = GenerateOne(new TGenome[] { source });
+			var one = AssertFrozen(GenerateOne(new TGenome[] { source }));
 			if (one != null)
 				RegisterProduction(one);
 			return one;
@@ -166,7 +181,13 @@ namespace GeneticAlgorithmPlatform
 				byte tries = 3;
 				while (tries != 0 && genome == null)
 				{
-					genome = MutateInternal(source);
+					using (TimeoutHandler.New(5000, () =>
+					{
+						Console.WriteLine("Warning: " + this + ".MutateInternal(source) timed out.");
+					}))
+					{
+						genome = MutateInternal(source);
+					}
 					--tries;
 				}
 				// Reuse the clone as the source 
@@ -265,7 +286,7 @@ namespace GeneticAlgorithmPlatform
 		public virtual IEnumerable<TGenome> Expand(TGenome genome)
 		{
 			var variation = (TGenome)genome.NextVariation();
-			if (variation != null) yield return variation;
+			if (variation != null) yield return AssertFrozen(variation);
 			var mutation = GenerateOne(genome);
 			if (mutation != null) yield return mutation;
 		}

@@ -8,8 +8,8 @@ using Open.Dataflow;
 
 namespace GeneticAlgorithmPlatform
 {
-    // GenomeSelection should be short lived.
-    public struct GenomeSelection<TGenome>
+	// GenomeSelection should be short lived.
+	public struct GenomeSelection<TGenome>
 		where TGenome : IGenome
 	{
 		public readonly TGenome[] All;
@@ -117,6 +117,8 @@ namespace GeneticAlgorithmPlatform
 
 			var input = new ActionBlock<TGenome>(genome =>
 			{
+				if (!genome.IsReadOnly)
+					throw new InvalidOperationException("Cannot process an unfrozen genome.");
 				if (index == -2)
 				{
 					batchId = SampleID.Next();
