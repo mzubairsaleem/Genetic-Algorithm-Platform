@@ -7,24 +7,35 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Open.Threading;
 
 namespace Open.Collections
 {
 	public class LazyList<T> : DisposableBase, IReadOnlyList<T>
-	{       
-        List<T> _cached;
+	{
+		List<T> _cached;
 		IEnumerator<T> _enumerator;
-		public LazyList(IEnumerable<T> source)
+
+		ReaderWriterLockSlim Sync;
+
+		public readonly bool IsEndless;
+		public LazyList(IEnumerable<T> source, bool isEndless = false)
 		{
 			_enumerator = source.GetEnumerator();
 			_cached = new List<T>();
+			Sync = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+			IsEndless = isEndless; // To indicate if a source is not allowed to fully enumerate.
 		}
 
-        protected override void OnDispose(bool calledExplicitly)
-        {
-			Interlocked.Exchange(ref _enumerator, null).SmartDispose();
-			Interlocked.Exchange(ref _cached, null).SmartDispose();
-        }
+		protected override void OnDispose(bool calledExplicitly)
+		{
+			using (Sync.WriteLock())
+			{
+				Interlocked.Exchange(ref _enumerator, null).SmartDispose();
+				Interlocked.Exchange(ref _cached, null).SmartDispose();
+			}
+			Interlocked.Exchange(ref Sync, null).SmartDispose();
+		}
 
 		public T this[int index]
 		{
@@ -46,7 +57,7 @@ namespace Open.Collections
 		{
 			get
 			{
-                AssertIsLiving();
+				AssertIsLiving();
 				Finish();
 				return _cached.Count;
 			}
@@ -56,58 +67,60 @@ namespace Open.Collections
 		{
 			AssertIsLiving();
 
-			int current = 0;
-			while (current < _cached.Count || _enumerator != null)
+			int index = 0;
+			bool more = _enumerator != null;
+			while (more || index < _cached.Count)
 			{
-				if (current == _cached.Count)
+				if (index < _cached.Count)
 				{
-					T value;
-					if (GetNext(out value))
-					{
-						yield return value;
-					}
-					else
-					{
-						yield break;
-					}
+					yield return _cached[Interlocked.Increment(ref index) - 1];
 				}
 				else
 				{
-					yield return _cached[current];
+					more = GetNext();
 				}
-
-				current++;
 			}
 		}
 
 		public int IndexOf(T item)
 		{
 			AssertIsLiving();
+			if (IsEndless)
+				throw new InvalidOperationException("This list is marked as endless and may never complete. Use an enumerator, then Take(x).IndexOf().");
 
-			int result = _cached.IndexOf(item);
-			T value;
-			while (result == -1 && GetNext(out value))
+			int index = 0;
+			bool more = _enumerator != null;
+			while (more || index < _cached.Count)
 			{
-				if (value.Equals(item))
-					result = _cached.Count - 1;
+				if (index < _cached.Count)
+				{
+					if (_cached[index].Equals(item))
+						return index;
+					index++;
+				}
+				else
+				{
+					more = GetNext();
+				}
 			}
 
-			return result;
+			return -1;
 		}
 
 
 
 		public bool Contains(T item)
 		{
-            AssertIsLiving();
+			AssertIsLiving();
 			return IndexOf(item) != -1;
 		}
 
-		public void CopyTo(T[] array, int arrayIndex)
+		public void CopyTo(T[] array, int arrayIndex = 0)
 		{
-            AssertIsLiving();
-			foreach (var item in this)
-				array[arrayIndex++] = item;
+			AssertIsLiving();
+			var len = Math.Min(Count, array.Length - arrayIndex);
+			for (var i = 0; i < len; i++)
+				array[i + arrayIndex] = this[i];
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -115,34 +128,35 @@ namespace Open.Collections
 			return GetEnumerator();
 		}
 
-		private bool GetNext(out T value)
-		{
-			if (_enumerator != null)
-			{
-				if (_enumerator.ConcurrentTryMoveNext(out value))
-				{
-					_cached.Add(value);
-					return true;
-				}
-				else
-				{
-					Interlocked.Exchange(ref _enumerator, null).SmartDispose();
-				}
-			}
-			value = default(T);
-			return false;
-		}
-
 		private bool GetNext()
 		{
-			T value;
-			return GetNext(out value);
+			if (_enumerator == null) return false;
+
+			using (var uLock = Sync.UpgradableReadLock())
+			{
+				if (_enumerator != null)
+				{
+					uLock.UpgradeToWriteLock();
+					if (_enumerator.MoveNext())
+					{
+						_cached.Add(_enumerator.Current);
+						return true;
+					}
+					else
+					{
+						Interlocked.Exchange(ref _enumerator, null).SmartDispose();
+					}
+				}
+			}
+
+			return false;
 		}
 
 		private void Finish()
 		{
-			while (_enumerator != null)
-				GetNext();
+			if (IsEndless)
+				throw new InvalidOperationException("This list is marked as endless and may never complete.");
+			while (GetNext()) { }
 		}
 
 	}
