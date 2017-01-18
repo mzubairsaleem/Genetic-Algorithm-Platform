@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Open.Arithmetic;
+using Open.Collections;
 
 namespace AlgebraBlackBox.Genes
 {
@@ -170,7 +171,7 @@ namespace AlgebraBlackBox.Genes
 
 			if (MigrateMultiples()) return;
 
-			// Look for groupings...
+			// Look for square root groupings...
 			foreach (var p in children
 				.OfType<SquareRootGene>()
 				.GroupBy(g => g.ToStringUsingMultiple(1))
@@ -197,7 +198,46 @@ namespace AlgebraBlackBox.Genes
 
 			}
 
-			var divisions = children.OfType<DivisionGene>().Where(c => c.Any()).ToArray();
+			// Look for cancellations... (probably could be optimized more)
+			foreach (var d in children
+				.OfType<DivisionGene>()
+				.Where(g => g.HasAny()).ToArray())
+			{
+				var other = children.Where(c => c != d && c.ToStringUsingMultiple(1) == d.ToStringContents()).FirstOrDefault();
+				if (other != null)
+				{
+					Debug.Assert(d.Multiple == 1, "Should have already been pulled out.");
+					Debug.Assert(other.Multiple == 1, "Should have already been pulled out.");
+					Debug.Assert(d.Count == 1);
+					d.Clear();
+					Remove(d);
+					Remove(other);
+				}
+				else
+				{
+					var p = d.Children.Single() as ProductGene;
+					if (p != null)
+					{
+						foreach (var e in p.Children.ToArray())
+						{
+							if (e.Multiple != 1)
+							{
+								p.Multiple *= e.Multiple;
+								e.Multiple = 1;
+							}
+							var o2 = children.Where(c => c.ToStringUsingMultiple(1) == e.ToStringUsingMultiple(1)).FirstOrDefault();
+							if (o2 != null)
+							{
+								p.Remove(e);
+								Remove(o2);
+							}
+
+						}
+					}
+				}
+			}
+
+			var divisions = children.OfType<DivisionGene>().Where(c => c.HasAny()).ToArray();
 			if (divisions.Length > 1)
 			{
 				var newProd = new ProductGene();
