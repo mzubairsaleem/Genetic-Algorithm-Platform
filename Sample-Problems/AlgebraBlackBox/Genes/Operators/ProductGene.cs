@@ -45,10 +45,11 @@ namespace AlgebraBlackBox.Genes
 		bool MigrateMultiple(IGene child)
 		{
 			var m = child.Multiple;
-			if (m != 1 && double.IsInfinity(m))
+			if (m != 1d && !double.IsInfinity(m))
 			{
 				this.Multiple *= m;
 				child.Multiple = 1d;
+				return true;
 			}
 			return false;
 		}
@@ -74,7 +75,7 @@ namespace AlgebraBlackBox.Genes
 
 			var updated = false;
 			// Extract any multiples so we don't have to worry about them later.
-			foreach (var c in children)
+			foreach (var c in children.ToArray())
 			{
 				if (MigrateMultiple(c)) updated = true;
 				if (c is ConstantGene)
@@ -84,7 +85,7 @@ namespace AlgebraBlackBox.Genes
 				}
 			}
 
-			if (System.Math.Abs(this.Multiple) > 1)
+			if (System.Math.Abs(this.Multiple) > 1d)
 			{
 				foreach (var d in children.OfType<DivisionGene>())
 				{
@@ -116,12 +117,12 @@ namespace AlgebraBlackBox.Genes
 									updated = true;
 								}
 
-								if (System.Math.Abs(this.Multiple) == 1)
+								if (System.Math.Abs(this.Multiple) == 1d)
 									break;
 							}
 						}
 
-						if (System.Math.Abs(this.Multiple) == 1)
+						if (System.Math.Abs(this.Multiple) == 1d)
 							break;
 					}
 				}
@@ -147,7 +148,7 @@ namespace AlgebraBlackBox.Genes
 			var children = GetChildren();
 			foreach (var d in children.OfType<DivisionGene>().ToArray())
 			{
-				Debug.Assert(d.Multiple == 1, "Should have already been pulled out.");
+				Debug.Assert(d.Multiple == 1d, "Should have already been pulled out.");
 				// Use the internal reduction routine of the division gene to reduce the division node.
 				var m = Multiple;
 
