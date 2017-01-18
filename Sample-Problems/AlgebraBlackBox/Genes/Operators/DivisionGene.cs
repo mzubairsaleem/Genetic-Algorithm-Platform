@@ -60,43 +60,48 @@ namespace AlgebraBlackBox.Genes
 		{
 			// Pull out clean divisors.
 			var children = GetChildren();
-			foreach (var g in children.ToArray())
+			foreach (var c in children.ToArray())
 			{
-				var m = g.Multiple;
+				var m = c.Multiple;
 
 				// Pull out negatives first.
 				if (m < 0)
 				{
 					m *= -1;
-					g.Multiple = m;
+					c.Multiple = m;
 					this.Multiple *= -1;
 				}
 
-				if (double.IsNaN(m) || double.IsInfinity(m))
+				if (m==0 || double.IsNaN(m))
+				{
+					this.Multiple = double.NaN;
+					Clear();
+					return;
+				}
+
+				// There are edge cases where infinity * 0 = 0 so don't mess with this.
+				if (double.IsInfinity(m))
 				{
 					continue;
 				}
 
+				// Find workable multiples and cancel them.
 				foreach (var i in m.Multiples().Skip(1).Distinct())
 				{
 					while (this.Multiple % i == 0)
 					{
 						m /= i;
 						this.Multiple /= i;
-						g.Multiple = m;
+						c.Multiple = m;
 					}
 
 					if (System.Math.Abs(this.Multiple) == 1)
 						break;
 				}
 
-
-				if (m != 1 && Multiple % m == 0)
+				if (c.Multiple == 1 && c is ConstantGene)
 				{
-					g.Multiple = 1;
-					if (g is ConstantGene)
-						children.Remove(g);
-					this.Multiple /= m;
+					children.Remove(c);
 				}
 			}
 		}
@@ -108,17 +113,14 @@ namespace AlgebraBlackBox.Genes
 			{
 				var c = children.Single();
 				var m = c.Multiple;
-				if (m == 0 || double.IsNaN(m))
-				{
-					// WHOA.  Divide by zero?  NaN?
-					return new ConstantGene(double.NaN);
-				}
-				else if (m == 1)
+				// m==0 and m==NaN is handled above in ReduceLoop.
+				if (m == 1)
 				{
 					if (c is ConstantGene)
 						return new ConstantGene(this.Multiple);
 				}
 
+				// Dividing?  Just replace this with it.
 				var d = c as DivisionGene;
 				if (d != null && d.Multiple == 1)
 				{

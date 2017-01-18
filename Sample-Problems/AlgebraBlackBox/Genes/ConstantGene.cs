@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AlgebraBlackBox.Genes
 {
@@ -31,12 +32,12 @@ namespace AlgebraBlackBox.Genes
         }
 
 		static readonly Task<double> T1d = Task.FromResult(1d);
-        protected override Task<double> CalculateWithoutMultipleAsync(double[] values)
+        protected override Task<double> CalculateWithoutMultipleAsync(IReadOnlyList<double> values)
         {
 			return T1d;
         }
 
-		protected override double CalculateWithoutMultiple(double[] values)
+		protected override double CalculateWithoutMultiple(IReadOnlyList<double> values)
         {
 			return 1d;
         }

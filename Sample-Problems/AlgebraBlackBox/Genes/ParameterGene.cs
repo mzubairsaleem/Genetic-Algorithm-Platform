@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -68,16 +69,15 @@ namespace AlgebraBlackBox.Genes
 			return CloneThis();
 		}
 
-		protected override Task<double> CalculateWithoutMultipleAsync(double[] values)
+		protected override Task<double> CalculateWithoutMultipleAsync(IReadOnlyList<double> values)
 		{
 			return Task.FromResult(CalculateWithoutMultiple(values));
 		}
 
-		protected override double CalculateWithoutMultiple(double[] values)
+		protected override double CalculateWithoutMultiple(IReadOnlyList<double> values)
 		{
 			AssertIsLiving();
-			var id = ID;
-			return id < values.Length ? values[id] : double.NaN;
+			return values[(int)ID];
 		}
 
 		public bool Equivalent(IGene other)

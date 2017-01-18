@@ -9,11 +9,96 @@ using System.Threading;
 
 namespace Open.Threading
 {
+
+	public abstract class Lock : IDisposable
+	{
+		protected ReaderWriterLockSlim _target;
+		public bool LockHeld;
+
+		protected Lock(ReaderWriterLockSlim target, bool lockHeld)
+		{
+			_target = target;
+			LockHeld = lockHeld;
+		}
+		protected abstract void OnDispose(ReaderWriterLockSlim target);
+
+		public void Dispose()
+		{
+			var target = Interlocked.Exchange(ref _target, null);
+			if (target != null) OnDispose(target);
+		}
+	}
+
+	public sealed class ReadLock : Lock
+	{
+		public ReadLock(ReaderWriterLockSlim target, int? millisecondsTimeout = null)
+		: base(target, target.EnterReadLock(millisecondsTimeout, true))
+		{
+		}
+
+		protected override void OnDispose(ReaderWriterLockSlim target)
+		{
+			target.ExitReadLock();
+		}
+	}
+
+	public sealed class WriteLock : Lock
+	{
+		public WriteLock(ReaderWriterLockSlim target, int? millisecondsTimeout = null)
+		: base(target, target.EnterWriteLock(millisecondsTimeout, true))
+		{
+		}
+
+		protected override void OnDispose(ReaderWriterLockSlim target)
+		{
+			target.ExitWriteLock();
+		}
+	}
+
+	public sealed class UpgradableReadLock : Lock
+	{
+		readonly object _sync = new Object();
+		WriteLock _upgraded;
+		public UpgradableReadLock(ReaderWriterLockSlim target, int? millisecondsTimeout = null)
+		: base(target, target.EnterUpgradeableReadLock(millisecondsTimeout, true))
+		{
+		}
+
+		// A useful utility but it's completely fine to create your own write lock under an upgradable one.
+		public void UpgradeToWriteLock(int? millisecondsTimeout = null)
+		{
+			lock (_sync)
+			{
+				if (_upgraded != null)
+					throw new InvalidOperationException("A write lock is already in effect.");
+				_upgraded = new WriteLock(_target, millisecondsTimeout);
+			}
+		}
+
+		public void Downgrade()
+		{
+			lock (_sync)
+			{
+				if (_upgraded == null)
+					throw new InvalidOperationException("There is no write lock in effect to downgrade from.");
+				_upgraded.Dispose();
+				_upgraded = null;
+			}
+		}
+
+		protected override void OnDispose(ReaderWriterLockSlim target)
+		{
+			lock (_sync) Interlocked.Exchange(ref _upgraded, null).SmartDispose();
+			target.ExitUpgradeableReadLock();
+		}
+	}
+
 	public static class ReaderWriterLockSlimExensions
 	{
+
 		public static bool IsLockFree(this ReaderWriterLockSlim target)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
 
 			return target.CurrentReadCount == 0
@@ -34,10 +119,10 @@ namespace Open.Threading
 		}
 
 		internal static void ValidateMillisecondsTimeout(int? millisecondsTimeout)
-        {
-            if (millisecondsTimeout != null && millisecondsTimeout < 0)
-                throw new ArgumentOutOfRangeException("millisecondsTimeout", millisecondsTimeout, "Cannot be a negative value.");
-        }
+		{
+			if (millisecondsTimeout != null && millisecondsTimeout < 0)
+				throw new ArgumentOutOfRangeException("millisecondsTimeout", millisecondsTimeout, "Cannot be a negative value.");
+		}
 
 
 		/// <summary>
@@ -47,7 +132,7 @@ namespace Open.Threading
 		public static bool EnterReadLock(this ReaderWriterLockSlim target,
 			int? millisecondsTimeout, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -73,7 +158,7 @@ namespace Open.Threading
 		public static bool EnterUpgradeableReadLock(this ReaderWriterLockSlim target,
 			int? millisecondsTimeout, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -99,7 +184,7 @@ namespace Open.Threading
 		public static bool EnterWriteLock(this ReaderWriterLockSlim target,
 			int? millisecondsTimeout, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -130,9 +215,9 @@ namespace Open.Threading
 			Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -151,6 +236,24 @@ namespace Open.Threading
 			return lockHeld;
 		}
 
+		public static ReadLock ReadLock(this ReaderWriterLockSlim target,
+			int? millisecondsTimeout = null)
+		{
+			return new ReadLock(target, millisecondsTimeout);
+		}
+
+		public static WriteLock WriteLock(this ReaderWriterLockSlim target,
+			int? millisecondsTimeout = null)
+		{
+			return new WriteLock(target, millisecondsTimeout);
+		}
+
+		public static UpgradableReadLock UpgradableReadLock(this ReaderWriterLockSlim target,
+			int? millisecondsTimeout = null)
+		{
+			return new UpgradableReadLock(target, millisecondsTimeout);
+		}
+
 		/// <summary>
 		/// ReaderWriterLockSlim extension for synchronizing read access.
 		/// </summary>
@@ -163,9 +266,9 @@ namespace Open.Threading
 			out T result, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -198,9 +301,9 @@ namespace Open.Threading
 			Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -232,9 +335,9 @@ namespace Open.Threading
 			out T result, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -266,9 +369,9 @@ namespace Open.Threading
 			Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -299,9 +402,9 @@ namespace Open.Threading
 			out T result, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -330,11 +433,11 @@ namespace Open.Threading
 			Func<bool, bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -363,11 +466,11 @@ namespace Open.Threading
 			ref T result, Func<bool, bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -400,11 +503,11 @@ namespace Open.Threading
 			Func<LockType, bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -435,11 +538,11 @@ namespace Open.Threading
 			ref T result, Func<LockType, bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -475,17 +578,18 @@ namespace Open.Threading
 			Func<bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			bool writeLocked = true; // Initialize true so that if only only reading it still returns true.
-			bool readLocked = target.ReadUpgradeable(() => {
-				if(condition())
+			bool readLocked = target.ReadUpgradeable(() =>
+			{
+				if (condition())
 					writeLocked = target.Write(closure, millisecondsTimeout, throwsOnTimeout);
 			});
 
@@ -502,11 +606,11 @@ namespace Open.Threading
 			ref T result, Func<bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -515,7 +619,8 @@ namespace Open.Threading
 			bool written = false;
 			bool readLocked = target.ReadUpgradeable(() =>
 			{
-				if (condition()) { 
+				if (condition())
+				{
 					// out r ensures that it IS written to.
 					writeLocked = target.Write(out r, closure, millisecondsTimeout, throwsOnTimeout);
 					written = true;
@@ -540,17 +645,17 @@ namespace Open.Threading
 			Func<LockType, bool> condition, Action closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			bool c = false;
 			var lockHeld = target.Read(() => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
-			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(()=>condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
+			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(() => condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
 		}
 
 		/// <summary>
@@ -564,17 +669,17 @@ namespace Open.Threading
 			ref T result, Func<LockType, bool> condition, Func<T> closure,
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(condition==null)
+			if (condition == null)
 				throw new ArgumentNullException("condition");
-			if(closure==null)
+			if (closure == null)
 				throw new ArgumentNullException("closure");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			bool c = false;
 			var lockHeld = target.Read(() => c = condition(LockType.Read), millisecondsTimeout, throwsOnTimeout);
-			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(ref result, ()=>condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
+			return lockHeld && (!c || target.ReadUpgradeableWriteConditional(ref result, () => condition(LockType.ReadUpgradeable), closure, millisecondsTimeout, throwsOnTimeout));
 		}
 
 		/// <summary>
@@ -592,17 +697,17 @@ namespace Open.Threading
 			int? millisecondsTimeout = null, bool throwsOnTimeout = false)
 			where T : class
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(getValue==null)
+			if (getValue == null)
 				throw new ArgumentNullException("getValue");
-			if(createValue==null)
+			if (createValue == null)
 				throw new ArgumentNullException("createValue");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
 			T result = null;
 			target.ReadWriteConditionalOptimized(
-				ref result, lockType => (result = getValue())==null, createValue,
+				ref result, lockType => (result = getValue()) == null, createValue,
 				millisecondsTimeout,
 				throwsOnTimeout);
 
@@ -617,9 +722,9 @@ namespace Open.Threading
 			out T result, Func<T> valueFactory,
 			int? millisecondsTimeout = null)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(valueFactory==null)
+			if (valueFactory == null)
 				throw new ArgumentNullException("valueFactory");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -637,9 +742,9 @@ namespace Open.Threading
 			out T result, Func<T> valueFactory,
 			int? millisecondsTimeout = null)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(valueFactory==null)
+			if (valueFactory == null)
 				throw new ArgumentNullException("valueFactory");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -656,9 +761,9 @@ namespace Open.Threading
 			Func<T> valueFactory,
 			int? millisecondsTimeout = null)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(valueFactory==null)
+			if (valueFactory == null)
 				throw new ArgumentNullException("valueFactory");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 
@@ -674,9 +779,9 @@ namespace Open.Threading
 			Func<T> valueFactory,
 			int? millisecondsTimeout = null)
 		{
-			if(target==null)
+			if (target == null)
 				throw new NullReferenceException();
-			if(valueFactory==null)
+			if (valueFactory == null)
 				throw new ArgumentNullException("valueFactory");
 			ValidateMillisecondsTimeout(millisecondsTimeout);
 

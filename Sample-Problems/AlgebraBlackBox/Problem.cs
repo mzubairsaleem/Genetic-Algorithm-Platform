@@ -17,7 +17,7 @@ using Fitness = GeneticAlgorithmPlatform.Fitness;
 namespace AlgebraBlackBox
 {
 
-	public delegate double Formula(params double[] p);
+	public delegate double Formula(IReadOnlyList<double> p);
 
 	///<summary>
 	/// The 'Problem' class is important for tracking fitness results and deciding how well a genome is peforming.
@@ -72,7 +72,7 @@ namespace AlgebraBlackBox
 		protected async Task ProcessTest(Genome g, Fitness fitness, long sampleId, bool useAsync = true)
 		{
 			var samples = Samples.Get(sampleId);
-			var len = samples.Length;
+			var len = 10;
 			var correct = new double[len];
 			var divergence = new double[len];
 			var calc = new double[len];
@@ -85,8 +85,8 @@ namespace AlgebraBlackBox
 			for (var i = 0; i < len; i++)
 			{
 				var sample = samples[i];
-				var s = sample.Key;
-				var correctValue = sample.Value;
+				var s = sample.ParamValues;
+				var correctValue = sample.Correct.Value;
 				correct[i] = correctValue;
 				var result = useAsync ? await g.CalculateAsync(s) : g.Calculate(s);
 				// #if DEBUG
@@ -125,7 +125,7 @@ namespace AlgebraBlackBox
 				var c = correct.Correlation(calc);
 				if (c > 1) c = 1; // Must clamp double precision insanity.
 				else if (c.IsPreciseEqual(1)) c = 1; // Compensate for epsilon.
-				//if (c > 1) c = 3 - 2 * c; // Correlation compensation for double precision insanity.
+													 //if (c > 1) c = 3 - 2 * c; // Correlation compensation for double precision insanity.
 				var d = divergence.Where(v => !double.IsNaN(v)).Average() + 1;
 
 				fitness.AddScores(
@@ -135,7 +135,6 @@ namespace AlgebraBlackBox
 			}
 		}
 
-		static readonly double[] OneOne = new double[] { 1, 1 };
 		public static void EmitTopGenomeStats(KeyValuePair<IProblem<Genome>, Genome> kvp)
 		{
 			var p = kvp.Key;
@@ -148,7 +147,6 @@ namespace AlgebraBlackBox
 			else
 				Console.WriteLine("{0}:\t{1}\n=>\t{2}", p.ID, genome.ToAlphaParameters(), asReduced.ToAlphaParameters());
 
-			Console.WriteLine("  \t(1,1) = {0}", genome.Calculate(OneOne));
 			Console.WriteLine("  \t[{0}] ({1} samples)", fitness.Scores.JoinToString(","), fitness.SampleCount);
 			Console.WriteLine();
 		}

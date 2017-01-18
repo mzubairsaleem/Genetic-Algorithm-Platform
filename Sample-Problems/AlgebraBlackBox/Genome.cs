@@ -117,12 +117,12 @@ namespace AlgebraBlackBox
 			return new Genome(Root.Clone());
 		}
 
-		public double Calculate(double[] values)
+		public double Calculate(IReadOnlyList<double> values)
 		{
 			return Root.Calculate(values);
 		}
 
-		public Task<double> CalculateAsync(double[] values)
+		public Task<double> CalculateAsync(IReadOnlyList<double> values)
 		{
 			return Root.CalculateAsync(values);
 		}

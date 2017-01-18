@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Open.Formatting;
 
 namespace Open.Arithmetic
@@ -305,50 +306,74 @@ namespace Open.Arithmetic
 			return NextPrime((int)a);
 		}
 
-		public static List<int> Multiples(this int a)
+		public static IEnumerable<int> Multiples(this int a)
 		{
-			var result = new List<int>();
-			result.Add(a < 1 ? -1 : 1);
+			yield return a < 1 ? -1 : 1;
 			if (a < 1) a = Math.Abs(a);
 
 			for (var i = 2; a != 1 && i <= a; i = i.NextPrime())
 			{
 				while (a % i == 0)
 				{
-					result.Add(i);
+					yield return i;
 					a /= i;
 				}
 			}
-
-			return result;
 		}
 
 
-		public static List<double> Multiples(this double a)
+		public static IEnumerable<double> Multiples(this double a)
 		{
-			var result = new List<double>();
-			if (double.IsNaN(a)) return result;
-			result.Add(a < 1 ? -1 : 1);
-			if (a < 1) a = Math.Abs(a);
-
-			if (Math.Floor(a) != a || double.IsInfinity(a))
+			if (double.IsNaN(a))
 			{
-				result.Add(a);
-				return result;
+				yield return a;
 			}
-
-			for (var i = 2; a != 1 && i <= a; i = i.NextPrime())
+			else
 			{
-				while (a % i == 0)
+				yield return a < 1 ? -1 : 1;
+				if (a < 1) a = Math.Abs(a);
+
+				if (double.IsInfinity(a) || Math.Floor(a) != a)
 				{
-					result.Add(i);
-					a /= i;
+					yield return a;
+				}
+				else
+				{
+					for (var i = 2; a != 1 && i <= a; i = i.NextPrime())
+					{
+						while (a % i == 0)
+						{
+							yield return i;
+							a /= i;
+						}
+					}
 				}
 			}
-
-			return result;
 		}
 
+		// returns all the primes that do not include 1 or the number itself.
+		public static IEnumerable<double> DivisibleMultiples(this double a)
+		{
+			var m = a.Multiples().Skip(1);
+
+			foreach (var i in m)
+			{
+				if (i == a) break;
+				yield return i;
+			}
+		}
+
+		// returns all the primes that do not include 1 or the number itself.
+		public static IEnumerable<int> DivisibleMultiples(this int a)
+		{
+			var m = a.Multiples().Skip(1);
+
+			foreach (var i in m)
+			{
+				if (i == a) break;
+				yield return i;
+			}
+		}
 
 	}
 }

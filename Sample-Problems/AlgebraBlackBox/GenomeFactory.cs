@@ -457,6 +457,39 @@ namespace AlgebraBlackBox
 				yield return VariationCatalog.RemoveGene(source, i);
 			}
 
+
+			// Strip down parameter levels to search for significance.
+			Genome paramRemoved = source;
+			while (true)
+			{
+				paramRemoved = paramRemoved.Clone();
+				var root = paramRemoved.Root;
+				var paramGroups = paramRemoved.Genes
+					.OfType<ParameterGene>()
+					.Where(g => g != root)
+					.GroupBy(g => g.ID)
+					.OrderByDescending(g => g.Key)
+					.FirstOrDefault()?.ToArray();
+
+				if (paramGroups == null || paramGroups.Length < 2)
+					break;
+
+				foreach (var p in paramGroups)
+				{
+					var parent = paramRemoved.FindParent(p);
+					parent.Remove(p);
+				}
+
+				yield return paramRemoved;
+			}
+
+
+
+			for (var i = 0; i < count; i++)
+			{
+				yield return VariationCatalog.RemoveGene(source, i);
+			}
+
 			for (var i = 0; i < count; i++)
 			{
 				yield return VariationCatalog.ReduceMultipleMagnitude(source, i);

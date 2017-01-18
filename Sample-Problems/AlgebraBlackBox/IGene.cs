@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
 using Open.Threading;
@@ -11,8 +12,8 @@ namespace AlgebraBlackBox
 
         bool SetMultiple(double value);
 
-        double Calculate(double[] values);
-        Task<double> CalculateAsync(double[] values);
+        double Calculate(IReadOnlyList<double> values);
+        Task<double> CalculateAsync(IReadOnlyList<double> values);
 
         string ToStringContents();
 

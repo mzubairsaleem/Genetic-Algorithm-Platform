@@ -34,7 +34,7 @@ namespace AlgebraBlackBox
 			return Sync.Modifying(ref _multiple, value);
 		}
 
-		public double Calculate(double[] values)
+		public double Calculate(IReadOnlyList<double> values)
 		{
 			AssertIsLiving();
 			var m = Multiple;
@@ -42,7 +42,7 @@ namespace AlgebraBlackBox
 			return m * CalculateWithoutMultiple(values);
 		}
 
-		public async Task<double> CalculateAsync(double[] values)
+		public async Task<double> CalculateAsync(IReadOnlyList<double> values)
 		{
 			AssertIsLiving();
 			var m = Multiple;
@@ -51,8 +51,8 @@ namespace AlgebraBlackBox
 			return m * calc;
 		}
 
-		protected abstract double CalculateWithoutMultiple(double[] values);
-		protected abstract Task<double> CalculateWithoutMultipleAsync(double[] values);
+		protected abstract double CalculateWithoutMultiple(IReadOnlyList<double> values);
+		protected abstract Task<double> CalculateWithoutMultipleAsync(IReadOnlyList<double> values);
 
 		protected string MultiplePrefixFrom(double m)
 		{
@@ -165,7 +165,7 @@ namespace AlgebraBlackBox
 
 
 
-		public double Calculate(double[] values)
+		public double Calculate(IReadOnlyList<double> values)
 		{
 			AssertIsLiving();
 			var m = Multiple;
@@ -173,7 +173,7 @@ namespace AlgebraBlackBox
 			return m * CalculateWithoutMultiple(values);
 		}
 
-		public async Task<double> CalculateAsync(double[] values)
+		public async Task<double> CalculateAsync(IReadOnlyList<double> values)
 		{
 			AssertIsLiving();
 			var m = Multiple;
@@ -182,13 +182,13 @@ namespace AlgebraBlackBox
 			return m * calc;
 		}
 
-		protected double CalculateWithoutMultiple(double[] values)
+		protected double CalculateWithoutMultiple(IReadOnlyList<double> values)
 		{
 			if (GetChildren().Count == 0) return DefaultIfNoChildren();
 			return ProcessChildValues(CalculateChildren(values));
 		}
 
-		protected Task<double> CalculateWithoutMultipleAsync(double[] values)
+		protected Task<double> CalculateWithoutMultipleAsync(IReadOnlyList<double> values)
 		{
 			if (GetChildren().Count == 0) return Task.FromResult(DefaultIfNoChildren());
 			return Task.WhenAll(CalculateChildrenAsync(values))
@@ -198,11 +198,11 @@ namespace AlgebraBlackBox
 		protected abstract double DefaultIfNoChildren();
 		protected abstract double ProcessChildValues(IEnumerable<double> values);
 
-		protected IEnumerable<double> CalculateChildren(double[] values)
+		protected IEnumerable<double> CalculateChildren(IReadOnlyList<double> values)
 		{
 			return GetChildren().Select(s => s.Calculate(values));
 		}
-		protected IEnumerable<Task<double>> CalculateChildrenAsync(double[] values)
+		protected IEnumerable<Task<double>> CalculateChildrenAsync(IReadOnlyList<double> values)
 		{
 			return GetChildren().Select(s => s.CalculateAsync(values));
 		}

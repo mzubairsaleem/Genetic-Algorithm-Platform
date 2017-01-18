@@ -41,6 +41,18 @@ namespace AlgebraBlackBox.Genes
 		{
 			return CloneThis();
 		}
+
+		bool MigrateMultiple(IGene child)
+		{
+			var m = child.Multiple;
+			if (m != 1 && double.IsInfinity(m))
+			{
+				this.Multiple *= m;
+				child.Multiple = 1d;
+			}
+			return false;
+		}
+
 		bool MigrateMultiples()
 		{
 			var children = GetChildren();
@@ -51,6 +63,7 @@ namespace AlgebraBlackBox.Genes
 				Multiple = double.NaN;
 				return true;
 			}
+
 			if (children.Any(c => c.Multiple == 0))
 			{
 				// Any multiple of zero? Reset the entire collection;
@@ -61,21 +74,12 @@ namespace AlgebraBlackBox.Genes
 
 			var updated = false;
 			// Extract any multiples so we don't have to worry about them later.
-			foreach (var c in children.OfType<ConstantGene>().ToArray())
-			{
-				var m = c.Multiple;
-				Remove(c);
-				this.Multiple *= m;
-				updated = true;
-			}
-
 			foreach (var c in children)
 			{
-				var m = c.Multiple;
-				if (m != 1d)
+				if (MigrateMultiple(c)) updated = true;
+				if (c is ConstantGene)
 				{
-					this.Multiple *= m;
-					c.Multiple = 1d;
+					Remove(c); // With multples neutralized, then constants are superflous.
 					updated = true;
 				}
 			}
@@ -90,18 +94,31 @@ namespace AlgebraBlackBox.Genes
 						var m = c.Multiple;
 						if (double.IsNaN(m) || double.IsInfinity(m))
 						{
+							// Can't handle this so move on.
 							continue;
 						}
-						foreach (var i in m.Multiples().Skip(1).Distinct())
-						{
-							while (this.Multiple % i == 0)
-							{
-								this.Multiple /= i;
-								c.Multiple /= i;
-							}
 
-							if (System.Math.Abs(this.Multiple) == 1)
-								break;
+						// First try to divide by entire multiple.
+						if (this.Multiple % m == 0)
+						{
+							this.Multiple /= m;
+							c.Multiple /= m;
+							updated = true;
+						}
+						else
+						{
+							foreach (var i in m.DivisibleMultiples().Distinct())
+							{
+								while (this.Multiple % i == 0)
+								{
+									this.Multiple /= i;
+									c.Multiple /= i;
+									updated = true;
+								}
+
+								if (System.Math.Abs(this.Multiple) == 1)
+									break;
+							}
 						}
 
 						if (System.Math.Abs(this.Multiple) == 1)
@@ -110,14 +127,22 @@ namespace AlgebraBlackBox.Genes
 				}
 			}
 
-
 			return updated;
 		}
 
 		protected override void ReduceLoop()
 		{
+			if (Count == 0)
+				return;
 
-			if (MigrateMultiples()) return;
+			if (Multiple == 0)
+			{
+				Clear();
+				return;
+			}
+
+			if (MigrateMultiples())
+				return;
 
 			var children = GetChildren();
 			foreach (var d in children.OfType<DivisionGene>().ToArray())

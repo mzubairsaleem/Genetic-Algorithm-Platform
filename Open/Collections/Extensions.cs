@@ -2213,9 +2213,9 @@ namespace Open.Collections
 
 		}
 
-		public static LazyList<T> Memoize<T>(this IEnumerable<T> list)
+		public static LazyList<T> Memoize<T>(this IEnumerable<T> list, bool isEndless = false)
 		{
-			return new LazyList<T>(list);
+			return new LazyList<T>(list, isEndless);
 		}
 
 		public static IEnumerable<T> OfType<TSource, T>(this IEnumerable<TSource> list)

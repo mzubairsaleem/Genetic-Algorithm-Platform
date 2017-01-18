@@ -7,7 +7,7 @@ using Open;
 using AlgebraBlackBox;
 using System.Threading;
 using Open.Threading;
-
+using System.Collections.Generic;
 
 namespace GeneticAlgorithmPlatform
 {
@@ -15,21 +15,29 @@ namespace GeneticAlgorithmPlatform
 	{
 
 
-		static double AB(params double[] p)
+		static double AB(IReadOnlyList<double> p)
 		{
 			var a = p[0];
 			var b = p[1];
 			return a * b;
 		}
 
-		static double SqrtA2B2(params double[] p)
+		static double SqrtA2B2(IReadOnlyList<double> p)
 		{
 			var a = p[0];
 			var b = p[1];
 			return Math.Sqrt(a * a + b * b);
 		}
 
-		static double SqrtA2B2A2B1(params double[] p)
+		static double SqrtA2B2C2(IReadOnlyList<double> p)
+		{
+			var a = p[0];
+			var b = p[1];
+			var c = p[2];
+			return Math.Sqrt(a * a + b * b + c * c);
+		}
+
+		static double SqrtA2B2A2B1(IReadOnlyList<double> p)
 		{
 			var a = p[0];
 			var b = p[1];
@@ -39,10 +47,10 @@ namespace GeneticAlgorithmPlatform
 		{
 			Console.WriteLine("Starting...");
 
-			var problem = new Problem(SqrtA2B2A2B1);
+			var problem = new Problem(SqrtA2B2C2);
 			var scheme = new PyramidPipeline<AlgebraBlackBox.Genome>(
 				new AlgebraBlackBox.GenomeFactory(),
-				50, 4);
+				50, 5, 3);
 			scheme.AddProblem(problem);
 
 			var cancel = new CancellationTokenSource();
@@ -111,3 +119,4 @@ namespace GeneticAlgorithmPlatform
 
 	}
 }
+

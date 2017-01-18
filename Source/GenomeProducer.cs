@@ -31,8 +31,11 @@ namespace GeneticAlgorithmPlatform
 		{
 			var message = "Source Enumeration took longer than " + ms + " seconds to produce.";
 			Console.WriteLine(message);
-			((ISourceBlock<TGenome>)OutputBuffer).Fault(new TimeoutException(message));
-			Complete();
+			if (!Debugger.IsAttached)
+			{
+				((ISourceBlock<TGenome>)OutputBuffer).Fault(new TimeoutException(message));
+				Complete();
+			}
 		}
 
 		private GenomeProducer(IEnumerator<TGenome> source, int bufferSize = 100)
