@@ -80,7 +80,7 @@ namespace AlgebraBlackBox.Genes
 				if (MigrateMultiple(c)) updated = true;
 				if (c is ConstantGene)
 				{
-					Remove(c); // With multples neutralized, then constants are superflous.
+					children.Remove(c); // With multples neutralized, then constants are superflous.
 					updated = true;
 				}
 			}
@@ -93,7 +93,7 @@ namespace AlgebraBlackBox.Genes
 					if (c != null)
 					{
 						var m = c.Multiple;
-						if (double.IsNaN(m) || double.IsInfinity(m))
+						if (m==1 || double.IsNaN(m) || double.IsInfinity(m))
 						{
 							// Can't handle this so move on.
 							continue;
@@ -128,6 +128,9 @@ namespace AlgebraBlackBox.Genes
 				}
 			}
 
+			if(updated)
+				Sync.Poke(); // Just to be sure. :/
+
 			return updated;
 		}
 
@@ -143,7 +146,7 @@ namespace AlgebraBlackBox.Genes
 			}
 
 			if (MigrateMultiples())
-				return;
+				return; // Needs to hit the loop again. :/
 
 			var children = GetChildren();
 			foreach (var d in children.OfType<DivisionGene>().ToArray())
@@ -156,6 +159,7 @@ namespace AlgebraBlackBox.Genes
 				var c = d.Children.Where(
 					g => children.Any(
 						a => g != d && g.ToStringUsingMultiple(1) == a.ToStringUsingMultiple(1)));
+
 				IGene df;
 				while ((df = c.FirstOrDefault()) != null)
 				{
@@ -263,19 +267,32 @@ namespace AlgebraBlackBox.Genes
 				}
 			}
 
-			var divisions = children.OfType<DivisionGene>().Where(c => c.HasAny()).ToArray();
+			var divisions = children.OfType<DivisionGene>().Where(c => c.Count == 1).ToArray();
 			if (divisions.Length > 1)
 			{
 				var newProd = new ProductGene();
 				foreach (var d in divisions)
 				{
-					Remove(d);
+					children.Remove(d);
 					newProd.Multiple *= d.Multiple;
 					newProd.Add(d.Single());
 					d.Clear();
 				}
 				Add(new DivisionGene(newProd));
 			}
+
+			// Cleanup/rebalance negatives if possible.
+			if (this.Multiple < 0)
+			{
+				var sum = children.OfType<SumGene>().Where(s => s.Any(c => c.Multiple < 0)).FirstOrDefault();
+				if (sum != null)
+				{
+					this.Multiple *= -1;
+					foreach (var s in sum)
+						s.Multiple *= -1;
+				}
+			}
+
 		}
 
 		protected override IGene ReplaceWithReduced()

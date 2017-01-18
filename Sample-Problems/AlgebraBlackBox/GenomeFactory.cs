@@ -63,7 +63,7 @@ namespace AlgebraBlackBox
 
 			if (genome == null)
 			{
-				for (byte m = 1; m < 4; m++) // The 4 effectively represents the max parameter depth.
+				for (byte m = 1; m < 26; m++) // The 26 effectively represents the max parameter depth.
 				{
 
 					// Establish a maximum.
@@ -117,6 +117,7 @@ namespace AlgebraBlackBox
 								return genome;
 						}
 						while (--t != 0);
+
 					}
 					while (--tries != 0);
 				}

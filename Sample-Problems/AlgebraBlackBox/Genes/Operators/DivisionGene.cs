@@ -72,7 +72,7 @@ namespace AlgebraBlackBox.Genes
 					this.Multiple *= -1;
 				}
 
-				if (m==0 || double.IsNaN(m))
+				if (m == 0 || double.IsNaN(m))
 				{
 					this.Multiple = double.NaN;
 					Clear();
@@ -102,6 +102,15 @@ namespace AlgebraBlackBox.Genes
 				if (c.Multiple == 1 && c is ConstantGene)
 				{
 					children.Remove(c);
+				}
+
+				// Cleanup/rebalance negatives if possible.
+				var sum = c as SumGene;
+				if (sum != null && this.Multiple < 0 && sum.Any(s => s.Multiple < 0))
+				{
+					this.Multiple *= -1;
+					foreach (var s in sum)
+						s.Multiple *= -1;
 				}
 			}
 		}

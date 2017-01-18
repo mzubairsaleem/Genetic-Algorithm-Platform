@@ -70,13 +70,16 @@ namespace AlgebraBlackBox.Genes
 		protected override IGene ReplaceWithReduced()
 		{
 			var child = GetChildren().FirstOrDefault();
-			if (child == null) return new ConstantGene(this.Multiple);
+			if (child == null)
+				return new ConstantGene(this.Multiple);
+
 			var m = child.Multiple;
 			if (m == 0 || double.IsNaN(m))
 				return new ConstantGene(m);
 
 			if (child.Multiple != 1) // Can't make a perfect square?
 				return null;
+				
 			else if (child is ConstantGene)
 				return new ConstantGene(1);
 
