@@ -93,7 +93,7 @@ namespace AlgebraBlackBox.Genes
 					if (c != null)
 					{
 						var m = c.Multiple;
-						if (m==1 || double.IsNaN(m) || double.IsInfinity(m))
+						if (m == 1 || double.IsNaN(m) || double.IsInfinity(m))
 						{
 							// Can't handle this so move on.
 							continue;
@@ -128,7 +128,7 @@ namespace AlgebraBlackBox.Genes
 				}
 			}
 
-			if(updated)
+			if (updated)
 				Sync.Poke(); // Just to be sure. :/
 
 			return updated;
@@ -236,8 +236,8 @@ namespace AlgebraBlackBox.Genes
 				var other = children.Where(c => c != d && c.ToStringUsingMultiple(1) == d.ToStringContents()).FirstOrDefault();
 				if (other != null)
 				{
-					Debug.Assert(d.Multiple == 1, "Should have already been pulled out.");
-					Debug.Assert(other.Multiple == 1, "Should have already been pulled out.");
+					MigrateMultiple(d);
+					MigrateMultiple(other);
 					Debug.Assert(d.Count == 1);
 					d.Clear();
 					Remove(d);
