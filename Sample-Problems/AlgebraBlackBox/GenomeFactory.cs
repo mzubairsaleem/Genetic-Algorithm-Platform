@@ -130,7 +130,7 @@ namespace AlgebraBlackBox
 			Genome genome;
 			using (TimeoutHandler.New(5000, ms =>
 			{
-				Console.WriteLine("Warning: {0}.GenerateOneInternal() is taking longer than {1} milliseconds.", this, ms);
+				Console.WriteLine("Warning: {0}.GenerateOneInternal() is taking longer than {1} milliseconds.\n", this, ms);
 			}))
 			{
 				genome = GenerateOneInternal(source);

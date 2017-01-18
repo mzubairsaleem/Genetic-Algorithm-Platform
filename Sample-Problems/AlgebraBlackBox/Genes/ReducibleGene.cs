@@ -147,59 +147,59 @@ namespace AlgebraBlackBox.Genes
 
 		public IGene Reduce()
 		{
-			using (TimeoutHandler.New(200, ms =>
-			{
-				Console.WriteLine("Warning: {0}.Reduce() is taking longer than {1} milliseconds.", this, ms);
-			}))
-			{
+			// using (TimeoutHandler.New(200, ms =>
+			// {
+			// 	Console.WriteLine("Warning: {0}.Reduce() is taking longer than {1} milliseconds.\n", this, ms);
+			// }))
+			// {
 
-				var m = Multiple;
-				if (MultipleIsExtreme(m))
-					return new ConstantGene(m);
+			var m = Multiple;
+			if (MultipleIsExtreme(m))
+				return new ConstantGene(m);
 
-				var reduced = this;
-				var sync = Sync;
-				var modified = sync.Modifying(() =>
-				{
-					var modCount = 0;
+			var reduced = this;
+			var sync = Sync;
+			var modified = sync.Modifying(() =>
+			{
+				var modCount = 0;
 					// Inner loop will keep going while changes are still occuring.
 					while (!MultipleIsExtreme(Multiple) && sync.Modifying(() =>
-						{
-							foreach (var o in GetChildren().OfType<IReducibleGene>().ToArray())
-							{
-								if (ChildReduce(o) != null)
-									modCount++;
-							}
-
-							ReduceLoop();
-						}))
 					{
-						modCount++;
-						if (modCount > 500)
+						foreach (var o in GetChildren().OfType<IReducibleGene>().ToArray())
 						{
-							if (Debugger.IsAttached)
-								Debugger.Break();
-							else
-							{
-								var message = "Potential infinite reduction loop in " + this.GetType();
-								Console.WriteLine("");
-								Console.WriteLine("==========================================================");
-								Console.WriteLine(message);
-								throw new Exception(message);
-							}
+							if (ChildReduce(o) != null)
+								modCount++;
+						}
+
+						ReduceLoop();
+					}))
+				{
+					modCount++;
+					if (modCount > 500)
+					{
+						if (Debugger.IsAttached)
+							Debugger.Break();
+						else
+						{
+							var message = "Potential infinite reduction loop in " + this.GetType();
+							Console.WriteLine("");
+							Console.WriteLine("==========================================================");
+							Console.WriteLine(message);
+							throw new Exception(message);
 						}
 					}
-					return modCount != 0;
-				});
+				}
+				return modCount != 0;
+			});
 
-				// Last round check...
-				m = Multiple;
-				if (MultipleIsExtreme(m))
-					return new ConstantGene(m);
+			// Last round check...
+			m = Multiple;
+			if (MultipleIsExtreme(m))
+				return new ConstantGene(m);
 
-				return ReplaceWithReduced() ??
-					(modified ? reduced : null);
-			}
+			return ReplaceWithReduced() ??
+				(modified ? reduced : null);
+			// }
 		}
 
 

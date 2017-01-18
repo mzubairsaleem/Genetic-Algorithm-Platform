@@ -36,24 +36,24 @@ namespace AlgebraBlackBox
 					var p1 = r as ProductGene;
 					//					Debug.Assert(p1==null || p1.Count>1);
 					// Be careful not to call .IsReducible in here as it may recurse.
-					using (TimeoutHandler.New(1000, ms =>
+					// using (TimeoutHandler.New(2000, ms =>
+					// {
+					// 	Console.WriteLine("Warning: {0}.AsReduced() is taking longer than {1} milliseconds.\n", r, ms);
+					// }))
+					// {
+					var root = r.AsReduced();
+					var p2 = root as ProductGene;
+					if (p2 != null && p2.Count < 2)
 					{
-						Console.WriteLine("Warning: {0}.AsReduced() is taking longer than {1} milliseconds.", r, ms);
-					}))
-					{
-						var root = r.AsReduced();
-						var p2 = root as ProductGene;
-						if (p2 != null && p2.Count < 2)
-						{
-							Debugger.Break();
-						}
-
-						if (root == Root) return this;
-						var g = new Genome(root);
-						g.Freeze();
-
-						return g;
+						Debugger.Break();
 					}
+
+					if (root == Root) return this;
+					var g = new Genome(root);
+					g.Freeze();
+
+					return g;
+					// }
 				}); // Use a clone to prevent any threading issues.
 			_variations = null;
 		}

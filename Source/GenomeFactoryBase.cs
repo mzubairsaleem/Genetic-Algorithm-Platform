@@ -104,7 +104,7 @@ namespace GeneticAlgorithmPlatform
 				TGenome one;
 				using (TimeoutHandler.New(9000, ms =>
 				{
-					Console.WriteLine("Warning: {0}.GenerateOne() is taking longer than {1} milliseconds.", this, ms);
+					Console.WriteLine("Warning: {0}.GenerateOne() is taking longer than {1} milliseconds.\n", this, ms);
 				}))
 				{
 					one = GenerateOne(source);
@@ -186,7 +186,7 @@ namespace GeneticAlgorithmPlatform
 				{
 					using (TimeoutHandler.New(3000, ms =>
 					{
-						Console.WriteLine("Warning: {0}.MutateInternal({1}) is taking longer than {2} milliseconds.", this, source, ms);
+						Console.WriteLine("Warning: {0}.MutateInternal({1}) is taking longer than {2} milliseconds.\n", this, source, ms);
 					}))
 					{
 						genome = MutateInternal(source);
