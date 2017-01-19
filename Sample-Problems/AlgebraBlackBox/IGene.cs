@@ -1,19 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AlgebraBlackBox.Genes;
 using Open.Threading;
 
 namespace AlgebraBlackBox
 {
-    public interface IGene : GeneticAlgorithmPlatform.IGene, IComparable<IGene>, ICloneable<IGene>
+    public interface IGene : GeneticAlgorithmPlatform.ICalculableGene<double>, IComparable<IGene>, ICloneable<IGene>
     {
-        double Multiple { get; set; }
-
-        bool SetMultiple(double value);
-
-        double Calculate(IReadOnlyList<double> values);
-        Task<double> CalculateAsync(IReadOnlyList<double> values);
 
         string ToStringContents();
 
